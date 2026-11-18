@@ -1,6 +1,12 @@
 name = "uav-thietbibachkhoa-vn2000"
 main = "deploy/cloudflare_worker_thietbibachkhoa.js"
 compatibility_date = "2024-11-01"
+workers_dev = true
+
+routes = [
+  { pattern = "thietbibachkhoa.id.vn/*", zone_name = "thietbibachkhoa.id.vn" },
+  { pattern = "*.thietbibachkhoa.id.vn/*", zone_name = "thietbibachkhoa.id.vn" }
+]
 
 [vars]
 UAV_CUSTOM_DOMAIN = "thietbibachkhoa.id.vn"
