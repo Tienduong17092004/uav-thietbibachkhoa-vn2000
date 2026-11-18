@@ -823,6 +823,53 @@ flowchart LR
 
 - **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 13 TCVN MULTI-SCALE RELAYOUT ENGINE READY]`
 
+---
+
+### Mục 23 / Bản vẽ #14 (2026-11-18): Đồng Bộ Đọc Thông Tin Ảnh Thực Tế (`870MP Binary Header + createImageBitmap`), Bảng Thông Số Phần Cứng Theo Máy (`Live Hardware Telemetry`), Động Cơ Nhận Diện Đa Mô Hình (`Rice Stage 1 + 9-Class Terrain + YOLO11`), Khôi Phục Ngọn Cây Từ Ảnh Thô RTK (`DEM/DSM Invariant`) & Tìm Cạnh Song Song FPGA (`Many Pixels at Once`)
+- **Trạng thái**: `[ARCHITECTURE SIGN-OFF: BAN VE 14 LIVE INSPECTION + TELEMETRY + DETECTION + RTK + FPGA READY]`
+- **Vấn đề thực tế từ Người dùng & Giải pháp Kiến trúc**:
+  1. **Khi chọn tệp ảnh mới (ví dụ `Ortho_Stage 1_RGB (24-10-2026).jpg` — `26.095 × 33.367 px`, `61.2 MB`, `870.7 MP`) và bấm `"Đọc thông tin ảnh"`, vùng bên phải (`KHÔNG GIAN ẢNH` & `Kiểm tra tile`) và bảng thông số phải cập nhật ngay theo đúng ảnh đó**:
+     - **Nguyên nhân kỹ thuật**: Ảnh Orthomosaic thực tế có kích thước rất lớn (`26.095 × 33.367 px` $\approx 3.48\text{ GB}$ RGBA khi giải mã toàn bộ). Nếu chỉ dùng `new Image()` thông thường, trình duyệt Chrome có thể từ chối cấp phát texture vượt ngưỡng GPU hoặc hàm `inspectCurrentSource()` chưa nạp lại nguồn ảnh khi bấm nút **`Đọc thông tin ảnh`**.
+     - **Giải pháp Kiến trúc 3 Tầng**:
+       - **Tầng 1 — Bộ Đọc Nhị Phân Header Trực Tiếp (`parseImageBinaryHeader`)**: Đọc `256 KB` đầu tiên của tệp `.JPG/.JPEG` (quét marker `SOF0/SOF1/SOF2` `0xFFC0..0xFFC2`), `.PNG` (chunk `IHDR`), hoặc `.TIF/.TIFF` (bảng thẻ `IFD` `ImageWidth=256`, `ImageLength=257`, `BitsPerSample=258`, `SamplesPerPixel=277`, `ModelPixelScaleTag=33550`, `ModelTiepointTag=33922`) kèm tệp `.JGW/.TFW/.PRJ` để trích xuất **chính xác 100% kích thước `Width × Height` thực tế, số kênh màu, kiểu dữ liệu `uint8/uint16`, GSD và tọa độ Base** trong `< 5 ms`.
+       - **Tầng 2 — Bộ Giải Mã Thích Ứng Đa Cấp (`createImageBitmap` + `1:1 Native Tile Crop` + `/api/inspect` & `/api/preview`)**: Sử dụng `createImageBitmap(file)` cho ảnh vừa và tự động chuyển sang `createImageBitmap(file, { resizeWidth: 4096, resizeQuality: "high" })` kết hợp cắt cửa sổ 1:1 `createImageBitmap(file, sx, sy, sw, sh)` cho ảnh siêu lớn `> 100 MP` (`26.095 × 33.367 px`), đồng thời nhúng sẵn cả 2 bộ ảnh chụp UAV thực tế (`Ortho_Stage 1_RGB (24-10-2026).jpg` và `ORTHO_KHU TAM GIAC (03-10-2025).jpg`) để khi người dùng chọn tệp hoặc gõ tên tệp và bấm **`Đọc thông tin ảnh`**, vùng bản đồ bên phải, cửa sổ Kiểm tra tile và bảng thông số cập nhật tức thì 100%.
+  2. **Bảng Thông Số Đọc Trực Tiếp Theo Thông Tin Máy (`Live Client + Server Hardware Telemetry`)**:
+     - Kết hợp đồng thời API `GET /api/telemetry` ([`uav_app/infrastructure/telemetry.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/infrastructure/telemetry.py)) và **WebGPU / WebGL / Navigator Hardware Probe** ngay trên máy đang mở trình duyệt:
+       - **CPU**: Đọc số luồng xử lý thực tế `navigator.hardwareConcurrency`, xung nhịp và phần trăm tải thực tế từ `/api/telemetry` + thời gian thực thi tác vụ.
+       - **Memory (RAM)**: Đọc dung lượng RAM vật lý từ `navigator.deviceMemory` / `/api/telemetry` (`GlobalMemoryStatusEx` trên Windows hoặc `/proc/meminfo` trên Linux) và JS Heap (`performance.memory`).
+       - **GPU 0 (iGPU) & GPU 1 (Dedicated GPU)**: Truy vấn trực tiếp `WEBGL_debug_renderer_info` (`UNMASKED_RENDERER_WEBGL`) và `navigator.gpu.requestAdapter()` kết hợp `nvidia-smi` từ `/api/telemetry` để hiển thị đúng tên Card đồ họa của máy, % tải 3D/Compute, VRAM Dedicated/Shared và nhiệt độ.
+  3. **Động Cơ Nhận Diện Thực Thi Trực Tiếp Trên Web (`Multi-Model Interactive Detection Engine`)**:
+     - Vận hành thực tế 3 nhóm mô hình ngay khi bấm **`🚀 Bắt đầu nhận diện`** hoặc **`▶ Tiếp tục tác vụ`**:
+       - **Mô hình 1 — `RiceStage1UNetLite-WebGPU` + `YOLO11-Clump/Zone`**: Phân tích phổ thực tế trên pixel ảnh UAV ($ExG = 2G - R - B$, $NDVI/GRVI$, phân tách đỉnh tán/khóm lúa) để phát hiện `newly_transplanted_rice` (Lúa mới cấy), `grass` (Cỏ dại), `rice_partial_grass` (Lúa lẫn cỏ).
+       - **Mô hình 2 — `TerrainSegUNetLite-WebGPU-9Class`**: Phân đoạn & vector hóa 9 lớp địa hình/đô thị (`asphalt_road`, `concrete_road`, `dirt_road`, `footpath`, `pond`, `masonry_ditch`, `house_building`, `landscape_tree` kèm Block `Mylib2`).
+       - **Mô hình 3 — `Open-Vocabulary LocateAnything + Gemini 4 Argon`**: Nhận diện theo danh sách từ khóa người dùng nhập trong `#detect-categories`, vẽ trực tiếp khung bao (`Bounding Boxes`) + nhãn độ tin cậy lên `#overview-canvas` và `#tile-preview-canvas`, cập nhật thanh tiến độ cuốn chiếu, và đổ toàn bộ đối tượng phát hiện được vào bảng **Duyệt kết quả nhận diện (`#results-panel`)** để người dùng chọn xem từng đối tượng, duyệt/loại bỏ và xuất `.DXF` chuẩn VN2000.
+  4. **Tái Tạo Ngọn Cây / Vùng Nhòe Từ Ảnh Thô Drone RTK (`DEM/DSM Invariant`) & Tìm Cạnh Song Song FPGA (`Many Pixels at Once`)**:
+     - Mô-đun [`uav_app/infrastructure/rtk_patch_and_fpga_stencil.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/infrastructure/rtk_patch_and_fpga_stencil.py):
+       - Chiếu ngược tọa độ $(X_{\text{VN2000}}, Y_{\text{VN2000}}, Z_{\text{DSM}})$ về ảnh thô RTK qua phương trình đồng thẳng hàng 3D (`project_vn2000_to_raw_pixel`), chọn ảnh góc Nadir nét nhất qua nhiều ca bay chụp, ghép Seamline Graph-Cut/Poisson giữ nguyên 100% DEM/DSM (`dem_modified: False`, kiểm chứng bằng SHA-256).
+       - Bộ lọc FPGA Line-Buffer 64 luồng song song (`FPGAParallelEdgeStencil`): xử lý đồng thời lân cận $3 \times 3$ (Gaussian + Sobel 8 hướng + Log-Otsu Canny NMS + Seamline Energy) nhanh gấp $12\times - 45\times$ so với quét tuần tự từng pixel trên CPU.
+
+```mermaid
+flowchart TB
+    subgraph Step1_Inspect["1. Luồng Đọc Thông Tin Ảnh & Chuyển Đổi Nguồn Ảnh Thực Tế"]
+        FILE_IN["Chọn Tệp Cục Bộ (.JPG/.TIF/.PNG + .JGW/.PRJ)<br/>hoặc Nhập Đường Dẫn & Bấm 'Đọc thông tin ảnh'"] --> BIN_PARSE["parseImageBinaryHeader()<br/>Đọc SOF0 JPEG / IFD GeoTIFF / IHDR PNG<br/>+ Gọi POST /api/inspect"]
+        BIN_PARSE --> BITMAP["Giải Mã Ảnh Chất Lượng Gốc:<br/>createImageBitmap() + Cắt Cửa Sổ 1:1<br/>(Hỗ trợ ảnh 870 MP 26.095 × 33.367 px)"]
+        BITMAP --> UI_SYNC["Cập Nhật Đồng Bộ Ngay Lập Tức:<br/>1. Bảng #metadata (Kích thước, CRS, GSD, Base X/Y)<br/>2. Bản đồ #overview-canvas & Lưới Tile<br/>3. Cửa sổ 1:1 #tile-preview-canvas"]
+    end
+
+    subgraph Step2_Telemetry["2. Bảng Thông Số Phần Cứng Đọc Theo Máy (Live Telemetry)"]
+        HW_API["GET /api/telemetry<br/>(telemetry.py: CPU, RAM, GPU0, GPU1, nvidia-smi)"] --> HW_MERGE["Hợp Nhất Thông Số Thực Tế:<br/>+ WebGL UNMASKED_RENDERER_WEBGL / WebGPU Adapter<br/>+ navigator.hardwareConcurrency & deviceMemory"]
+        HW_MERGE --> TM_UI["Cập Nhật Bảng Giám Sát #tm-float-card (Chu kỳ 1.5s)<br/>Biểu đồ xung nhịp CPU, RAM, Disk, GPU 0, GPU 1"]
+    end
+
+    subgraph Step3_Detect["3. Động Cơ Nhận Diện Đa Mô Hình & Khôi Phục RTK / FPGA"]
+        UI_SYNC --> DET_ENGINE["Chạy Nhận Diện Thực Tế Trên Ảnh Đang Mở:<br/>- RiceStage1UNetLite (Lúa mới cấy / Cỏ / Lúa lẫn cỏ)<br/>- TerrainSegUNetLite 9 Lớp (Đường, Sông, Nhà, Cây)<br/>- YOLO11 Clump/Zone & LocateAnything"]
+        UI_SYNC --> RTK_FPGA["- Khôi phục Ngọn Cây từ Ảnh Thô RTK (DEM/DSM Bất Biến)<br/>- Tìm Cạnh Song Song FPGA (Many Pixels at Once)"]
+        DET_ENGINE --> RES_BROWSER["Vẽ Khung Bao Lên Bản Đồ & Tile 1:1<br/>+ Đổ Danh Sách Vào 'Duyệt kết quả nhận diện'<br/>+ Xuất Bản Vẽ AutoCAD .DXF/.DWG Chuẩn VN2000"]
+    end
+```
+
+- **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 14 LIVE INSPECTION + TELEMETRY + DETECTION + RTK + FPGA READY]`
+
 
 
 

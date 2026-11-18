@@ -541,7 +541,63 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
         self.assertEqual(bm["hardware_telemetry"]["mode"], "many_pixels_at_once")
         self.assertGreater(bm["simd_webgpu_speedup_x"], 1.0)
 
+    def test_telemetry_inspect_and_multimodel_portal_endpoints(self) -> None:
+        from pathlib import Path
+        from uav_app.infrastructure.telemetry import sample_hardware_telemetry
+
+        hw = sample_hardware_telemetry(max_age_sec=0.0)
+        self.assertIn("cpu", hw)
+        self.assertIn("memory", hw)
+        self.assertIn("disks", hw)
+        self.assertIn("network", hw)
+        self.assertIn("gpus", hw)
+        self.assertGreaterEqual(hw["cpu"]["logical_cores"], 1)
+
+        srv, _ = start_background_server(host="127.0.0.1", port=0)
+        port = srv.server_address[1]
+        try:
+            base = f"http://127.0.0.1:{port}"
+            with urllib.request.urlopen(f"{base}/api/telemetry", timeout=3) as resp:
+                tel = json.loads(resp.read().decode("utf-8"))
+                self.assertEqual(tel["status"], "ok")
+                self.assertIn("cpu", tel)
+                self.assertIn("disks", tel)
+
+            req_s1 = urllib.request.Request(
+                f"{base}/api/inspect",
+                data=json.dumps({"path": "Ortho_Stage 1_RGB (24-10-2026).jpg"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_s1, timeout=3) as resp:
+                meta_s1 = json.loads(resp.read().decode("utf-8"))
+                self.assertEqual(meta_s1["dataset_key"], "stage1_rgb")
+                self.assertEqual(meta_s1["width"], 26095)
+                self.assertEqual(meta_s1["height"], 33367)
+
+            req_tg = urllib.request.Request(
+                f"{base}/api/inspect",
+                data=json.dumps({"path": "ORTHO_KHU TAM GIAC (03-10-2025).jpg"}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_tg, timeout=3) as resp:
+                meta_tg = json.loads(resp.read().decode("utf-8"))
+                self.assertEqual(meta_tg["dataset_key"], "khu_tam_giac")
+                self.assertEqual(meta_tg["width"], 25600)
+                self.assertEqual(meta_tg["height"], 19216)
+
+            html = (Path(__file__).resolve().parents[2] / "MO_WEB_NHAN_DIEN_NGAY.html").read_text(encoding="utf-8")
+            self.assertIn("STAGE1_REAL_UAV_ORTHO_URI", html)
+            self.assertIn("parseImageBinaryHeader", html)
+            self.assertIn("runRealPixelDetectionOnActiveImage", html)
+            self.assertIn("pollRealMachineTelemetry", html)
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

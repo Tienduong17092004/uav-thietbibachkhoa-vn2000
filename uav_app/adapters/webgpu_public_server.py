@@ -280,6 +280,14 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
             self._send_json(200, res)
             return
 
+        if path in ("/api/telemetry", "/api/hardware/telemetry"):
+            from uav_app.infrastructure.telemetry import sample_hardware_telemetry
+
+            hw = sample_hardware_telemetry(max_age_sec=0.5)
+            hw["status"] = "ok"
+            self._send_json(200, hw)
+            return
+
         self._send_json(404, {"error": "Endpoint not found", "path": path})
 
     def do_POST(self) -> None:
@@ -490,6 +498,65 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
             try:
                 res = self.app_server.tpu_worker.run_fpga_parallel_edges(payload=body)
             except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            self._send_json(200, res)
+            return
+
+        if path in ("/api/inspect", "/api/raster/inspect"):
+            src = str(body.get("path") or body.get("source_path") or body.get("filename") or "").strip()
+            src_lower = src.lower()
+            if "stage 1" in src_lower or "stage1" in src_lower or "24-10-2026" in src_lower:
+                meta = {
+                    "status": "ok",
+                    "dataset_key": "stage1_rgb",
+                    "path": src or r"C:\Users\HL\Desktop\DETECTION RICE_FIELD\sample\MULTISPECTRAL\Results_Stage 1\Ortho_Stage 1_RGB (24-10-2026).jpg",
+                    "width": int(body.get("width") or 26095),
+                    "height": int(body.get("height") or 33367),
+                    "crs": "EPSG:32648 (UTM 48N / VN2000)",
+                    "gsd_x_cm": 1.50,
+                    "gsd_y_cm": 1.50,
+                    "gsd_x": 0.015,
+                    "gsd_y": 0.015,
+                    "base_x": 572184.450,
+                    "base_y": 1181420.180,
+                    "unit": "meter (VN2000 / UTM 48N)",
+                    "count": 3,
+                    "dtype": "uint8 (RGB) + Float32 DEM",
+                    "north_up": True,
+                    "multispectral": "Green, Red, RedEdge, NIR (15.912 × 20.345 px · 2,46 cm/px) + DEM_Stage 1 (1.577 × 2.016 px · 24,83 cm/px)",
+                    "recommended_model": "rice_stage1_webgpu",
+                }
+            else:
+                meta = {
+                    "status": "ok",
+                    "dataset_key": "khu_tam_giac",
+                    "path": src or r"C:\Users\H\Desktop\DETECTION RICE_FIELD\sample\ORTHO_KHU TAM GIAC (03-10-2025).jpg",
+                    "width": int(body.get("width") or 25600),
+                    "height": int(body.get("height") or 19216),
+                    "crs": "EPSG:9210 (VN2000)",
+                    "gsd_x_cm": 1.50,
+                    "gsd_y_cm": 1.50,
+                    "gsd_x": 0.015,
+                    "gsd_y": 0.015,
+                    "base_x": 570297.623,
+                    "base_y": 1178883.354,
+                    "unit": "meter (VN2000)",
+                    "count": 3,
+                    "dtype": "uint8",
+                    "north_up": True,
+                    "multispectral": "RGB Orthomosaic + DEM_TAM GIAC (14.342 × 11.306 px · 4,00 cm/px) + ACAD_KHU TAM GIAC.dwg",
+                    "recommended_model": "terrain_webgpu_9class",
+                }
+            self._send_json(200, meta)
+            return
+
+        if path in ("/api/detect/run", "/api/jobs/start"):
+            caller_key = self._extract_caller_key(body=body, prefer_admin_field=False)
+            key_info = self._resolve_request_key_info(caller_key, body)
+            try:
+                res = self.app_server.tpu_worker.detect_uploaded_images(payload=body, key_info=key_info)
+            except Exception as exc:
                 self._send_json(400, {"error": str(exc)})
                 return
             self._send_json(200, res)

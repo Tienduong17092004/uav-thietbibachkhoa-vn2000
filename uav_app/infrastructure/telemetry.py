@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ctypes
 import os
+import shutil
 import subprocess
 import threading
 import time
@@ -19,8 +20,13 @@ _SAMPLER_THREAD_RUNNING = False
 _PREV_IDLE_TIME: int = 0
 _PREV_KERNEL_TIME: int = 0
 _PREV_USER_TIME: int = 0
+_PREV_LINUX_TOTAL: int = 0
+_PREV_LINUX_IDLE: int = 0
+_PREV_NET_RX_BYTES: int = 0
+_PREV_NET_TX_BYTES: int = 0
+_PREV_NET_TS: float = 0.0
 
-# Static hardware metadata discovered once from Windows Registry
+# Static hardware metadata discovered once from Windows Registry or /proc/cpuinfo
 _STATIC_CPU_INFO: dict[str, Any] | None = None
 _STATIC_GPU_ADAPTERS: list[dict[str, Any]] | None = None
 
@@ -67,6 +73,24 @@ def _discover_static_hardware() -> tuple[dict[str, Any], list[dict[str, Any]]]:
                 mhz_val, _ = winreg.QueryValueEx(k, "~MHz")
                 if mhz_val:
                     base_mhz = int(mhz_val)
+        except Exception:
+            pass
+    else:
+        try:
+            if os.path.exists("/proc/cpuinfo"):
+                with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as fh:
+                    for line in fh:
+                        if ":" not in line:
+                            continue
+                        k_part, v_part = [p.strip() for p in line.split(":", 1)]
+                        kl = k_part.lower()
+                        if kl == "model name" and v_part and cpu_name == "Processor":
+                            cpu_name = v_part
+                        elif kl == "cpu mhz" and v_part:
+                            try:
+                                base_mhz = max(800, int(float(v_part)))
+                            except ValueError:
+                                pass
         except Exception:
             pass
 
@@ -120,9 +144,31 @@ def _discover_static_hardware() -> tuple[dict[str, Any], list[dict[str, Any]]]:
 
 def _sample_cpu_utilization() -> tuple[float, float]:
     global _PREV_IDLE_TIME, _PREV_KERNEL_TIME, _PREV_USER_TIME
+    global _PREV_LINUX_TOTAL, _PREV_LINUX_IDLE
     cpu_meta, _ = _discover_static_hardware()
     base_ghz = float(cpu_meta.get("base_ghz") or 3.42)
     if os.name != "nt":
+        try:
+            if os.path.exists("/proc/stat"):
+                with open("/proc/stat", "r", encoding="utf-8", errors="ignore") as fh:
+                    first = fh.readline().strip()
+                parts = first.split()
+                if len(parts) >= 5 and parts[0] == "cpu":
+                    nums = [int(x) for x in parts[1:9] if x.isdigit()]
+                    idle_all = nums[3] + (nums[4] if len(nums) > 4 else 0)
+                    total_all = sum(nums)
+                    if _PREV_LINUX_TOTAL > 0 and total_all > _PREV_LINUX_TOTAL:
+                        d_total = total_all - _PREV_LINUX_TOTAL
+                        d_idle = max(0, idle_all - _PREV_LINUX_IDLE)
+                        busy_pct = max(0.5, min(100.0, ((d_total - d_idle) / float(d_total)) * 100.0))
+                    else:
+                        busy_pct = 9.5
+                    _PREV_LINUX_TOTAL = total_all
+                    _PREV_LINUX_IDLE = idle_all
+                    turbo_ghz = base_ghz + min(1.25, (busy_pct / 100.0) * 1.25 + 0.35)
+                    return round(busy_pct, 1), round(turbo_ghz, 2)
+        except Exception:
+            pass
         return 12.0, base_ghz
 
     idle = _FILETIME()
@@ -175,6 +221,34 @@ def _sample_system_memory() -> dict[str, float]:
                 "utilization_pct": round(float(stat.dwMemoryLoad), 1),
                 "shared_gpu_limit_gb": round(total_gb / 2.0, 1),
             }
+    else:
+        try:
+            if os.path.exists("/proc/meminfo"):
+                mem_kb: dict[str, int] = {}
+                with open("/proc/meminfo", "r", encoding="utf-8", errors="ignore") as fh:
+                    for line in fh:
+                        if ":" not in line:
+                            continue
+                        k_part, v_part = line.split(":", 1)
+                        num_str = v_part.strip().split()[0]
+                        if num_str.isdigit():
+                            mem_kb[k_part.strip()] = int(num_str)
+                total_kb = mem_kb.get("MemTotal", 0)
+                avail_kb = mem_kb.get("MemAvailable", mem_kb.get("MemFree", 0))
+                if total_kb > 0:
+                    total_gb = total_kb / (1024.0 ** 2)
+                    avail_gb = avail_kb / (1024.0 ** 2)
+                    used_gb = max(0.0, total_gb - avail_gb)
+                    util_pct = (used_gb / total_gb) * 100.0
+                    return {
+                        "used_gb": round(used_gb, 1),
+                        "total_gb": round(total_gb, 1),
+                        "available_gb": round(avail_gb, 1),
+                        "utilization_pct": round(util_pct, 1),
+                        "shared_gpu_limit_gb": round(total_gb / 2.0, 1),
+                    }
+        except Exception:
+            pass
     return {
         "used_gb": 16.0,
         "total_gb": 32.0,
@@ -182,6 +256,83 @@ def _sample_system_memory() -> dict[str, float]:
         "utilization_pct": 50.0,
         "shared_gpu_limit_gb": 16.0,
     }
+
+
+def _sample_disks_and_network() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    global _PREV_NET_RX_BYTES, _PREV_NET_TX_BYTES, _PREV_NET_TS
+    disks: list[dict[str, Any]] = []
+    if os.name == "nt":
+        candidates = [("Disk 0 (C: D:)", "C:\\", "SSD (NVMe)"), ("Disk 1 (E:)", "D:\\", "HDD")]
+    else:
+        candidates = [("Disk 0 (Root /)", "/", "SSD (NVMe)"), ("Disk 1 (Workspace)", "/home", "SSD (NVMe)")]
+
+    for idx, (label, path, media_type) in enumerate(candidates):
+        try:
+            target = path if os.path.exists(path) else "/"
+            usage = shutil.disk_usage(target)
+            total_gb = round(usage.total / (1024.0 ** 3), 1)
+            used_gb = round(usage.used / (1024.0 ** 3), 1)
+            free_gb = round(usage.free / (1024.0 ** 3), 1)
+            pct = round((usage.used / max(1, usage.total)) * 100.0, 1)
+            disks.append({
+                "index": idx,
+                "label": label,
+                "mount": target,
+                "type": media_type,
+                "used_gb": used_gb,
+                "total_gb": total_gb,
+                "free_gb": free_gb,
+                "capacity_pct": pct,
+                "active_pct": round(min(100.0, max(1.0, (pct * 0.04) if idx == 0 else 0.5)), 1),
+            })
+        except Exception:
+            disks.append({
+                "index": idx,
+                "label": label,
+                "mount": path,
+                "type": media_type,
+                "used_gb": 120.0,
+                "total_gb": 512.0,
+                "free_gb": 392.0,
+                "capacity_pct": 23.4,
+                "active_pct": 1.0,
+            })
+
+    rx_kbps = 24.0
+    tx_kbps = 18.0
+    now = time.monotonic()
+    if os.name != "nt" and os.path.exists("/proc/net/dev"):
+        try:
+            rx_total = 0
+            tx_total = 0
+            with open("/proc/net/dev", "r", encoding="utf-8", errors="ignore") as fh:
+                for line in fh.readlines()[2:]:
+                    if ":" not in line:
+                        continue
+                    iface, rest = line.split(":", 1)
+                    if iface.strip() == "lo":
+                        continue
+                    cols = rest.split()
+                    if len(cols) >= 9:
+                        rx_total += int(cols[0])
+                        tx_total += int(cols[8])
+            if _PREV_NET_TS > 0 and (now - _PREV_NET_TS) > 0.05:
+                dt = now - _PREV_NET_TS
+                rx_kbps = round(max(0.0, (rx_total - _PREV_NET_RX_BYTES) * 8.0 / 1000.0 / dt), 1)
+                tx_kbps = round(max(0.0, (tx_total - _PREV_NET_TX_BYTES) * 8.0 / 1000.0 / dt), 1)
+            _PREV_NET_RX_BYTES = rx_total
+            _PREV_NET_TX_BYTES = tx_total
+            _PREV_NET_TS = now
+        except Exception:
+            pass
+
+    net_info = {
+        "name": "Ethernet",
+        "send_kbps": tx_kbps,
+        "receive_kbps": rx_kbps,
+        "total_kbps": round(rx_kbps + tx_kbps, 1),
+    }
+    return disks, net_info
 
 
 def _refresh_pdh_shared_memory_async() -> None:
@@ -367,9 +518,11 @@ def sample_hardware_telemetry(max_age_sec: float = 0.9) -> dict[str, Any]:
     cpu_pct, cpu_ghz = _sample_cpu_utilization()
     mem_info = _sample_system_memory()
     gpus = _sample_nvidia_gpu(mem_info["shared_gpu_limit_gb"], static_adapters)
+    disks, net_info = _sample_disks_and_network()
 
     payload = {
         "timestamp": time.time(),
+        "platform": os.name,
         "cpu": {
             "name": cpu_meta["name"],
             "utilization_pct": cpu_pct,
@@ -378,9 +531,12 @@ def sample_hardware_telemetry(max_age_sec: float = 0.9) -> dict[str, Any]:
             "logical_cores": cpu_meta["logical_cores"],
         },
         "memory": mem_info,
+        "disks": disks,
+        "network": net_info,
         "gpus": gpus,
     }
     with _TELEMETRY_LOCK:
         _CACHED_HW = payload
         _CACHED_HW_TS = time.monotonic()
     return payload
+
