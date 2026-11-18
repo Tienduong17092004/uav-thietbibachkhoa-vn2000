@@ -17,7 +17,7 @@ from rasterio.windows import Window
 from uav_app.domain.geometry import create_plan
 
 
-MAX_PREVIEW_SIZE = 1600
+MAX_PREVIEW_SIZE = 32768
 
 
 def _local_path(path: str) -> Path:
@@ -160,8 +160,8 @@ def _preview_window(src, window: dict | None) -> Window:
     return Window(col, row, width, height)
 
 
-def preview_png(path: str, max_size: int = 1600, window: dict | None = None, _reader=None) -> bytes:
-    """Return a bounded, diagnostic RGBA preview; no full-resolution overview read."""
+def preview_png(path: str, max_size: int = 32768, window: dict | None = None, _reader=None) -> bytes:
+    """Return a full-resolution or bounded diagnostic RGBA preview preserving original image quality."""
     if isinstance(max_size, bool) or not isinstance(max_size, int) or max_size <= 0:
         raise ValueError("max_size must be a positive integer")
     limit = min(max_size, MAX_PREVIEW_SIZE)
@@ -175,8 +175,9 @@ def preview_png(path: str, max_size: int = 1600, window: dict | None = None, _re
             bands = [src.colorinterp.index(color) + 1 for color in rgb_interps]
         else:
             bands = [1, 2, 3] if src.count >= 3 else [1]
+        resample_mode = Resampling.nearest if scale == 1.0 else Resampling.bilinear
         data = src.read(bands, window=selected, out_shape=(len(bands), height, width),
-                        resampling=Resampling.nearest)
+                        resampling=resample_mode)
         validity = src.dataset_mask(window=selected, out_shape=(height, width), resampling=Resampling.nearest)
         valid = (validity > 0) & np.all(np.isfinite(data), axis=0)
         channels = []

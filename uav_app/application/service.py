@@ -123,8 +123,8 @@ class ProjectService:
             self.store.update(active_pipeline_config=active)
             return result
 
-    def preview(self, path: str, window=None) -> bytes:
-        return preview_png(self.input_path(path), max_size=1600, window=window)
+    def preview(self, path: str, window=None, max_size: int = 32768) -> bytes:
+        return preview_png(self.input_path(path), max_size=max_size, window=window)
 
     def job(self) -> dict | None:
         with self._lock:

@@ -55,13 +55,19 @@ from uav_app.infrastructure.gdrive_key_storage import (
 )
 
 
+_CACHED_PORTAL_HTML: Optional[str] = None
+
+
 def render_webgpu_portal_html(port: int = DEFAULT_PORT, domain: str = CUSTOM_DOMAIN) -> str:
     """Render the UAV GeoTIFF Studio VN2000 HTML portal with Single-Input Key Gate & 4-Step Studio UI."""
-    from pathlib import Path
-    mo_path = Path(__file__).resolve().parents[2] / "MO_WEB_NHAN_DIEN_NGAY.html"
-    if mo_path.is_file():
-        html = mo_path.read_text(encoding="utf-8")
-        return html.replace("thietbibachkhoa.id.vn", domain).replace("8765", str(port))
+    global _CACHED_PORTAL_HTML
+    if _CACHED_PORTAL_HTML is None:
+        from pathlib import Path
+        mo_path = Path(__file__).resolve().parents[2] / "MO_WEB_NHAN_DIEN_NGAY.html"
+        if mo_path.is_file():
+            _CACHED_PORTAL_HTML = mo_path.read_text(encoding="utf-8")
+    if _CACHED_PORTAL_HTML:
+        return _CACHED_PORTAL_HTML.replace("thietbibachkhoa.id.vn", domain).replace(":8765", f":{port}")
     return f"<html><body>UAV GeoTIFF Studio VN2000 — https://{domain}/ (Port {port})</body></html>"
 
 
@@ -69,6 +75,7 @@ class WebGPUPublicServer(ThreadingHTTPServer):
     """ThreadingHTTPServer holding references to TPUOffloadWorker, AgentGovernancePolicy, AutostartHostManager, and GoogleSheetKeyManager."""
 
     allow_reuse_address = True
+    request_queue_size = 128
 
     def __init__(
         self,
@@ -268,6 +275,11 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
             self._send_json(200, meta)
             return
 
+        if path == "/api/fpga/status":
+            res = self.app_server.tpu_worker.run_fpga_parallel_edges(payload={"width": 256, "height": 256})
+            self._send_json(200, res)
+            return
+
         self._send_json(404, {"error": "Endpoint not found", "path": path})
 
     def do_POST(self) -> None:
@@ -457,6 +469,30 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
                 return
             status_code = int(res.get("http_status", 200))
             self._send_json(status_code, res)
+            return
+
+        if path in ("/api/rtk/restore-crown", "/api/orthomosaic/patch-replace"):
+            caller_key = self._extract_caller_key(body=body, prefer_admin_field=False)
+            key_info = self._resolve_request_key_info(caller_key, body)
+            try:
+                res = self.app_server.tpu_worker.restore_rtk_crown_patch(payload=body, key_info=key_info)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            except TPUOffloadError as exc:
+                self._send_json(503, {"error": str(exc)})
+                return
+            status_code = int(res.get("http_status", 200))
+            self._send_json(status_code, res)
+            return
+
+        if path in ("/api/fpga/parallel-edges", "/api/fpga/accelerate"):
+            try:
+                res = self.app_server.tpu_worker.run_fpga_parallel_edges(payload=body)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            self._send_json(200, res)
             return
 
         self._send_json(404, {"error": "Endpoint not found", "path": path})

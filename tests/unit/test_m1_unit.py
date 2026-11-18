@@ -420,9 +420,126 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
                     res_yolo["processed_data_folder_id"],
                     "1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN",
                 )
+                # 5. RTK Raw-Image Crown Patch Restoration (<=15m local GPU vs >15m TPU offload + DEM/DSM invariance)
+                st_rtk_local, res_rtk_local = _post_json(
+                    f"{base}/api/rtk/restore-crown",
+                    {
+                        "key": guest_no_tpu_key,
+                        "estimated_seconds": 320,
+                        "flight_sorties_count": 2,
+                        "raw_images_count": 120,
+                        "crown_center_vn2000": {"x": 570305.94, "y": 1178840.24, "z_dsm": 14.2},
+                    },
+                )
+                self.assertEqual(st_rtk_local, 200)
+                self.assertFalse(res_rtk_local["offloaded_to_tpu"])
+                self.assertFalse(res_rtk_local["dem_dsm_invariance"]["dem_modified"])
+                self.assertFalse(res_rtk_local["dem_dsm_invariance"]["dsm_modified"])
+                self.assertEqual(
+                    res_rtk_local["dem_dsm_invariance"]["dem_sha256_before"],
+                    res_rtk_local["dem_dsm_invariance"]["dem_sha256_after"],
+                )
+
+                st_rtk_forbid, res_rtk_forbid = _post_json(
+                    f"{base}/api/rtk/restore-crown",
+                    {
+                        "key": guest_no_tpu_key,
+                        "estimated_seconds": 1400,
+                        "flight_sorties_count": 6,
+                        "raw_images_count": 1200,
+                    },
+                )
+                self.assertEqual(st_rtk_forbid, 403)
+
+                st_rtk_tpu, res_rtk_tpu = _post_json(
+                    f"{base}/api/rtk/restore-crown",
+                    {
+                        "key": guest_with_tpu_key,
+                        "estimated_seconds": 1400,
+                        "flight_sorties_count": 6,
+                        "raw_images_count": 1200,
+                    },
+                )
+                self.assertEqual(st_rtk_tpu, 200)
+                self.assertTrue(res_rtk_tpu["offloaded_to_tpu"])
+                self.assertFalse(res_rtk_tpu["dem_dsm_invariance"]["dem_modified"])
+
+                # 6. FPGA Many-Pixels-at-Once Parallel Edge Stencil
+                with urllib.request.urlopen(f"{base}/api/fpga/status", timeout=3) as r_fpga_st:
+                    fpga_st_data = json.loads(r_fpga_st.read().decode("utf-8"))
+                    self.assertEqual(r_fpga_st.status, 200)
+                    self.assertEqual(fpga_st_data["paradigm"], "many_pixels_at_once_parallel_stencil")
+
+                st_fpga, res_fpga = _post_json(
+                    f"{base}/api/fpga/parallel-edges",
+                    {"key": DEFAULT_ADMIN_KEY, "parallel_lanes": 64, "tile_size": 256},
+                )
+                self.assertEqual(st_fpga, 200)
+                self.assertGreater(res_fpga["benchmark"]["speedup_factor"], 1.0)
+                self.assertGreater(res_fpga["cad_polylines_count"], 0)
             finally:
                 srv.shutdown()
                 srv.server_close()
+
+    def test_full_resolution_preview_and_rtk_fpga_algorithms(self) -> None:
+        from pathlib import Path
+        import numpy as np
+        from uav_app.infrastructure.rtk_patch_and_fpga_stencil import (
+            FPGAParallelEdgeStencil,
+            RTKRawCameraFrame,
+            RTKRawPatchRestorer,
+            project_vn2000_to_raw_pixel,
+        )
+
+        # 1. Verify 1600px downsampling cap was removed in raster.py & MO_WEB_NHAN_DIEN_NGAY.html
+        raster_src = (Path(__file__).resolve().parents[2] / "uav_app/infrastructure/raster.py").read_text(encoding="utf-8")
+        self.assertIn("MAX_PREVIEW_SIZE = 32768", raster_src)
+        html = (Path(__file__).resolve().parents[2] / "MO_WEB_NHAN_DIEN_NGAY.html").read_text(encoding="utf-8")
+        self.assertIn("DEFAULT_REAL_UAV_ORTHO_URI", html)
+        self.assertIn("URL.createObjectURL(imgFile)", html)
+        self.assertNotIn("Ảnh tổng quan được giảm mẫu, cạnh dài tối đa 1600 px", html)
+
+        # 2. Verify 3D Collinearity back-projection & RTK crown restoration without modifying DEM/DSM
+        cam = RTKRawCameraFrame(
+            frame_id="DJI_RTK_TEST_01.JPG",
+            flight_sortie_id="SORTIE_01",
+            x0_vn2000=570305.0,
+            y0_vn2000=1178840.0,
+            z0_m=95.0,
+            omega_deg=0.1,
+            phi_deg=-0.1,
+            kappa_deg=0.0,
+            focal_px=3666.6,
+            width_px=5472,
+            height_px=3648,
+        )
+        proj = project_vn2000_to_raw_pixel(570305.5, 1178840.2, 14.2, cam)
+        self.assertTrue(proj["inside_fov"])
+        self.assertLess(proj["nadir_angle_deg"], 5.0)
+
+        ortho_rgb = np.full((64, 64, 3), 110, dtype=np.uint8)
+        dem_grid = np.full((64, 64), 14.2, dtype=np.float32)
+        restorer = RTKRawPatchRestorer()
+        res_restore = restorer.restore_blurred_region_from_rtk_raw(
+            ortho_rgb=ortho_rgb,
+            dem_dsm_grid=dem_grid,
+            target_vn2000_x=570305.5,
+            target_vn2000_y=1178840.2,
+            patch_bbox_px=(8, 8, 56, 56),
+            raw_frames=[cam],
+        )
+        self.assertFalse(res_restore["dem_modified"])
+        self.assertTrue(res_restore["dsm_checksum_preserved"])
+        self.assertEqual(
+            res_restore["dem_sha256_before"],
+            res_restore["dem_sha256_after"],
+        )
+
+        # 3. Verify FPGA Many-Pixels-at-Once Stencil
+        stencil = FPGAParallelEdgeStencil(parallel_lanes=64)
+        bm = stencil.benchmark_cpu_vs_fpga_parallel(width=128, height=128)
+        self.assertEqual(bm["hardware_telemetry"]["mode"], "many_pixels_at_once")
+        self.assertGreater(bm["simd_webgpu_speedup_x"], 1.0)
 
 
 if __name__ == "__main__":
