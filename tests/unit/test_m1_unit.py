@@ -596,8 +596,32 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
 
+    def test_blueprint17_studio_workflow_1to1_zoom_and_nodata_masking(self) -> None:
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        arch_txt = (root / "ARCHITECTURE.md").read_text(encoding="utf-8")
+        self.assertIn("[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #17]", arch_txt)
+
+        html = (root / "MO_WEB_NHAN_DIEN_NGAY.html").read_text(encoding="utf-8")
+        ui_html = (root / "ui/index.html").read_text(encoding="utf-8")
+        self.assertEqual(html, ui_html)
+
+        # Verify Step 01 clean boot, 1:1 native zoom vs Fit Overview, NoData masking, and modal viewer
+        self.assertIn("let currentStep = 1;", html)
+        self.assertIn("hasCalculatedGrid: false", html)
+        self.assertIn("hasRunDetection: false", html)
+        self.assertIn("showDetectionsOnMap: false", html)
+        self.assertIn('id="main-job-panel" class="job-panel" aria-label="Tiến độ xử lý" hidden', html)
+        self.assertIn("function zoomToNative1To1()", html)
+        self.assertIn("🎯 Tỷ lệ 1:1 (Pixel gốc)", html)
+        self.assertIn("🖼️ Toàn bộ ảnh", html)
+        self.assertIn("function isNoDataPixelRGBA(r, g, b, a)", html)
+        self.assertIn("function pauseOrResumeDetectionJob()", html)
+        self.assertIn("function cancelDetectionJob()", html)
+        self.assertIn("function openFullRegionAnnotatedModal()", html)
+        self.assertIn("function buildMinimalGeoTiffBuffer(", html)
+
 
 if __name__ == "__main__":
     unittest.main()
-
-

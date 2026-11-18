@@ -932,6 +932,44 @@ flowchart LR
 
 - **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 16 DETECT_BATCH PYC RESTORED & 5 SKILLS SYNCED]`
 
+---
+
+### Mục 26 / Bản vẽ #17 (2026-11-18): Chuẩn Hóa Máy Trạng Thái 4 Bước (`Clean Step-01 Load`), Loại Bỏ Khung Bao Ngoài Vùng `NoData` Trắng/Đen, Tách Rõ Nút `🎯 Tỷ lệ 1:1 (Pixel gốc)` vs `🖼️ Toàn bộ ảnh` & Hộp Thoại `🔍 Mở ảnh toàn vùng có vẽ khung AI`
+- **Trạng thái**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #17]`
+- **Nguyên nhân Gốc rễ từ Kiểm toán Thực nghiệm (`Teamwork Audit Swarm` trên `image.png`, `image_2.png`, `image_3.png`)**:
+  1. **Lỗi tự động vẽ 64 ô màu xanh/đỏ/cam ngay khi mới nạp ảnh ở Bước 01 (`image.png`, `image_2.png`)**:
+     - Hàm `runRealPixelDetectionOnActiveImage()` trước đó được gọi tự động trong `preloadAllDatasetImages()`, `selectPresetDataset()`, `finishImageLoadUpdate()` và `verifyLogin()`, khiến người dùng vừa nạp ảnh ở **Bước 01** (chưa chia lưới ở Bước 02, chưa bấm nhận diện ở Bước 03) đã thấy 64 ô vuông lớn (`nw = 0.088, nh = 0.088`) phủ kín ảnh.
+     - Nghiêm trọng hơn, hàm quét chỉ lọc nền đen (`r < 8 && g < 8 && b < 8`) mà **không lọc nền trắng `NoData` (`r > 236 && g > 236 && b > 236`)** bao quanh biên nghiêng của ảnh `Ortho_Stage 1_RGB`, dẫn đến các ô màu hồng/đỏ/xanh vẽ đè cả lên phần nền trắng ngoài ruộng lúa.
+  2. **Lỗi ảnh hiển thị quá bé trong khung đen & nhầm lẫn giữa `1:1 (Pixel gốc)` với `Toàn bộ ảnh (Vừa khung)` (`image.png`, `image_2.png`)**:
+     - `.viewport-shell` bị giới hạn `height: 360px` trong khi `#overview-canvas` cố định `1600 × 900` và `getMapRenderBox()` nhân hệ số co `0.86 / 0.88`, khiến ảnh dọc `Ortho_Stage 1_RGB` (`26.095 × 33.367 px`) chỉ chiếm `38,7%` chiều ngang khung vẽ.
+     - Nút `1:1` / `Vừa khung` chỉ gán `gridState.zoom = 1.0` (thu nhỏ toàn bộ ảnh vừa khung), chưa có hàm `zoomToNative1To1()` tính đúng tỷ lệ `1 pixel ảnh gốc = 1 pixel màn hình` (`zoom = nativeW / box.mapW`), và `loadSingleImageFile()` từng ép `resizeWidth: 4096`.
+  3. **Lỗi bảng tiến trình `#main-job-panel` hiện sẵn ở trạng thái treo `1144/8888` (`12.87%`) và nút `🔍 Mở ảnh toàn vùng có vẽ khung AI` (`image.png`, `image_3.png`)**:
+     - `#main-job-panel` hiển thị tĩnh ngay từ Bước 01/02 khi chưa chạy tác vụ; nút `🔍 Mở ảnh toàn vùng có vẽ khung AI` tại dòng `1234` chỉ gọi `fitOverview(); return false;` thay vì mở trình xem ảnh toàn màn hình độ phân giải cao.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Step01_CleanImage: Đăng nhập Key / Nạp ảnh gốc (.JPG/.TIF/.PNG)
+    state Step01_CleanImage {
+        [*] --> CleanViewport: hasGridCalculated = false, hasDetectionRun = false
+        CleanViewport: Hiển thị 100% ảnh gốc sạch (0 lưới, 0 khung AI, ẩn #main-job-panel)
+        CleanViewport --> Native1To1: Bấm '🎯 Tỷ lệ 1:1 (Pixel gốc)' (1 px ảnh = 1 px màn hình)
+        Native1To1 --> CleanViewport: Bấm '🖼️ Toàn bộ ảnh (Vừa khung)'
+    }
+    Step01_CleanImage --> Step02_GridOverlay: Bấm 'Tính và xem lưới' (Bước 02)
+    state Step02_GridOverlay {
+        [*] --> ShowGridOnly: hasGridCalculated = true, hasDetectionRun = false
+        ShowGridOnly: Vẽ lưới ảnh & Cửa sổ kiểm tra ảnh 1:1 (Chưa vẽ khung AI)
+    }
+    Step02_GridOverlay --> Step03_LiveDetection: Bấm '🚀 Bắt đầu nhận diện ngay trên ảnh' (Bước 03)
+    state Step03_LiveDetection {
+        [*] --> RunningJob: Hiện #main-job-panel (0% -> 100%, hỗ trợ Tạm dừng / Tiếp tục / Hủy)
+        RunningJob --> MaskNoData: Lọc bỏ 100% nền trắng (RGB > 235) & nền đen (RGB < 15) ngoài biên Ortho
+        MaskNoData --> ShowCleanBoxes: Vẽ khung Lúa mới cấy / Cỏ dại / Lúa lẫn cỏ đúng vị trí ruộng + Mở Modal Toàn Vùng
+    }
+```
+
+- **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #17]`
+
 
 
 
