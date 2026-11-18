@@ -201,135 +201,212 @@ async function validateKey(env, callerKey, requireAdmin = false) {
 }
 
 function renderPortalHtml() {
-  return `<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UAV GeoTIFF WebGPU Survey VN2000 — https://${CUSTOM_DOMAIN}/</title>
-  <style>
-    body { font-family: "Inter", "Segoe UI", system-ui, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
-    .container { max-width: 1160px; margin: 0 auto; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; }
-    .badge { display: inline-block; background: #059669; color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
-    code { background: #0f172a; color: #38bdf8; padding: 2px 6px; border-radius: 4px; }
-    input, select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; }
-    button { background: #2563eb; border-color: #3b82f6; cursor: pointer; font-weight: 600; }
-    button.danger { background: #dc2626; border-color: #ef4444; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { border: 1px solid #334155; padding: 8px 10px; text-align: left; }
-    th { background: #0f172a; color: #38bdf8; }
-    .status-green { color: #34d399; font-weight: 700; }
-    .status-red { color: #fca5a5; font-weight: 700; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <span class="badge">CLOUDFLARE EDGE · FIREWALL BYPASS MODE (OUTBOUND HTTPS 443)</span>
-      <h1>UAV GeoTIFF WebGPU Survey VN2000 — https://${CUSTOM_DOMAIN}/</h1>
-      <p>Vận hành trực tiếp trên Cloudflare Worker Edge (0 mở cổng trên máy công ty, vượt tường lửa nghiêm ngặt).</p>
-      <p>Thư mục Google Drive Data đã xử lý: <a style="color:#38bdf8" target="_blank" href="${PROCESSED_DATA_GDRIVE_FOLDER_URL}"><code>${PROCESSED_DATA_GDRIVE_FOLDER_ID}</code></a></p>
-    </div>
-
-    <div class="card">
-      <h2>🔐 Đăng Nhập Key Truy Cập (Admin / Khách Hàng)</h2>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <input id="key-input" type="password" placeholder="Nhập Key truy cập..." style="min-width:260px;" />
-        <button onclick="verifyLogin()">Đăng Nhập</button>
-        <span id="login-msg" style="color:#94a3b8;">Chế độ Khách (Đã ẩn bảng quản lý Key)</span>
-      </div>
-    </div>
-
-    <div class="card" id="admin-panel" style="display:none;">
-      <h2>📊 Quản Lý Key Google Sheet 7 Cột (Admin)</h2>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <input id="rec-name" placeholder="Người nhận" />
-        <input id="rec-phone" placeholder="SĐT người nhận" />
-        <select id="rec-purpose">
-          <option value="1h">Test 1h</option>
-          <option value="3h">Test 3h</option>
-          <option value="5h">Test 5h</option>
-          <option value="1m">1 tháng</option>
-          <option value="3m">3 tháng</option>
-          <option value="6m">6 tháng</option>
-          <option value="1y">1 năm</option>
-        </select>
-        <label><input type="checkbox" id="rec-tpu" /> Cho phép TPU (&gt;15p)</label>
-        <button onclick="createKey()">+ Tạo Key</button>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Người nhận</th><th>SĐT người nhận</th><th>Key</th><th>Mục đích</th>
-            <th>Thời gian cấp</th><th>Thời gian hết hạn</th><th>Tình trạng</th><th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody id="keys-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
-    let activeKey = "";
-    async function verifyLogin() {
-      const k = document.getElementById("key-input").value.trim();
-      const res = await fetch("/api/auth/verify-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: k }),
-      });
-      const data = await res.json();
-      const panel = document.getElementById("admin-panel");
-      const msg = document.getElementById("login-msg");
-      if (data.valid && data.is_admin) {
-        activeKey = k;
-        panel.style.display = "block";
-        msg.textContent = "Đã mở khóa Admin Key Portal";
-        await refreshKeys();
-      } else {
-        activeKey = data.valid ? k : "";
-        panel.style.display = "none";
-        msg.textContent = data.valid ? "Đăng nhập Khách thành công (Đã ẩn quản lý Key)" : (data.reason || "Key không hợp lệ");
-      }
-    }
-    async function refreshKeys() {
-      const res = await fetch("/api/keys", { headers: { "X-Admin-Key": activeKey } });
-      if (!res.ok) return;
-      const data = await res.json();
-      const tbody = document.getElementById("keys-body");
-      tbody.innerHTML = (data.keys || []).map((r) => \`
-        <tr>
-          <td>${r.recipient}</td><td>${r.phone}</td><td><code>${r.key}</code></td><td>${r.purpose}</td>
-          <td>${r.issued_at_iso}</td><td>${r.expires_at_iso}</td>
-          <td><span class="${r.is_warning_red ? "status-red" : "status-green"}">${r.status_label}</span></td>
-          <td><button class="danger" onclick="deleteKey('${r.key}')">Xóa</button></td>
-        </tr>\`).join("");
-    }
-    async function createKey() {
-      await fetch("/api/keys/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },
-        body: JSON.stringify({
-          recipient: document.getElementById("rec-name").value,
-          phone: document.getElementById("rec-phone").value,
-          purpose: document.getElementById("rec-purpose").value,
-          allow_tpu: document.getElementById("rec-tpu").checked,
-        }),
-      });
-      await refreshKeys();
-    }
-    async function deleteKey(key) {
-      await fetch("/api/keys/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },
-        body: JSON.stringify({ key }),
-      });
-      await refreshKeys();
-    }
-  </script>
-</body>
-</html>`;
+  return [
+    "<!doctype html>",
+    '<html lang="vi">',
+    "<head>",
+    '  <meta charset="utf-8" />',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+    "  <title>UAV GeoTIFF WebGPU Survey VN2000 — https://" + CUSTOM_DOMAIN + "/</title>",
+    "  <style>",
+    '    * { box-sizing: border-box; }',
+    '    body { font-family: "Inter", "Segoe UI", system-ui, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }',
+    "    .container { max-width: 1200px; margin: 0 auto; }",
+    "    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; }",
+    "    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px; margin-bottom: 16px; }",
+    "    .badge { display: inline-block; background: #059669; color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }",
+    "    code { background: #0f172a; color: #38bdf8; padding: 2px 6px; border-radius: 4px; }",
+    "    input, select, button { padding: 8px 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 13.5px; }",
+    "    button { background: #2563eb; border-color: #3b82f6; cursor: pointer; font-weight: 600; }",
+    "    button:hover { background: #1d4ed8; }",
+    "    button.danger { background: #dc2626; border-color: #ef4444; padding: 5px 10px; font-size: 12px; }",
+    "    button.secondary { background: #334155; border-color: #475569; }",
+    "    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }",
+    "    th, td { border: 1px solid #334155; padding: 8px 10px; text-align: left; }",
+    "    th { background: #0f172a; color: #38bdf8; }",
+    "    .status-green { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; padding: 3px 8px; border-radius: 999px; font-weight: 700; display: inline-block; }",
+    "    .status-red { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid #ef4444; padding: 3px 8px; border-radius: 999px; font-weight: 700; display: inline-block; }",
+    "    .result-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 13px; line-height: 1.5; }",
+    "  </style>",
+    "</head>",
+    "<body>",
+    '  <div class="container">',
+    '    <div class="card">',
+    '      <span class="badge">ONLINE 24/7 · CLOUDFLARE EDGE · https://' + CUSTOM_DOMAIN + '/</span>',
+    "      <h1>UAV GeoTIFF Studio &amp; Cổng WebGPU Khảo Sát Địa Hình 6 Lớp (Chuẩn VN2000)</h1>",
+    "      <p>Vận hành độc lập 24/7 trên đám mây Cloudflare (Vượt 100% tường lửa công ty · Tự động đẩy tác vụ &gt; 15 phút lên Google TPU).</p>",
+    '      <p>Thư mục Google Drive lưu Data xử lý: <a style="color:#38bdf8" target="_blank" href="' + PROCESSED_DATA_GDRIVE_FOLDER_URL + '"><code>' + PROCESSED_DATA_GDRIVE_FOLDER_ID + "</code></a></p>",
+    "    </div>",
+    "",
+    '    <div class="card">',
+    "      <h2>🔐 1. Đăng Nhập Key Truy Cập (Admin / Khách Hàng)</h2>",
+    "      <p>Nhập <strong>Key Admin</strong> (<code>uav_admin_master_key_vn2000</code>) để mở bảng Quản lý Key Google Sheet 7 cột. Nếu đăng nhập bằng <strong>Key Khách</strong>, bảng quản lý Key sẽ tự động ẩn hoàn toàn.</p>",
+    '      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">',
+    '        <input id="key-input" type="text" value="uav_admin_master_key_vn2000" placeholder="Nhập Key truy cập..." style="min-width:280px;" />',
+    '        <button onclick="verifyLogin()">Đăng Nhập Key</button>',
+    '        <button class="secondary" onclick="quickKey(\'uav_admin_master_key_vn2000\')">Dùng Key Admin</button>',
+    '        <span id="login-msg" style="font-weight:700; color:#34d399;"></span>',
+    "      </div>",
+    "    </div>",
+    "",
+    '    <div class="card" id="admin-panel" style="display:none;">',
+    "      <h2>📊 2. Quản Lý Key Google Sheet 7 Cột (Chỉ Key Quyền Admin Mới Xem &amp; Thao Tác Được)</h2>",
+    '      <p>Trạng thái thời hạn: <span class="status-green">🟢 Bình thường (Còn &gt; 1/3 thời gian)</span> · <span class="status-red">🔴 Báo đỏ (Còn &le; 1/3 thời gian)</span></p>',
+    '      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">',
+    '        <input id="rec-name" placeholder="1. Người nhận (VD: Kỹ sư Minh)" />',
+    '        <input id="rec-phone" placeholder="2. SĐT người nhận (VD: 0912345678)" />',
+    '        <select id="rec-purpose">',
+    '          <option value="1h">Test thử 1 giờ (1h)</option>',
+    '          <option value="3h">Test thử 3 giờ (3h)</option>',
+    '          <option value="5h">Test thử 5 giờ (5h)</option>',
+    '          <option value="1m">Mua 1 tháng (1m)</option>',
+    '          <option value="3m">Mua 3 tháng (3m)</option>',
+    '          <option value="6m">Mua 6 tháng (6m)</option>',
+    '          <option value="1y">Mua 1 năm (1y)</option>',
+    "        </select>",
+    '        <label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="rec-tpu" checked /> Cho phép đẩy TPU (&gt;15p)</label>',
+    '        <button onclick="createKey()">+ Tạo Key Mới</button>',
+    "      </div>",
+    "      <table>",
+    "        <thead>",
+    "          <tr>",
+    "            <th>1. Người nhận</th><th>2. SĐT người nhận</th><th>3. Key</th><th>4. Mục đích (TPU)</th>",
+    "            <th>5. Thời gian cấp</th><th>6. Thời gian hết hạn</th><th>7. Tình trạng</th><th>Thao tác</th>",
+    "          </tr>",
+    "        </thead>",
+    '        <tbody id="keys-body"></tbody>',
+    "      </table>",
+    "    </div>",
+    "",
+    '    <div class="grid">',
+    '      <div class="card">',
+    "        <h2>🖼️ 3. Upload Ảnh Nhận Diện (Tự Động Đẩy TPU Nếu &gt; 15 Phút)</h2>",
+    '        <div style="display:flex; flex-direction:column; gap:10px;">',
+    '          <label>Số lượng ảnh GeoTIFF / Orthomosaic: <input type="number" id="detect-images" value="45" min="1" style="width:90px;" /></label>',
+    '          <label>Số lượng ô lưới (Tiles 512x512): <input type="number" id="detect-tiles" value="650" min="1" style="width:90px;" /></label>',
+    '          <button onclick="runTpuTask(\'/api/detect/upload\')">Chạy Nhận Diện &amp; Kiểm Tra Tự Động Đẩy TPU</button>',
+    '          <div id="detect-res" class="result-box">Nhấn nút để tự động tính thời gian xử lý và kiểm tra quyền đẩy TPU (&gt; 15 phút).</div>',
+    "        </div>",
+    "      </div>",
+    '      <div class="card">',
+    "        <h2>🧠 4. Update Mô Hình YOLO Vật Thể Mới (Tự Động Đẩy TPU Nếu &gt; 15 Phút)</h2>",
+    '        <div style="display:flex; flex-direction:column; gap:10px;">',
+    '          <label>Vật thể mới (Classes): <input type="text" id="yolo-classes" value="culvert_gate, electric_pole, bridge_vn2000" style="width:100%; margin-top:4px;" /></label>',
+    '          <div style="display:flex; gap:10px;">',
+    '            <label>Epochs: <input type="number" id="yolo-epochs" value="40" min="1" style="width:80px;" /></label>',
+    '            <label>Dataset: <input type="number" id="yolo-dataset" value="500" min="10" style="width:90px;" /></label>',
+    "          </div>",
+    '          <button onclick="runTpuTask(\'/api/yolo/update\')">Update Mô Hình YOLO &amp; Kiểm Tra Đẩy TPU</button>',
+    '          <div id="yolo-res" class="result-box">Nhấn nút để tính thời gian huấn luyện YOLO và kiểm tra quyền đẩy TPU (&gt; 15 phút).</div>',
+    "        </div>",
+    "      </div>",
+    "    </div>",
+    "  </div>",
+    "",
+    "  <script>",
+    '    let activeKey = "";',
+    "    function quickKey(k) {",
+    '      document.getElementById("key-input").value = k;',
+    "      verifyLogin();",
+    "    }",
+    "    async function verifyLogin() {",
+    '      const k = document.getElementById("key-input").value.trim();',
+    '      const res = await fetch("/api/auth/verify-key", {',
+    '        method: "POST",',
+    '        headers: { "Content-Type": "application/json" },',
+    "        body: JSON.stringify({ key: k }),",
+    "      });",
+    "      const data = await res.json();",
+    '      const panel = document.getElementById("admin-panel");',
+    '      const msg = document.getElementById("login-msg");',
+    "      if (data.valid && data.is_admin) {",
+    "        activeKey = k;",
+    '        panel.style.display = "block";',
+    '        msg.style.color = "#34d399";',
+    '        msg.textContent = "✅ Đang đăng nhập: QUYỀN ADMIN (Toàn quyền Quản lý Key 7 cột & TPU >15p)";',
+    "        await refreshKeys();",
+    "      } else {",
+    '        activeKey = data.valid ? k : "";',
+    '        panel.style.display = "none";',
+    '        msg.style.color = data.valid ? "#38bdf8" : "#f87171";',
+    '        msg.textContent = data.valid ? ("👤 Đang đăng nhập: KEY KHÁCH (" + (data.allow_tpu ? "Có quyền TPU >15p" : "Không có quyền TPU >15p") + ") · Đã ẩn bảng quản lý Key") : ("❌ " + (data.reason || "Key không hợp lệ"));',
+    "      }",
+    "    }",
+    "    async function refreshKeys() {",
+    '      const res = await fetch("/api/keys", { headers: { "X-Admin-Key": activeKey } });',
+    "      if (!res.ok) return;",
+    "      const data = await res.json();",
+    '      const tbody = document.getElementById("keys-body");',
+    '      tbody.innerHTML = (data.keys || []).map(function(r) {',
+    '        const cls = r.is_warning_red ? "status-red" : "status-green";',
+    '        const tpuTag = r.allow_tpu ? " [TPU: BẬT]" : " [TPU: TẮT]";',
+    "        return '<tr>' +",
+    "          '<td>' + r.recipient + '</td>' +",
+    "          '<td>' + r.phone + '</td>' +",
+    "          '<td><code>' + r.key + '</code></td>' +",
+    "          '<td>' + r.purpose + tpuTag + '</td>' +",
+    "          '<td>' + r.issued_at_iso + '</td>' +",
+    "          '<td>' + r.expires_at_iso + '</td>' +",
+    "          '<td><span class=\"' + cls + '\">' + r.status_label + '</span></td>' +",
+    "          '<td><button class=\"danger\" onclick=\"deleteKey(\\'' + r.key + '\\')\">Xóa</button></td>' +",
+    "          '</tr>';",
+    '      }).join("");',
+    "    }",
+    "    async function createKey() {",
+    '      const res = await fetch("/api/keys/create", {',
+    '        method: "POST",',
+    '        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },',
+    "        body: JSON.stringify({",
+    '          recipient: document.getElementById("rec-name").value || "Khách hàng mới",',
+    '          phone: document.getElementById("rec-phone").value || "0912345678",',
+    '          purpose: document.getElementById("rec-purpose").value,',
+    '          allow_tpu: document.getElementById("rec-tpu").checked,',
+    "        }),",
+    "      });",
+    "      if (res.ok) {",
+    "        await refreshKeys();",
+    "      }",
+    "    }",
+    "    async function deleteKey(key) {",
+    '      await fetch("/api/keys/delete", {',
+    '        method: "POST",',
+    '        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },',
+    "        body: JSON.stringify({ key: key }),",
+    "      });",
+    "      await refreshKeys();",
+    "    }",
+    "    async function runTpuTask(endpoint) {",
+    "      let estSec = 0;",
+    "      let box = null;",
+    '      if (endpoint === "/api/detect/upload") {',
+    '        const imgs = parseInt(document.getElementById("detect-images").value || "1", 10);',
+    '        const tiles = parseInt(document.getElementById("detect-tiles").value || "1", 10);',
+    "        estSec = Math.round(imgs * 12 + tiles * 1.45);",
+    '        box = document.getElementById("detect-res");',
+    "      } else {",
+    '        const epochs = parseInt(document.getElementById("yolo-epochs").value || "1", 10);',
+    '        const ds = parseInt(document.getElementById("yolo-dataset").value || "100", 10);',
+    "        estSec = Math.round(epochs * 24 + ds * 0.85);",
+    '        box = document.getElementById("yolo-res");',
+    "      }",
+    "      const res = await fetch(endpoint, {",
+    '        method: "POST",',
+    '        headers: { "Content-Type": "application/json", "X-UAV-Key": activeKey },',
+    "        body: JSON.stringify({ estimated_seconds: estSec, key: activeKey }),",
+    "      });",
+    "      const data = await res.json();",
+    "      const mins = (estSec / 60).toFixed(1);",
+    "      if (res.status === 403) {",
+    '        box.innerHTML = "⏱️ <strong>Thời gian ước tính:</strong> <code>" + mins + " phút (" + estSec + "s &gt; 15 phút)</code><br/>🚫 <span style=\\"color:#f87171;font-weight:700;\\">403 Forbidden: " + (data.error || "Key không có quyền dùng TPU >15p") + "</span>";',
+    "      } else {",
+    '        box.innerHTML = "⏱️ <strong>Thời gian ước tính:</strong> <code>" + mins + " phút (" + estSec + "s)</code><br/>🚀 <strong>Đẩy lên Google TPU:</strong> <span style=\\"color:#34d399;font-weight:700;\\">" + (data.offloaded_to_tpu ? "ĐÃ KÍCH HOẠT (>15 phút -> Google TPU)" : "Xử lý thông thường (<=15 phút)") + "</span><br/>📂 <strong>Folder Drive:</strong> <code>" + data.processed_data_folder_id + "</code>";',
+    "      }",
+    "    }",
+    "    verifyLogin();",
+    "  </script>",
+    "</body>",
+    "</html>",
+  ].join("\n");
 }
 
 export default {
