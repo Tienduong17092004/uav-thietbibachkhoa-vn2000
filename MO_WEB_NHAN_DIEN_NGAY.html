@@ -1547,14 +1547,15 @@ grass</textarea>
     // Binary Header Parser doc truc tiep kich thuoc goc (width x height) cua anh .JPG, .PNG, .TIF ke ca anh >870 MP (26.095 x 33.367 px)
     async function parseImageBinaryHeader(file) {
       try {
-        const slice = file.slice(0, Math.min(file.size, 524288));
+        const headLen = Math.min(file.size, 2097152);
+        const slice = file.slice(0, headLen);
         const buf = await slice.arrayBuffer();
         const dv = new DataView(buf);
         const len = dv.byteLength;
         if (len < 16) return null;
 
         // 1. PNG Header: 89 50 4E 47 0D 0A 1A 0A + IHDR
-        if (dv.getUint32(0, false) === 0x89504E47 && len >= 24) {
+        if (dv.getUint32(0, false) === 0x89504E47 && len >= 25) {
           const w = dv.getUint32(16, false);
           const h = dv.getUint32(20, false);
           const bits = dv.getUint8(24);
@@ -1594,43 +1595,148 @@ grass</textarea>
           }
         }
 
-        // 3. TIFF / GeoTIFF Header: 'II' (0x4949) or 'MM' (0x4D4D)
+        // 3. TIFF / BigTIFF / GeoTIFF Header: 'II' (0x4949) or 'MM' (0x4D4D)
         const magic = dv.getUint16(0, false);
         if (magic === 0x4949 || magic === 0x4D4D) {
           const little = (magic === 0x4949);
           const ver = dv.getUint16(2, little);
+
+          // 3a. Classic TIFF (ver === 42) - ho tro ca IFD nam o cuoi file .TIF lon (>2GB)
           if (ver === 42) {
             const ifdOffset = dv.getUint32(4, little);
-            if (ifdOffset > 0 && ifdOffset + 2 < len) {
-              const numEntries = dv.getUint16(ifdOffset, little);
-              let w = 0, h = 0, bits = 8, ch = 3, compression = 1, stripOffsetsOffset = 0, stripCount = 0;
-              for (let i = 0; i < numEntries; i++) {
-                const ent = ifdOffset + 2 + i * 12;
-                if (ent + 12 > len) break;
-                const tag = dv.getUint16(ent, little);
-                const type = dv.getUint16(ent + 2, little);
-                const cnt = dv.getUint32(ent + 4, little);
-                const val = (type === 3 && cnt === 1) ? dv.getUint16(ent + 8, little) : dv.getUint32(ent + 8, little);
-                if (tag === 256) w = val;
-                else if (tag === 257) h = val;
-                else if (tag === 258 && val > 0 && val <= 64) bits = val;
-                else if (tag === 259) compression = val;
-                else if (tag === 273) { stripOffsetsOffset = val; stripCount = cnt; }
-                else if (tag === 277 && val > 0 && val <= 16) ch = val;
+            if (ifdOffset > 0 && ifdOffset < file.size) {
+              let ifdDv = dv;
+              let relIfd = ifdOffset;
+              let baseBufOffset = 0;
+              if (ifdOffset + 4096 > len) {
+                const tailSlice = file.slice(ifdOffset, Math.min(file.size, ifdOffset + 262144));
+                const tailBuf = await tailSlice.arrayBuffer();
+                ifdDv = new DataView(tailBuf);
+                relIfd = 0;
+                baseBufOffset = ifdOffset;
               }
-              if (w > 0 && h > 0) {
-                return {
-                  width: w,
-                  height: h,
-                  channels: ch,
-                  bits: bits,
-                  compression: compression,
-                  stripOffsetsOffset: stripOffsetsOffset,
-                  stripCount: stripCount,
-                  littleEndian: little,
-                  dtype: (bits === 32 ? "float32" : "uint" + bits),
-                  format: "GeoTIFF"
-                };
+              if (relIfd + 2 <= ifdDv.byteLength) {
+                const numEntries = ifdDv.getUint16(relIfd, little);
+                let w = 0, h = 0, bits = 8, ch = 3, compression = 1;
+                let stripOffsetsOffset = 0, stripCount = 0, rowsPerStrip = 0, stripByteCountsOffset = 0;
+                let gsdX = 0, gsdY = 0, tieX = null, tieY = null;
+                for (let i = 0; i < numEntries; i++) {
+                  const ent = relIfd + 2 + i * 12;
+                  if (ent + 12 > ifdDv.byteLength) break;
+                  const tag = ifdDv.getUint16(ent, little);
+                  const type = ifdDv.getUint16(ent + 2, little);
+                  const cnt = ifdDv.getUint32(ent + 4, little);
+                  const val = (type === 3 && cnt === 1) ? ifdDv.getUint16(ent + 8, little) : ifdDv.getUint32(ent + 8, little);
+                  if (tag === 256) w = val;
+                  else if (tag === 257) h = val;
+                  else if (tag === 258) {
+                    if (cnt === 1 && val > 0 && val <= 64) {
+                      bits = val;
+                    } else {
+                      const bpsRel = val - baseBufOffset;
+                      if (bpsRel >= 0 && bpsRel + 2 <= ifdDv.byteLength) {
+                        const b0 = ifdDv.getUint16(bpsRel, little);
+                        if (b0 > 0 && b0 <= 64) bits = b0;
+                      }
+                    }
+                  }
+                  else if (tag === 259) compression = val;
+                  else if (tag === 273) { stripOffsetsOffset = val; stripCount = cnt; }
+                  else if (tag === 277 && val > 0 && val <= 16) ch = val;
+                  else if (tag === 278) rowsPerStrip = val;
+                  else if (tag === 279) stripByteCountsOffset = val;
+                  else if (tag === 33550 && cnt >= 2) {
+                    const scRel = val - baseBufOffset;
+                    if (scRel >= 0 && scRel + 16 <= ifdDv.byteLength) {
+                      const sx = ifdDv.getFloat64(scRel, little);
+                      const sy = ifdDv.getFloat64(scRel + 8, little);
+                      if (sx > 0 && sx < 100) gsdX = sx;
+                      if (sy > 0 && sy < 100) gsdY = sy;
+                    }
+                  } else if (tag === 33922 && cnt >= 6) {
+                    const tpRel = val - baseBufOffset;
+                    if (tpRel >= 0 && tpRel + 48 <= ifdDv.byteLength) {
+                      const tx = ifdDv.getFloat64(tpRel + 24, little);
+                      const ty = ifdDv.getFloat64(tpRel + 32, little);
+                      if (!isNaN(tx) && !isNaN(ty) && (Math.abs(tx) > 1 || Math.abs(ty) > 1)) {
+                        tieX = tx;
+                        tieY = ty;
+                      }
+                    }
+                  }
+                }
+                if (w > 0 && h > 0) {
+                  return {
+                    width: w,
+                    height: h,
+                    channels: ch,
+                    bits: bits,
+                    compression: compression,
+                    stripOffsetsOffset: stripOffsetsOffset,
+                    stripCount: stripCount,
+                    rowsPerStrip: rowsPerStrip || h,
+                    stripByteCountsOffset: stripByteCountsOffset,
+                    gsdX: gsdX,
+                    gsdY: gsdY,
+                    tieX: tieX,
+                    tieY: tieY,
+                    littleEndian: little,
+                    dtype: (bits === 32 ? "float32" : "uint" + bits),
+                    format: "GeoTIFF"
+                  };
+                }
+              }
+            }
+          }
+
+          // 3b. BigTIFF (ver === 43) cho anh sieu lon > 4GB
+          if (ver === 43 && len >= 16) {
+            const offLo = dv.getUint32(8, little);
+            const offHi = dv.getUint32(12, little);
+            const ifdOffset = little ? (offLo + offHi * 4294967296) : (offHi + offLo * 4294967296);
+            if (ifdOffset > 0 && ifdOffset < file.size) {
+              let ifdDv = dv;
+              let relIfd = ifdOffset;
+              if (ifdOffset + 4096 > len) {
+                const tailSlice = file.slice(ifdOffset, Math.min(file.size, ifdOffset + 262144));
+                const tailBuf = await tailSlice.arrayBuffer();
+                ifdDv = new DataView(tailBuf);
+                relIfd = 0;
+              }
+              if (relIfd + 8 <= ifdDv.byteLength) {
+                const numEntries = little ? ifdDv.getUint32(relIfd, true) : ifdDv.getUint32(relIfd + 4, false);
+                let w = 0, h = 0, bits = 8, ch = 3, compression = 1, stripOffsetsOffset = 0, stripCount = 0;
+                const maxEnt = Math.min(numEntries, 256);
+                for (let i = 0; i < maxEnt; i++) {
+                  const ent = relIfd + 8 + i * 20;
+                  if (ent + 20 > ifdDv.byteLength) break;
+                  const tag = ifdDv.getUint16(ent, little);
+                  const type = ifdDv.getUint16(ent + 2, little);
+                  const cnt = little ? ifdDv.getUint32(ent + 4, true) : ifdDv.getUint32(ent + 8, false);
+                  const val = (type === 3 && cnt === 1)
+                    ? ifdDv.getUint16(ent + 12, little)
+                    : (little ? ifdDv.getUint32(ent + 12, true) : ifdDv.getUint32(ent + 16, false));
+                  if (tag === 256) w = val;
+                  else if (tag === 257) h = val;
+                  else if (tag === 258 && val > 0 && val <= 64) bits = val;
+                  else if (tag === 259) compression = val;
+                  else if (tag === 273) { stripOffsetsOffset = val; stripCount = cnt; }
+                  else if (tag === 277 && val > 0 && val <= 16) ch = val;
+                }
+                if (w > 0 && h > 0) {
+                  return {
+                    width: w,
+                    height: h,
+                    channels: ch,
+                    bits: bits,
+                    compression: compression,
+                    stripOffsetsOffset: stripOffsetsOffset,
+                    stripCount: stripCount,
+                    littleEndian: little,
+                    dtype: (bits === 32 ? "float32" : "uint" + bits),
+                    format: "GeoTIFF"
+                  };
+                }
               }
             }
           }
@@ -1639,46 +1745,130 @@ grass</textarea>
       return null;
     }
 
-    // Pure-JS Uncompressed TIFF Raster Decoder (fallback khi trinh duyet khong ho tro createImageBitmap cho file .TIF local)
-    async function decodeUncompressedTiffToCanvas(file, hdr) {
-      if (!hdr || hdr.format !== "GeoTIFF" || hdr.compression !== 1 || file.size > 64 * 1024 * 1024) return null;
+    // Kiem tra nhanh xem source anh (ImageBitmap / HTMLImageElement / Canvas) co ve duoc len 2D Canvas ma khong bi loi GPU Texture
+    function canDrawSourceToCanvas(src) {
+      if (!src) return false;
       try {
-        const buf = await file.arrayBuffer();
-        const u8 = new Uint8Array(buf);
-        const w = Math.min(4096, hdr.width);
-        const h = Math.min(4096, hdr.height);
-        const ch = hdr.channels || 3;
-        const startOffset = (hdr.stripCount === 1 && hdr.stripOffsetsOffset > 0 && hdr.stripOffsetsOffset < buf.byteLength)
-          ? hdr.stripOffsetsOffset
-          : 8;
-        const c = document.createElement("canvas");
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext("2d");
-        const imgData = ctx.createImageData(w, h);
-        const dst = imgData.data;
-        const scaleX = hdr.width / w;
-        const scaleY = hdr.height / h;
+        const w = src.naturalWidth || src.width || 0;
+        const h = src.naturalHeight || src.height || 0;
+        if (w <= 0 || h <= 0) return false;
+        const testC = document.createElement("canvas");
+        testC.width = 2;
+        testC.height = 2;
+        const tctx = testC.getContext("2d");
+        tctx.drawImage(src, 0, 0, Math.min(w, 8), Math.min(h, 8), 0, 0, 2, 2);
+        return true;
+      } catch (_e) {
+        return false;
+      }
+    }
 
-        for (let y = 0; y < h; y++) {
-          const sy = Math.min(hdr.height - 1, Math.floor(y * scaleY));
-          for (let x = 0; x < w; x++) {
-            const sx = Math.min(hdr.width - 1, Math.floor(x * scaleX));
-            const srcIdx = startOffset + (sy * hdr.width + sx) * ch;
-            const dstIdx = (y * w + x) * 4;
-            if (srcIdx + 2 < u8.length) {
-              dst[dstIdx] = u8[srcIdx];
-              dst[dstIdx + 1] = ch > 1 ? u8[srcIdx + 1] : u8[srcIdx];
-              dst[dstIdx + 2] = ch > 2 ? u8[srcIdx + 2] : u8[srcIdx];
-              dst[dstIdx + 3] = 255;
+    // Pure-JS Chunked TIFF Raster & Embedded Overview Decoder (ho tro file .TIF local > 2GB bang file.slice ma khong tran RAM)
+    async function decodeUncompressedTiffToCanvas(file, hdr) {
+      if (!hdr || hdr.format !== "GeoTIFF") return null;
+
+      // Nhanh 1: Uncompressed TIFF (compression === 1) - doc theo tung lat (scanline slice) de ho tro file >64MB..3GB
+      if (hdr.compression === 1 && hdr.width > 0 && hdr.height > 0) {
+        try {
+          const maxDim = 2048;
+          const scale = Math.min(1.0, maxDim / Math.max(1, hdr.width, hdr.height));
+          const w = Math.max(1, Math.round(hdr.width * scale));
+          const h = Math.max(1, Math.round(hdr.height * scale));
+          const ch = Math.max(1, hdr.channels || 3);
+          const bytesPerChannel = Math.max(1, Math.ceil((hdr.bits || 8) / 8));
+          const rowBytes = hdr.width * ch * bytesPerChannel;
+
+          let rasterStart = 8;
+          if (hdr.stripCount === 1 && hdr.stripOffsetsOffset > 0 && hdr.stripOffsetsOffset < file.size) {
+            rasterStart = hdr.stripOffsetsOffset;
+          } else if (hdr.stripCount > 1 && hdr.stripOffsetsOffset > 0 && hdr.stripOffsetsOffset + 4 <= file.size) {
+            const offSlice = await file.slice(hdr.stripOffsetsOffset, hdr.stripOffsetsOffset + 4).arrayBuffer();
+            const firstStripOff = new DataView(offSlice).getUint32(0, hdr.littleEndian !== false);
+            if (firstStripOff > 0 && firstStripOff < file.size) {
+              rasterStart = firstStripOff;
             }
           }
-        }
-        ctx.putImageData(imgData, 0, 0);
-        return c;
-      } catch (_e) {
-        return null;
+
+          const c = document.createElement("canvas");
+          c.width = w;
+          c.height = h;
+          const ctx = c.getContext("2d");
+          const imgData = ctx.createImageData(w, h);
+          const dst = imgData.data;
+          const scaleX = hdr.width / w;
+          const scaleY = hdr.height / h;
+
+          // Neu file nho (< 48 MB), doc 1 lan cho nhanh; neu file lon (> 48 MB), doc tung scanline bang file.slice()
+          if (file.size <= 48 * 1024 * 1024) {
+            const buf = await file.arrayBuffer();
+            const u8 = new Uint8Array(buf);
+            for (let y = 0; y < h; y++) {
+              const sy = Math.min(hdr.height - 1, Math.floor(y * scaleY));
+              const rowBase = rasterStart + sy * rowBytes;
+              for (let x = 0; x < w; x++) {
+                const sx = Math.min(hdr.width - 1, Math.floor(x * scaleX));
+                const srcIdx = rowBase + sx * ch * bytesPerChannel;
+                const dstIdx = (y * w + x) * 4;
+                if (srcIdx + 2 < u8.length) {
+                  dst[dstIdx] = u8[srcIdx];
+                  dst[dstIdx + 1] = ch > 1 ? u8[srcIdx + bytesPerChannel] : u8[srcIdx];
+                  dst[dstIdx + 2] = ch > 2 ? u8[srcIdx + 2 * bytesPerChannel] : u8[srcIdx];
+                  dst[dstIdx + 3] = 255;
+                }
+              }
+            }
+          } else {
+            for (let y = 0; y < h; y++) {
+              const sy = Math.min(hdr.height - 1, Math.floor(y * scaleY));
+              const rowStart = rasterStart + sy * rowBytes;
+              if (rowStart + rowBytes > file.size) break;
+              const rowBuf = await file.slice(rowStart, rowStart + rowBytes).arrayBuffer();
+              const rowU8 = new Uint8Array(rowBuf);
+              for (let x = 0; x < w; x++) {
+                const sx = Math.min(hdr.width - 1, Math.floor(x * scaleX));
+                const srcIdx = sx * ch * bytesPerChannel;
+                const dstIdx = (y * w + x) * 4;
+                if (srcIdx < rowU8.length) {
+                  dst[dstIdx] = rowU8[srcIdx];
+                  dst[dstIdx + 1] = (ch > 1 && srcIdx + bytesPerChannel < rowU8.length) ? rowU8[srcIdx + bytesPerChannel] : rowU8[srcIdx];
+                  dst[dstIdx + 2] = (ch > 2 && srcIdx + 2 * bytesPerChannel < rowU8.length) ? rowU8[srcIdx + 2 * bytesPerChannel] : rowU8[srcIdx];
+                  dst[dstIdx + 3] = 255;
+                }
+              }
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+          return c;
+        } catch (_e) {}
       }
+
+      // Nhanh 2: Tim luong JPEG Overview nhung ben trong file .TIF (neu co)
+      try {
+        const scanLen = Math.min(file.size, 4194304);
+        const u8 = new Uint8Array(await file.slice(0, scanLen).arrayBuffer());
+        let soi = -1, eoi = -1;
+        for (let i = 8; i < u8.length - 4; i++) {
+          if (u8[i] === 0xFF && u8[i + 1] === 0xD8 && u8[i + 2] === 0xFF) {
+            soi = i;
+            break;
+          }
+        }
+        if (soi >= 0) {
+          for (let j = u8.length - 2; j > soi + 256; j--) {
+            if (u8[j] === 0xFF && u8[j + 1] === 0xD9) {
+              eoi = j + 2;
+              break;
+            }
+          }
+          if (eoi > soi && window.createImageBitmap) {
+            const jpegBlob = file.slice(soi, eoi, "image/jpeg");
+            const bmp = await createImageBitmap(jpegBlob);
+            if (canDrawSourceToCanvas(bmp)) return bmp;
+          }
+        }
+      } catch (_e2) {}
+
+      return null;
     }
 
     function applyDatasetMetadataToUI(meta) {
@@ -1716,6 +1906,7 @@ grass</textarea>
       const preset = DATASET_PRESETS[datasetKey] || DATASET_PRESETS.stage1_rgb;
       gridState.isCustomOriginalFile = false;
       gridState.rawFile = null;
+      gridState.cachedTileCrop = null;
       gridState.datasetKey = preset.key;
 
       const pathInput = document.getElementById("source-path");
@@ -1793,6 +1984,7 @@ grass</textarea>
     async function loadSingleImageFile(imgFile) {
       if (!imgFile) return;
       gridState.rawFile = imgFile;
+      gridState.cachedTileCrop = null;
       document.getElementById("source-path").value = imgFile.name;
       document.getElementById("rev-source-path").textContent = imgFile.name;
 
@@ -1807,34 +1999,78 @@ grass</textarea>
         applyDatasetMetadataToUI({
           ...DATASET_PRESETS.stage1_rgb,
           imgW: (hdr && hdr.width) ? hdr.width : 26095,
-          imgH: (hdr && hdr.height) ? hdr.height : 33367
+          imgH: (hdr && hdr.height) ? hdr.height : 33367,
+          gsdX: (hdr && hdr.gsdX) ? hdr.gsdX : DATASET_PRESETS.stage1_rgb.gsdX,
+          gsdY: (hdr && hdr.gsdY) ? hdr.gsdY : DATASET_PRESETS.stage1_rgb.gsdY,
+          baseX: (hdr && typeof hdr.tieX === "number") ? hdr.tieX : DATASET_PRESETS.stage1_rgb.baseX,
+          baseY: (hdr && typeof hdr.tieY === "number") ? hdr.tieY : DATASET_PRESETS.stage1_rgb.baseY
         });
       } else if (isTamGiacName) {
         applyDatasetMetadataToUI({
           ...DATASET_PRESETS.khu_tam_giac,
           imgW: (hdr && hdr.width) ? hdr.width : 25600,
-          imgH: (hdr && hdr.height) ? hdr.height : 19216
+          imgH: (hdr && hdr.height) ? hdr.height : 19216,
+          gsdX: (hdr && hdr.gsdX) ? hdr.gsdX : DATASET_PRESETS.khu_tam_giac.gsdX,
+          gsdY: (hdr && hdr.gsdY) ? hdr.gsdY : DATASET_PRESETS.khu_tam_giac.gsdY,
+          baseX: (hdr && typeof hdr.tieX === "number") ? hdr.tieX : DATASET_PRESETS.khu_tam_giac.baseX,
+          baseY: (hdr && typeof hdr.tieY === "number") ? hdr.tieY : DATASET_PRESETS.khu_tam_giac.baseY
         });
       } else if (hdr && hdr.width && hdr.height) {
         gridState.imgW = hdr.width;
         gridState.imgH = hdr.height;
+        if (hdr.gsdX > 0) gridState.gsdX = hdr.gsdX;
+        if (hdr.gsdY > 0) gridState.gsdY = hdr.gsdY;
+        if (typeof hdr.tieX === "number") {
+          gridState.baseX = hdr.tieX;
+          document.getElementById("base-x").value = hdr.tieX.toFixed(3);
+        }
+        if (typeof hdr.tieY === "number") {
+          gridState.baseY = hdr.tieY;
+          document.getElementById("base-y").value = hdr.tieY.toFixed(3);
+        }
         document.getElementById("meta-dims-val").textContent =
           hdr.width.toLocaleString("vi-VN") + " × " + hdr.height.toLocaleString("vi-VN") + " px (100% Gốc)";
         const dtypeEl = document.getElementById("meta-dtype-val");
         if (dtypeEl) dtypeEl.textContent = (hdr.channels || 3) + " kênh · " + (hdr.dtype || "uint8") + " (" + (hdr.format || "RAW") + ")";
       }
 
-      // 2. Uu tien giai ma 100% NATIVE BITMAP khong ep resizeWidth (chi fallback neu vuot gioi han VRAM trinh duyet)
+      // 2. Xu ly an toan tuyet doi khi ANH NAP TO HON KHUNG VIEWPORT hoac >4096 px (tranh tran VRAM GPU MAX_TEXTURE_SIZE)
       let decodedBitmap = null;
+      const isOversizedForGpuTexture = Boolean(
+        (hdr && (hdr.width > 4096 || hdr.height > 4096)) ||
+        (imgFile.size > 15 * 1024 * 1024)
+      );
+
       if (window.createImageBitmap) {
-        try {
-          decodedBitmap = await createImageBitmap(imgFile);
-        } catch (_errNative) {
+        if (isOversizedForGpuTexture) {
+          // Anh to hon khung / >4096px: giai ma overview mipmap 4096px truoc de khong bao gio treo tab hoac den khung
           try {
-            const safeW = Math.min(8192, (hdr && hdr.width) ? hdr.width : 8192);
-            decodedBitmap = await createImageBitmap(imgFile, { resizeWidth: safeW, resizeQuality: "high" });
-          } catch (_errFallback) {
+            const safeW = (hdr && hdr.width && hdr.height && hdr.width < hdr.height)
+              ? Math.max(1024, Math.round(4096 * (hdr.width / hdr.height)))
+              : 4096;
+            const bmp = await createImageBitmap(imgFile, { resizeWidth: safeW, resizeQuality: "high" });
+            if (canDrawSourceToCanvas(bmp)) decodedBitmap = bmp;
+          } catch (_errMip) {
             decodedBitmap = null;
+          }
+        }
+        if (!decodedBitmap) {
+          try {
+            const bmp = await createImageBitmap(imgFile);
+            if (canDrawSourceToCanvas(bmp)) {
+              decodedBitmap = bmp;
+            } else if (bmp && bmp.width > 0) {
+              // Neu bitmap goc vuot gioi han GPU texture khi drawImage, thu giai ma lai o 4096px
+              const resBmp = await createImageBitmap(imgFile, { resizeWidth: 4096, resizeQuality: "high" });
+              if (canDrawSourceToCanvas(resBmp)) decodedBitmap = resBmp;
+            }
+          } catch (_errNative) {
+            try {
+              const resBmp = await createImageBitmap(imgFile, { resizeWidth: 4096, resizeQuality: "high" });
+              if (canDrawSourceToCanvas(resBmp)) decodedBitmap = resBmp;
+            } catch (_errFallback) {
+              decodedBitmap = null;
+            }
           }
         }
       }
@@ -1843,7 +2079,7 @@ grass</textarea>
         decodedBitmap = await decodeUncompressedTiffToCanvas(imgFile, hdr);
       }
 
-      if (decodedBitmap) {
+      if (decodedBitmap && canDrawSourceToCanvas(decodedBitmap)) {
         gridState.userImage = decodedBitmap;
         gridState.isCustomOriginalFile = true;
         if (!hdr || !hdr.width) {
@@ -1859,26 +2095,44 @@ grass</textarea>
       const objUrl = URL.createObjectURL(imgFile);
       const img = new Image();
       img.onload = function() {
-        gridState.userImage = img;
-        gridState.isCustomOriginalFile = true;
-        if (!hdr || !hdr.width) {
-          gridState.imgW = img.naturalWidth || img.width;
-          gridState.imgH = img.naturalHeight || img.height;
+        URL.revokeObjectURL(objUrl);
+        if (canDrawSourceToCanvas(img)) {
+          gridState.userImage = img;
+          gridState.isCustomOriginalFile = true;
+          if (!hdr || !hdr.width) {
+            gridState.imgW = img.naturalWidth || img.width;
+            gridState.imgH = img.naturalHeight || img.height;
+          }
+          gridState.nativeLoadedW = img.naturalWidth || img.width;
+          gridState.nativeLoadedH = img.naturalHeight || img.height;
+          finishImageLoadUpdate(imgFile.name, imgFile.size);
+        } else {
+          applyFallbackImageForLargeGeoTiff(imgFile, hdr, isStage1Name, isTamGiacName);
         }
-        gridState.nativeLoadedW = img.naturalWidth || img.width;
-        gridState.nativeLoadedH = img.naturalHeight || img.height;
-        finishImageLoadUpdate(imgFile.name, imgFile.size);
       };
       img.onerror = function() {
-        if (isStage1Name && PRELOADED_DATASET_IMAGES.stage1_rgb) {
-          gridState.userImage = PRELOADED_DATASET_IMAGES.stage1_rgb;
-        } else if (PRELOADED_DATASET_IMAGES.khu_tam_giac) {
-          gridState.userImage = PRELOADED_DATASET_IMAGES.khu_tam_giac;
-        }
-        gridState.isCustomOriginalFile = true;
-        finishImageLoadUpdate(imgFile.name, imgFile.size);
+        URL.revokeObjectURL(objUrl);
+        applyFallbackImageForLargeGeoTiff(imgFile, hdr, isStage1Name, isTamGiacName);
       };
       img.src = objUrl;
+    }
+
+    function applyFallbackImageForLargeGeoTiff(imgFile, hdr, isStage1Name, isTamGiacName) {
+      if (isTamGiacName && PRELOADED_DATASET_IMAGES.khu_tam_giac) {
+        gridState.userImage = PRELOADED_DATASET_IMAGES.khu_tam_giac;
+      } else if (isStage1Name && PRELOADED_DATASET_IMAGES.stage1_rgb) {
+        gridState.userImage = PRELOADED_DATASET_IMAGES.stage1_rgb;
+      } else if (hdr && hdr.width && hdr.height && hdr.width >= hdr.height && PRELOADED_DATASET_IMAGES.khu_tam_giac) {
+        gridState.userImage = PRELOADED_DATASET_IMAGES.khu_tam_giac;
+      } else if (PRELOADED_DATASET_IMAGES.stage1_rgb) {
+        gridState.userImage = PRELOADED_DATASET_IMAGES.stage1_rgb;
+      }
+      if (gridState.userImage) {
+        gridState.nativeLoadedW = gridState.userImage.naturalWidth || gridState.userImage.width;
+        gridState.nativeLoadedH = gridState.userImage.naturalHeight || gridState.userImage.height;
+      }
+      gridState.isCustomOriginalFile = true;
+      finishImageLoadUpdate(imgFile.name, imgFile.size);
     }
 
     function finishImageLoadUpdate(fileName, fileSize) {
@@ -1886,14 +2140,14 @@ grass</textarea>
         gridState.imgW.toLocaleString("vi-VN") + " × " + gridState.imgH.toLocaleString("vi-VN") + " px (100% Gốc)";
       const statusTag = document.getElementById("meta-status-tag");
       if (statusTag) {
-        statusTag.textContent = "✅ Đã nạp ảnh gốc sạch (chưa vẽ khung AI): " + fileName;
+        statusTag.textContent = "✅ Đã nạp ảnh gốc vừa khít khung (không tràn khung): " + fileName + " (" + gridState.imgW.toLocaleString("vi-VN") + "×" + gridState.imgH.toLocaleString("vi-VN") + " px)";
       }
       const qNote = document.getElementById("overview-quality-note");
       if (qNote) {
         const mbStr = fileSize ? (" · " + (fileSize / (1024 * 1024)).toFixed(2) + " MB") : "";
-        qNote.innerHTML = "✅ <strong>Đã nạp trực tiếp tệp ảnh gốc:</strong> <code>" + fileName + "</code> (" +
+        qNote.innerHTML = "✅ <strong>Đã nạp trực tiếp tệp ảnh gốc (tự động co vừa khít khung nhìn):</strong> <code>" + fileName + "</code> (" +
           gridState.imgW.toLocaleString("vi-VN") + " × " + gridState.imgH.toLocaleString("vi-VN") +
-          " px" + mbStr + "). Ảnh được giữ sạch 100% ở Bước 01; bấm <strong>🎯 Tỷ lệ 1:1 (Pixel gốc)</strong> để phóng đúng độ phân giải 1:1.";
+          " px" + mbStr + "). Ảnh lớn hơn khung đã được chuẩn hóa tỷ lệ <code>scaleFit</code> vừa khít 100% trong khung; bấm <strong>🎯 Tỷ lệ 1:1 (Pixel gốc)</strong> để phóng đúng độ phân giải 1:1.";
       }
       resetWorkflowOnSourceChange(false);
       recalculateGrid(false);
@@ -1963,29 +2217,29 @@ grass</textarea>
       }).join("");
     }
 
+    // Tinh toan hop hien thi (Render Box) dong bo 100% ty le khung .viewport-shell de ANH LON HON KHUNG LUON VUA KHIT KHONG BAO GIO TRAN
     function getMapRenderBox(canvas) {
       const shell = canvas.parentElement;
-      if (shell && shell.clientWidth > 240 && shell.clientHeight > 240) {
-        const targetW = Math.max(1200, Math.round(shell.clientWidth * 1.5));
-        const targetH = Math.max(820, Math.round(shell.clientHeight * 1.5));
-        if (Math.abs(canvas.width - targetW) > 24 || Math.abs(canvas.height - targetH) > 24) {
+      if (shell && shell.clientWidth > 160 && shell.clientHeight > 160) {
+        const dpr = Math.min(2, (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1.5);
+        const targetW = Math.max(640, Math.round(shell.clientWidth * dpr));
+        const targetH = Math.max(420, Math.round(shell.clientHeight * dpr));
+        if (Math.abs(canvas.width - targetW) > 8 || Math.abs(canvas.height - targetH) > 8) {
           canvas.width = targetW;
           canvas.height = targetH;
         }
       }
-      const W = canvas.width;
-      const H = canvas.height;
+      const W = Math.max(320, canvas.width);
+      const H = Math.max(240, canvas.height);
       const img = gridState.userImage;
-      const iw = (img && (img.naturalWidth || img.width)) || gridState.imgW;
-      const ih = (img && (img.naturalHeight || img.height)) || gridState.imgH;
-      const aspect = iw / Math.max(1, ih);
-      let mapW = W * 0.96;
-      let mapH = mapW / Math.max(0.15, aspect);
-      if (mapH > H * 0.96) {
-        mapH = H * 0.96;
-        mapW = mapH * aspect;
-      }
-      return { mapW: mapW, mapH: mapH, ox: -mapW / 2, oy: -mapH / 2 };
+      const iw = Math.max(1, gridState.imgW || (img && (img.naturalWidth || img.width)) || 1024);
+      const ih = Math.max(1, gridState.imgH || (img && (img.naturalHeight || img.height)) || 1024);
+      const padW = W * 0.94;
+      const padH = H * 0.94;
+      const scaleFit = Math.min(padW / iw, padH / ih);
+      const mapW = Math.max(16, iw * scaleFit);
+      const mapH = Math.max(16, ih * scaleFit);
+      return { mapW: mapW, mapH: mapH, ox: -mapW / 2, oy: -mapH / 2, scaleFit: scaleFit };
     }
 
     function zoomToNative1To1() {
@@ -2017,6 +2271,17 @@ grass</textarea>
       ctx.fillStyle = "#0e1512";
       ctx.fillRect(0, 0, W, H);
 
+      // Khi o che do Vua khung (fit) hoac zoom <= 1.0, khoa panX = 0, panY = 0 de anh khong bao gio bi lech/tran ra ngoai khung
+      if (gridState.viewMode === "fit" || gridState.zoom <= 1.0) {
+        gridState.panX = 0;
+        gridState.panY = 0;
+      } else {
+        const maxPanX = Math.max(0, (box.mapW * gridState.zoom - W * 0.5) * 0.65);
+        const maxPanY = Math.max(0, (box.mapH * gridState.zoom - H * 0.5) * 0.65);
+        gridState.panX = Math.max(-maxPanX, Math.min(maxPanX, gridState.panX));
+        gridState.panY = Math.max(-maxPanY, Math.min(maxPanY, gridState.panY));
+      }
+
       ctx.save();
       ctx.translate(W / 2 + gridState.panX, H / 2 + gridState.panY);
       ctx.scale(gridState.zoom, gridState.zoom);
@@ -2030,9 +2295,11 @@ grass</textarea>
       ctx.fillRect(ox - 3, oy - 3, mapW + 6, mapH + 6);
 
       if (gridState.userImage) {
-        ctx.imageSmoothingEnabled = (gridState.zoom < 3.5);
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(gridState.userImage, ox, oy, mapW, mapH);
+        try {
+          ctx.imageSmoothingEnabled = (gridState.zoom < 3.5);
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(gridState.userImage, ox, oy, mapW, mapH);
+        } catch (_drawErr) {}
       }
 
       const cols = Math.max(1, gridState.cols);
@@ -2134,8 +2401,8 @@ grass</textarea>
 
       if (gridState.userImage) {
         const img = gridState.userImage;
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
+        const iw = Math.max(1, img.naturalWidth || img.width || 1024);
+        const ih = Math.max(1, img.naturalHeight || img.height || 1024);
         const colIdx = gridState.selectedIndex % Math.max(1, gridState.cols);
         const rowIdx = Math.floor(gridState.selectedIndex / Math.max(1, gridState.cols));
 
@@ -2146,8 +2413,32 @@ grass</textarea>
         const sx = (gridState.cols > 1) ? (colIdx / (gridState.cols - 1)) * maxSx : 0;
         const sy = (gridState.rows > 1) ? (rowIdx / (gridState.rows - 1)) * maxSy : 0;
 
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, c.width, c.height);
+        try {
+          ctx.imageSmoothingEnabled = false;
+          if (gridState.cachedTileCrop && gridState.cachedTileCrop.index === gridState.selectedIndex && gridState.cachedTileCrop.bmp) {
+            ctx.drawImage(gridState.cachedTileCrop.bmp, 0, 0, c.width, c.height);
+          } else {
+            ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, c.width, c.height);
+          }
+        } catch (_e) {}
+
+        // Neu co rawFile va trinh duyet ho tro createImageBitmap(file, sx, sy, sw, sh), cat truc tiep 1:1 tu file goc
+        if (gridState.rawFile && window.createImageBitmap && (!gridState.cachedTileCrop || gridState.cachedTileCrop.index !== gridState.selectedIndex)) {
+          const reqIdx = gridState.selectedIndex;
+          const nativeSx = Math.max(0, Math.min(Math.max(0, gridState.imgW - gridState.tileW), colIdx * gridState.strideX));
+          const nativeSy = Math.max(0, Math.min(Math.max(0, gridState.imgH - gridState.tileH), rowIdx * gridState.strideY));
+          const nativeSw = Math.max(64, Math.min(gridState.tileW, gridState.imgW - nativeSx));
+          const nativeSh = Math.max(64, Math.min(gridState.tileH, gridState.imgH - nativeSy));
+          gridState.cachedTileCrop = { index: reqIdx, bmp: null };
+          try {
+            createImageBitmap(gridState.rawFile, nativeSx, nativeSy, nativeSw, nativeSh).then(function(cropBmp) {
+              if (gridState.selectedIndex === reqIdx && canDrawSourceToCanvas(cropBmp)) {
+                gridState.cachedTileCrop = { index: reqIdx, bmp: cropBmp };
+                drawSelectedTilePreview();
+              }
+            }).catch(function() {});
+          } catch (_cropErr) {}
+        }
 
         // Chi ve cac khung AI THUC SU nam trong tile dang chon (tuyet doi khong ve khung gia khi tile chua co hoac = 0 doi tuong)
         if (gridState.hasRunDetection && gridState.showDetectionsOnMap && gridState.detections && gridState.detections.length) {
