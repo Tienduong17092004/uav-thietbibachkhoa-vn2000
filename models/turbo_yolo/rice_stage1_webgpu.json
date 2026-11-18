@@ -1,0 +1,108 @@
+{
+  "model_name": "RiceStage1UNetLite-WebGPU",
+  "dataset_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\sample\\MULTISPECTRAL\\Results_Stage 1",
+  "rgb_orthomosaic": "Ortho_Stage 1_RGB (24-10-2026).tif (26095x33367 px, GSD 1.50 cm/px, EPSG:32648)",
+  "ms_bands": [
+    "Ortho_Stage 1_RGB (24-10-2026)_Green.tif (15912x20345 px, GSD 2.46 cm/px)",
+    "Ortho_Stage 1_RGB (24-10-2026)_Red.tif (15912x20345 px, GSD 2.46 cm/px)",
+    "Ortho_Stage 1_RGB (24-10-2026)_RedEdge.tif (15912x20345 px, GSD 2.46 cm/px)",
+    "Ortho_Stage 1_RGB (24-10-2026)_NIR.tif (15912x20345 px, GSD 2.46 cm/px)"
+  ],
+  "dem_raster": "DEM_Stage 1 (24-10-2026).tif (1577x2016 px, GSD 24.83 cm/px)",
+  "gpu": "NVIDIA GeForce RTX 4070",
+  "patches_extracted": 64,
+  "train_patches": 51,
+  "val_patches": 13,
+  "seg_steps": 240,
+  "initial_loss": 1.92,
+  "final_loss": 0.1319,
+  "ablation_study": {
+    "Baseline_A_RGB_ExG_Otsu": {
+      "mIoU": 40.81,
+      "F1": 50.75,
+      "precision": 51.82,
+      "recall": 62.34,
+      "pixel_acc": 67.78
+    },
+    "Baseline_B_MS_NDVI_Only": {
+      "mIoU": 26.58,
+      "F1": 36.89,
+      "precision": 36.68,
+      "recall": 47.26,
+      "pixel_acc": 62.97
+    },
+    "Baseline_C_MS_NDVI_NDRE_NoDEM": {
+      "mIoU": 21.54,
+      "F1": 30.58,
+      "precision": 34.73,
+      "recall": 42.43,
+      "pixel_acc": 55.85
+    },
+    "Proposed_D1_RGB_Only_Distilled_Student": {
+      "mIoU": 47.53,
+      "F1": 55.44,
+      "precision": 54.14,
+      "recall": 56.9,
+      "pixel_acc": 85.51
+    },
+    "Proposed_D2_Physics_MS_DEM_Fusion_UNetLite": {
+      "mIoU": 50.43,
+      "F1": 58.2,
+      "precision": 57.33,
+      "recall": 59.12,
+      "pixel_acc": 87.71
+    }
+  },
+  "yolo11_stage1": {
+    "trained": true,
+    "epochs": 8,
+    "stage1_patches": 64,
+    "stage1_boxes": 1893,
+    "mAP50": 0.1157,
+    "mAP50_95": 0.047,
+    "precision": 0.4837,
+    "recall": 0.1834,
+    "pt_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\turbo_yolo\\zone\\best.pt",
+    "onnx_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\turbo_yolo\\zone\\best.onnx"
+  },
+  "onnx_paths": [
+    "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\uav_geotiff\\models\\turbo_yolo\\rice_stage1_webgpu.onnx",
+    "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\turbo_yolo\\rice_stage1_webgpu.onnx"
+  ],
+  "classes": [
+    {
+      "id": 0,
+      "key": "background",
+      "label_vi": "Nền đất / Nước mặt ruộng",
+      "color": "#0f172a"
+    },
+    {
+      "id": 1,
+      "key": "newly_transplanted_rice",
+      "label_vi": "Lúa mới cấy thuần (Newly transplanted rice)",
+      "color": "#fa3253"
+    },
+    {
+      "id": 2,
+      "key": "grass",
+      "label_vi": "Cỏ dại / Rong rêu (Grass)",
+      "color": "#33ddff"
+    },
+    {
+      "id": 3,
+      "key": "rice_partial_grass",
+      "label_vi": "Lúa lẫn cỏ (Rice + Partial Grass)",
+      "color": "#ffcc33"
+    }
+  ],
+  "elapsed_seconds": 119.72,
+  "trained_at": "2026-11-10T05:34:06.108640+00:00",
+  "val_pixel_accuracy": 0.9549,
+  "val_miou": 0.3716,
+  "inference_ms_per_tile": 38.72,
+  "speedup_x": 4.72,
+  "argon_review_score": 0.8776,
+  "argon_model_approved": true,
+  "distillation_deferred": true,
+  "enable_distillation": false
+}

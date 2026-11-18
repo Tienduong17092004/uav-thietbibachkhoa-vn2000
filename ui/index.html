@@ -1,0 +1,1736 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UAV GeoTIFF Studio · Chuẩn bị dữ liệu ảnh địa lý (VN2000 · https://thietbibachkhoa.id.vn/) · Local Port 8765</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f2f5f3;
+      --surface: #ffffff;
+      --surface-subtle: #f7faf8;
+      --surface-input: #ffffff;
+      --surface-media: #141917;
+      --header-bg: rgba(255, 255, 255, 0.96);
+      --ink: #18241e;
+      --ink-pure: #0b1410;
+      --ink-secondary: #43544b;
+      --muted: #62736a;
+      --border: #d2ddd7;
+      --border-strong: #9bb0a5;
+      --accent-emerald: #009966;
+      --accent-mint: #007a52;
+      --accent-teal: #0b7290;
+      --warning-amber: #b46900;
+      --danger-coral: #d92d20;
+      --btn-hover-bg: #ecf7f2;
+      --btn-primary-bg: #6f7c75;
+      --btn-primary-active-bg: #009966;
+      --shadow-card: rgba(15, 23, 20, 0.05) 0px 2px 10px, rgba(15, 23, 20, 0.04) 0px 0px 0px 1px;
+      --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-body);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { width: 100%; min-height: 100vh; margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-size: 13.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    /* =========================================================================
+       1. CỔNG KHÓA ĐĂNG NHẬP DUY NHẤT 1 Ô NHẬP KEY (ẨN MỌI THỨ KHÁC KHI CHƯA NHẬP KEY)
+       ========================================================================= */
+    #login-gate-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: radial-gradient(circle at 50% 25%, #ffffff 0%, #e7efeb 100%);
+    }
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 26px;
+      box-shadow: 0 12px 36px rgba(15, 23, 20, 0.08);
+      text-align: center;
+    }
+    .login-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .brand-mark {
+      display: grid;
+      grid-template-columns: repeat(2, 9px);
+      gap: 3px;
+      padding: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .brand-mark i { height: 9px; background: var(--accent-emerald); border-radius: 1.5px; display: block; }
+    .brand-mark i:nth-child(2) { background: var(--accent-teal); }
+    .brand-mark i:last-child { background: var(--warning-amber); }
+    .login-input {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      color: var(--ink-pure);
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline: none;
+      text-align: center;
+    }
+    .login-input:focus {
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 3px rgba(0, 153, 102, 0.15);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 11px 16px;
+      border-radius: 6px;
+      border: 1px solid #007f55;
+      background: var(--accent-emerald);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .login-btn:hover { background: var(--accent-mint); }
+    #login-error-msg {
+      margin-top: 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--danger-coral);
+      min-height: 18px;
+    }
+
+    /* =========================================================================
+       2. GIAO DIỆN UAV GEOTIFF STUDIO GỐC (CHỈ HIỆN SAU KHI NHẬP ĐÚNG KEY)
+       ========================================================================= */
+    #authenticated-workspace { display: none; }
+
+    button, input, select, textarea { font: inherit; }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      min-height: 36px;
+      padding: 6px 13px;
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--ink-pure);
+      background: var(--surface);
+      transition: all 120ms ease;
+    }
+    button:hover:not(:disabled) {
+      background: var(--btn-hover-bg);
+      border-color: var(--accent-emerald);
+      color: var(--accent-mint);
+    }
+    button:disabled { cursor: not-allowed; opacity: 0.5; }
+    button.primary {
+      background: var(--accent-emerald);
+      border-color: #007f55;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-mint);
+      color: #ffffff;
+    }
+    button.export-tile-btn {
+      background: #76827c;
+      border-color: #65706a;
+      color: #ffffff;
+      font-weight: 600;
+      width: 100%;
+      min-height: 38px;
+    }
+    button.export-tile-btn:hover:not(:disabled) {
+      background: var(--accent-emerald);
+      border-color: #007f55;
+      color: #ffffff;
+    }
+    button.secondary {
+      background: var(--surface-subtle);
+      border-color: var(--border);
+      color: var(--ink);
+    }
+    .wide { width: 100%; margin-top: 10px; }
+
+    input, select, textarea {
+      background: var(--surface-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 100%;
+      min-height: 36px;
+      padding: 6px 10px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 2px rgba(0, 153, 102, 0.14);
+    }
+    label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--ink);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; color: var(--ink-pure); margin-top: 3px; }
+    h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink-pure); }
+    .eyebrow {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .muted, .field-help, .empty-note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    /* Top Header */
+    .app-header {
+      width: 100%;
+      min-height: 54px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--header-bg);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand strong { display: block; font-size: 15px; font-weight: 700; color: var(--ink-pure); }
+    .brand div > span { display: block; color: var(--muted); font-size: 11.5px; }
+    .header-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-secondary); flex-wrap: wrap; }
+    .local-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #ecf7f2;
+      border: 1px solid rgba(0, 153, 102, 0.35);
+      border-radius: 999px;
+      color: var(--accent-mint);
+      font-weight: 600;
+      font-size: 11.5px;
+    }
+    .local-badge > span {
+      height: 7px;
+      width: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+    }
+
+    /* 4-Step Bar matching screenshot */
+    .steps {
+      width: 100%;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 180px;
+    }
+    .steps ol {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin: 0 auto;
+      padding: 0;
+      max-width: 1180px;
+    }
+    .steps li { min-width: 0; }
+    .steps button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 54px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      text-align: left;
+      position: relative;
+      padding: 10px 14px;
+      color: var(--ink-secondary);
+    }
+    .steps button:hover:not(:disabled) {
+      background: rgba(0, 153, 102, 0.04);
+      color: var(--ink-pure);
+    }
+    .steps button[aria-current="step"] {
+      color: var(--ink-pure);
+    }
+    .steps button[aria-current="step"]::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 14px;
+      right: 14px;
+      height: 2.5px;
+      background: #2c4c3e;
+    }
+    .step-number {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      background: var(--surface-subtle);
+    }
+    .steps button[aria-current="step"] .step-number {
+      border-color: #2c4c3e;
+      color: #2c4c3e;
+      font-weight: 700;
+    }
+    .steps button .step-label-wrap strong {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink-pure);
+    }
+    .steps button .step-label-wrap small {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 1px;
+    }
+
+    /* Main Workspace Grid matching screenshot */
+    .workspace {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 18px 20px 28px;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .config-panel, .map-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .config-panel {
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-heading {
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .panel-heading > p:last-child {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    /* Review Summary & Metadata Box */
+    .metadata, .review-summary {
+      margin: 8px 0 12px;
+      padding: 12px 14px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .metadata dl, .review-summary dl {
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      gap: 8px 10px;
+      margin: 0;
+      font-size: 12px;
+      align-items: baseline;
+    }
+    .metadata dt, .review-summary dt {
+      color: var(--muted);
+      font-weight: 500;
+      line-height: 1.35;
+    }
+    .metadata dd, .review-summary dd {
+      margin: 0;
+      text-align: right;
+      font-weight: 600;
+      color: var(--ink-pure);
+      font-variant-numeric: tabular-nums;
+      word-break: break-word;
+    }
+    .review-source {
+      font-size: 11px;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      line-height: 1.4;
+    }
+
+    /* Linear Job Progress matching screenshot */
+    .job-panel {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    #job-status {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ink-pure);
+      margin-bottom: 8px;
+    }
+    .linear-progress-track {
+      width: 100%;
+      height: 7px;
+      background: #dfe7e2;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .linear-progress-fill {
+      height: 100%;
+      background: #2b5b47;
+      border-radius: 999px;
+      transition: width 250ms ease;
+    }
+    .job-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .output-path {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+      margin-top: 10px;
+      line-height: 1.4;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .path-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .path-row button { white-space: nowrap; }
+
+    .plan-stats {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-emerald);
+      border-radius: 6px;
+    }
+    .plan-count {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      line-height: 1.1;
+    }
+    .plan-count span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-left: 6px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 11.5px;
+    }
+    .stat-grid span { display: block; color: var(--muted); font-size: 11px; }
+    .stat-grid strong { font-family: var(--font-mono); color: var(--ink-pure); }
+
+    /* Right Column: Map Panel & Tile Inspector & Detection Results */
+    .map-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--ink-secondary);
+      background: var(--surface-subtle);
+    }
+    .status-tag.success {
+      background: rgba(0, 153, 102, 0.1);
+      border-color: var(--accent-emerald);
+      color: var(--accent-mint);
+    }
+
+    .viewport-shell {
+      position: relative;
+      background: var(--surface-media);
+      height: 360px;
+      overflow: hidden;
+    }
+    #overview-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    #overview-canvas:active { cursor: grabbing; }
+    .north-indicator {
+      position: absolute;
+      left: 12px;
+      top: 10px;
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 1.15;
+      text-align: center;
+      font-family: var(--font-mono);
+      pointer-events: none;
+    }
+    .map-tools {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      display: flex;
+      gap: 4px;
+      z-index: 5;
+    }
+    .map-tools button {
+      min-height: 28px;
+      height: 28px;
+      padding: 0 9px;
+      background: rgba(30, 36, 33, 0.9);
+      border-color: #3d4a44;
+      color: #f1f5f9;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .viewport-status {
+      position: absolute;
+      bottom: 8px;
+      left: 12px;
+      font-size: 11px;
+      color: #cbd5e1;
+      pointer-events: none;
+    }
+
+    .map-caption {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 18px 4px;
+      font-size: 11.5px;
+      color: var(--muted);
+      background: var(--surface);
+    }
+    .legend { display: flex; gap: 14px; align-items: center; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend i { display: inline-block; width: 12px; height: 8px; border-radius: 1.5px; }
+    .legend-grid { border: 1px solid #5a7d6c; background: rgba(0, 153, 102, 0.08); }
+    .legend-overlap { border: 1px dashed #b46900; background: rgba(180, 105, 0, 0.15); }
+    .legend-selected { border: 1.5px solid #d97706; background: rgba(245, 158, 11, 0.28); }
+    .overview-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      padding: 0 18px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Tile Inspector matching screenshot */
+    .tile-inspector {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .inspector-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .tile-select-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tile-select-field label { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; }
+    .tile-select-field select { width: 150px; min-height: 30px; height: 30px; padding: 3px 8px; font-family: var(--font-mono); font-size: 12px; }
+    .tile-body {
+      display: grid;
+      grid-template-columns: 155px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    .tile-image-wrap {
+      width: 155px;
+      height: 155px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #tile-details strong {
+      display: block;
+      font-size: 12.5px;
+      color: var(--ink-pure);
+      margin-bottom: 2px;
+    }
+    #tile-details > p {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    table.coord-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    table.coord-table caption {
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    table.coord-table th, table.coord-table td {
+      padding: 5px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    table.coord-table th {
+      font-weight: 600;
+      color: var(--muted);
+      text-align: right;
+    }
+    table.coord-table th:first-child, table.coord-table td:first-child {
+      text-align: left;
+      padding-left: 0;
+    }
+    table.coord-table td:not(:first-child) {
+      text-align: right;
+      font-family: var(--font-mono);
+    }
+    .inspector-note {
+      margin-top: 10px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    /* Duyệt kết quả nhận diện matching screenshot */
+    .results-section {
+      padding: 14px 18px 18px;
+    }
+    .results-section h2 {
+      margin-bottom: 6px;
+    }
+
+    /* Floating Windows Task Manager GPU Overlay matching screenshot */
+    .tm-float-card {
+      position: fixed;
+      top: 132px;
+      right: 28px;
+      width: 162px;
+      background: #ffffff;
+      border: 1px solid #cfd8d3;
+      border-radius: 6px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+      padding: 8px;
+      z-index: 25;
+      font-size: 11px;
+      user-select: none;
+    }
+    .tm-row {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 7px;
+      align-items: center;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .tm-row.active {
+      background: #f3eefc;
+    }
+    .tm-mini-box {
+      width: 44px;
+      height: 30px;
+      border: 1px solid #94a3b8;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+    .tm-row.active .tm-mini-box {
+      border-color: #8b5cf6;
+      background: #f5f0ff;
+    }
+    .tm-meta strong {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .tm-meta span {
+      display: block;
+      font-size: 10px;
+      color: #475569;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.25;
+    }
+
+    /* Admin 7-Column Google Sheet Key Manager Modal/Drawer (Only visible for Admin Key) */
+    #admin-key-management-panel {
+      display: none;
+      max-width: 1220px;
+      margin: 14px auto 0;
+      padding: 16px 20px;
+      background: #ffffff;
+      border: 2px solid var(--accent-emerald);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+    }
+    table.admin-sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    table.admin-sheet-table th, table.admin-sheet-table td {
+      border: 1px solid var(--border);
+      padding: 7px 9px;
+      text-align: left;
+    }
+    table.admin-sheet-table th {
+      background: #ecf7f2;
+      color: var(--ink-pure);
+      font-weight: 700;
+    }
+    .status-green {
+      background: rgba(0, 153, 102, 0.12);
+      color: #007a52;
+      border: 1px solid #009966;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 11px;
+      display: inline-block;
+    }
+    .status-red {
+      background: rgba(217, 45, 32, 0.12);
+      color: #b42318;
+      border: 1px solid #d92d20;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 11px;
+      display: inline-block;
+    }
+
+    @media (max-width: 1024px) {
+      .steps { padding: 0 16px; }
+      .workspace { grid-template-columns: 1fr; }
+      .tm-float-card { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================================
+       MÀN HÌNH 1 Ô NHẬP KEY DUY NHẤT (ẨN TOÀN BỘ GIAO DIỆN STUDIO KHI CHƯA NHẬP KEY)
+       ========================================================================= -->
+  <div id="login-gate-wrapper">
+    <div class="login-box" id="key-login-section">
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <div>
+          <strong style="font-size:15px;color:#0b1410;display:block">UAV GeoTIFF Studio</strong>
+          <span style="font-size:11.5px;color:#62736a">Chuẩn bị dữ liệu ảnh địa lý · VN2000</span>
+        </div>
+      </div>
+      <input id="key-input" class="login-input" type="password" placeholder="Nhập Key truy cập..." autocomplete="off" onkeydown="if(event.key==='Enter') verifyLogin()" />
+      <button type="button" id="btn-login" class="login-btn" onclick="verifyLogin()">Mở Giao Diện UAV GeoTIFF Studio</button>
+      <div id="login-error-msg"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       GIAO DIỆN CHÍNH UAV GEOTIFF STUDIO (HIỆN NGAY SAU KHI NHẬP KEY HỢP LỆ)
+       ========================================================================= -->
+  <div id="authenticated-workspace" style="display:none;">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <div>
+          <strong>UAV GeoTIFF Studio</strong>
+          <span>Chuẩn bị dữ liệu ảnh địa lý</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <button id="btn-admin-toggle" type="button" class="primary" style="display:none;" onclick="toggleAdminSheetPanel()">👑 Quản Lý Key Google Sheet (7 Cột)</button>
+        <button type="button" onclick="document.getElementById('results-panel').scrollIntoView({behavior:'smooth'})">Xem kết quả nhận diện</button>
+        <span class="local-badge" id="user-role-badge"><span aria-hidden="true"></span>Chạy trên máy này</span>
+        <span id="user-name-label">Nhận diện &amp; kiểm duyệt</span>
+        <button type="button" onclick="toggleTaskMgrCard()" title="Ẩn/Hiện bảng phần cứng GPU">🖥️ GPU</button>
+        <button type="button" onclick="logoutSession()">🔒 Khóa Key</button>
+      </div>
+    </header>
+
+    <!-- BẢNG QUẢN LÝ KEY GOOGLE SHEET 7 CỘT (CHỈ HIỆN VỚI KEY ADMIN, ẨN VỚI KEY KHÁCH) -->
+    <section id="admin-key-management-panel" class="hidden-admin-panel" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+        <div>
+          <h2 style="color:#007a52;">📊 Quản Lý Key Google Sheet 7 Cột (Chỉ Key Admin Mới Hiển Thị)</h2>
+          <p class="field-help">Quy tắc: <span class="status-green">🟢 Bình thường (&gt; 1/3 thời gian)</span> · <span class="status-red">🔴 Báo đỏ (&le; 1/3 thời gian)</span> · Folder dữ liệu đã xử lý: <a target="_blank" href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"><code>1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN</code></a></p>
+        </div>
+        <button type="button" class="primary" onclick="exportGoogleSheetCsv()">📥 Xuất Google Sheet (.CSV 7 Cột)</button>
+      </div>
+      <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr auto auto; gap:8px; align-items:center; margin-top:10px;">
+        <input id="rec-name" placeholder="1. Người nhận (VD: Kỹ sư Minh)" />
+        <input id="rec-phone" placeholder="2. SĐT người nhận (VD: 0912345678)" />
+        <select id="rec-purpose">
+          <option value="1h">Test thử 1 giờ (1h)</option>
+          <option value="3h">Test thử 3 giờ (3h)</option>
+          <option value="5h">Test thử 5 giờ (5h)</option>
+          <option value="1m">Mua 1 tháng (1m)</option>
+          <option value="3m">Mua 3 tháng (3m)</option>
+          <option value="6m">Mua 6 tháng (6m)</option>
+          <option value="1y">Mua 1 năm (1y)</option>
+        </select>
+        <label style="display:flex; align-items:center; gap:5px; margin:0; white-space:nowrap;"><input type="checkbox" id="rec-tpu" checked style="width:16px;min-height:16px;" /> Cho phép TPU (&gt;15p)</label>
+        <button type="button" class="primary" onclick="createKey()">+ Tạo Key Mới</button>
+      </div>
+      <table class="admin-sheet-table">
+        <thead>
+          <tr>
+            <th>1. Người nhận</th>
+            <th>2. SĐT người nhận</th>
+            <th>3. Key</th>
+            <th>4. Mục đích</th>
+            <th>5. Thời gian cấp</th>
+            <th>6. Thời gian hết hạn</th>
+            <th>7. Tình trạng</th>
+            <th>Xóa</th>
+          </tr>
+        </thead>
+        <tbody id="keys-body"></tbody>
+      </table>
+    </section>
+
+    <!-- THANH 4 BƯỚC CHUẨN UAV GEOTIFF STUDIO -->
+    <nav class="steps" aria-label="Các bước xử lý">
+      <ol>
+        <li>
+          <button type="button" data-step="1" onclick="goToStep(1)">
+            <span class="step-number">01</span>
+            <span class="step-label-wrap"><strong>Ảnh &amp; tọa độ Base</strong><small>Kiểm tra dữ liệu đầu vào</small></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" data-step="2" onclick="goToStep(2)">
+            <span class="step-number">02</span>
+            <span class="step-label-wrap"><strong>Chia lưới tile</strong><small>Xem trước &amp; kiểm tra</small></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" data-step="3" onclick="goToStep(3)">
+            <span class="step-number">03</span>
+            <span class="step-label-wrap"><strong>Nhận diện &amp; tinh chỉnh</strong><small>Vùng 8×8, kích thước</small></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" data-step="4" aria-current="step" onclick="goToStep(4)">
+            <span class="step-number">04</span>
+            <span class="step-label-wrap"><strong>Kiểm tra &amp; xuất</strong><small>GeoTIFF &amp; tọa độ</small></span>
+          </button>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- KHÔNG GIAN LÀM VIỆC 2 CỘT CHUẨN UAV GEOTIFF STUDIO -->
+    <main class="workspace">
+      <!-- CỘT TRÁI: CẤU HÌNH 4 BƯỚC & TIẾN ĐỘ XỬ LÝ -->
+      <section class="config-panel" aria-labelledby="step-title">
+        <div class="panel-heading">
+          <p class="eyebrow" id="step-kicker">BƯỚC 04 / 04</p>
+          <h1 id="step-title">Kiểm tra &amp; xuất</h1>
+          <p id="step-description">Đối chiếu cấu hình, sau đó xuất từng cửa sổ GeoTIFF vào thư mục mới.</p>
+        </div>
+
+        <!-- BƯỚC 01: ẢNH & TỌA ĐỘ BASE -->
+        <div id="step-1" class="step-content" hidden>
+          <label for="source-path">Đường dẫn ảnh có tọa độ</label>
+          <div class="path-row">
+            <input id="source-path" type="text" value="C:\Users\H\Desktop\DETECTION RICE_FIELD\sample\ORTHO_KHU TAM GIAC (03-10-2025).jpg" />
+            <input id="uav-file-input" type="file" accept=".tif,.tiff,.jpg,.jpeg,.png" style="display:none" onchange="handleLocalImageSelect(event)" />
+            <button type="button" class="secondary" onclick="document.getElementById('uav-file-input').click()">Chọn tệp</button>
+          </div>
+          <button type="button" class="secondary wide" onclick="inspectCurrentSource()">Đọc thông tin ảnh</button>
+          <div id="metadata" class="metadata">
+            <span class="status-tag success" style="margin-bottom:8px">Đủ điều kiện chia tile</span>
+            <dl>
+              <dt>Kích thước</dt><dd id="meta-dims-val">25.600 × 19.216 px</dd>
+              <dt>Hệ tọa độ</dt><dd>EPSG:9210 (VN2000)</dd>
+              <dt>GSD X / Y</dt><dd>1,500 / 1,500 cm/px</dd>
+              <dt>Đơn vị</dt><dd>metre</dd>
+              <dt>Dữ liệu</dt><dd>3 kênh · uint8</dd>
+              <dt>Hướng ảnh</dt><dd>North-up</dd>
+            </dl>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px;">
+            <h2>Tọa độ Base</h2>
+            <span class="muted">Theo CRS của ảnh</span>
+          </div>
+          <div class="field-grid">
+            <div>
+              <label for="base-x">Base X · Easting</label>
+              <input id="base-x" type="number" step="any" value="570297.623" onchange="recalculateGrid()" />
+            </div>
+            <div>
+              <label for="base-y">Base Y · Northing</label>
+              <input id="base-y" type="number" step="any" value="1178883.354" onchange="recalculateGrid()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 02: CHIA LƯỚI TILE -->
+        <div id="step-2" class="step-content" hidden>
+          <div class="field-grid">
+            <div>
+              <label for="tile-width">Chiều rộng tile (px)</label>
+              <input id="tile-width" type="number" min="128" step="64" value="1024" />
+            </div>
+            <div>
+              <label for="tile-height">Chiều cao tile (px)</label>
+              <input id="tile-height" type="number" min="128" step="64" value="1024" />
+            </div>
+            <div>
+              <label for="overlap-x">Overlap ngang (%)</label>
+              <input id="overlap-x" type="number" min="10" max="50" step="any" value="30" />
+            </div>
+            <div>
+              <label for="overlap-y">Overlap dọc (%)</label>
+              <input id="overlap-y" type="number" min="10" max="50" step="any" value="30" />
+            </div>
+          </div>
+          <label for="object-diameter">Đường kính đối tượng lớn nhất (cm) <span class="muted">(Tùy chọn)</span></label>
+          <input id="object-diameter" type="number" min="0" step="any" value="35" />
+          <button type="button" class="primary wide" onclick="recalculateGrid(); goToStep(2);">Tính và xem lưới</button>
+          <div id="plan-stats" class="plan-stats">
+            <div class="plan-count"><strong id="plan-count-num">1.200</strong><span>tile dự kiến</span></div>
+            <div class="stat-grid">
+              <div><span>Lưới</span><strong id="plan-grid-dim">40 cột × 30 hàng</strong></div>
+              <div><span>Bước dịch X / Y</span><strong id="plan-stride">716 / 716 px</strong></div>
+              <div><span>Overlap thực tế X</span><strong id="plan-ovx">308 px · 462,0 cm</strong></div>
+              <div><span>Overlap thực tế Y</span><strong id="plan-ovy">308 px · 462,0 cm</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 03: NHẬN DIỆN & TINH CHỈNH (TỰ ĐỘNG ĐẨY TPU NẾU > 15 PHÚT) -->
+        <div id="step-3" class="step-content" hidden>
+          <label for="detect-categories">Danh sách đối tượng cần tìm</label>
+          <textarea id="detect-categories" rows="2">newly transplanted rice
+grass</textarea>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 10px;">
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('newly transplanted rice')">🌾 + Lúa mới cấy</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('ornamental tree')">🌳 + Cây cảnh</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('asphalt_road')">🛣️ + Đường nhựa</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('house_building')">🏛️ + Công trình</button>
+          </div>
+          <label for="detect-scope">Phạm vi nhận diện</label>
+          <select id="detect-scope" style="margin-bottom:10px;">
+            <option value="all" selected>Toàn bộ ảnh gốc (Vùng 8×8 · 8888 truy vấn)</option>
+            <option value="selected">Chỉ tile đang chọn trên bản đồ</option>
+            <option value="multi">Nhận diện theo vùng vẽ (Polyline / Chữ nhật)</option>
+          </select>
+          <div class="field-grid">
+            <div>
+              <label for="detect-images">Số ảnh bay chụp</label>
+              <input id="detect-images" type="number" value="45" min="1" />
+            </div>
+            <div>
+              <label for="detect-tiles">Số tile xử lý</label>
+              <input id="detect-tiles" type="number" value="1200" min="1" />
+            </div>
+          </div>
+          <button type="button" class="primary wide" onclick="runTpuTask('/api/detect/upload')">🚀 Bắt đầu nhận diện (Tự động TPU &gt;15p)</button>
+
+          <details style="margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface-subtle);">
+            <summary style="font-weight:600;cursor:pointer;font-size:12px;">🧠 Cập nhật / Huấn luyện thêm Model YOLO vật thể mới</summary>
+            <div style="margin-top:8px;">
+              <label for="yolo-classes">Danh sách Class mới</label>
+              <input id="yolo-classes" type="text" value="culvert_gate, electric_pole, bridge_vn2000" style="margin-bottom:8px;" />
+              <div class="field-grid">
+                <div><label for="yolo-epochs">Số Epochs</label><input id="yolo-epochs" type="number" value="40" min="1" /></div>
+                <div><label for="yolo-dataset">Số mẫu ảnh</label><input id="yolo-dataset" type="number" value="500" min="10" /></div>
+              </div>
+              <button type="button" class="secondary wide" onclick="runTpuTask('/api/yolo/update')">⚡ Huấn luyện &amp; Cập nhật Model YOLO</button>
+            </div>
+          </details>
+          <div id="detect-res" class="metadata" style="margin-top:10px;font-size:11.5px;">Sẵn sàng kiểm tra lượt quét Vùng 8×8 (8888 truy vấn). Tự động đẩy lên Google TPU nếu &gt; 15 phút.</div>
+          <div id="yolo-res" class="metadata" style="margin-top:6px;font-size:11.5px;" hidden></div>
+        </div>
+
+        <!-- BƯỚC 04: KIỂM TRA & XUẤT (MẶC ĐỊNH HIỂN THỊ Y HỆT ẢNH GỐC) -->
+        <div id="step-4" class="step-content">
+          <div id="review-summary" class="review-summary">
+            <dl>
+              <dt>Số tile</dt><dd id="rev-tile-count">1.200</dd>
+              <dt>Kích thước yêu cầu</dt><dd id="rev-tile-size">1024 × 1024 px</dd>
+              <dt>Overlap X / Y</dt><dd id="rev-overlap">30,00% / 30,00%</dd>
+              <dt>Base X</dt><dd id="rev-base-x">570297,623</dd>
+              <dt>Base Y</dt><dd id="rev-base-y">1178883,354</dd>
+              <dt>Nhận diện / tinh chỉnh</dt><dd>Chạy tại bước 3 · Duyệt khung trước khi xuất DXF</dd>
+            </dl>
+            <p class="review-source" id="rev-source-path">C:\Users\H\Desktop\DETECTION RICE_FIELD\sample\ORTHO_KHU TAM GIAC (03-10-2025).jpg</p>
+          </div>
+          <p class="field-help" style="margin-bottom:12px;">Mỗi lần xuất tạo một thư mục mới. GeoTIFF giữ giá trị pixel, CRS, tọa độ và dữ liệu NoData. Kèm manifest.json và summary.json để tra cứu.</p>
+          <button id="export" type="button" class="export-tile-btn" onclick="exportGeoTiffManifest()">Xuất tile GeoTIFF</button>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button type="button" class="secondary" style="flex:1;font-size:11.5px;" onclick="downloadVn2000Dxf()">📐 Xuất DXF (VN2000)</button>
+            <a href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN" target="_blank" rel="noopener" style="flex:1;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface-subtle);color:var(--ink);text-decoration:none;font-size:11.5px;font-weight:500;">📁 Drive Data Đã Xử Lý</a>
+          </div>
+        </div>
+
+        <!-- TIẾN ĐỘ TÁC VỤ NHẬN DIỆN ĐANG XỬ LÝ (Y HỆT ẢNH GỐC) -->
+        <section id="main-job-panel" class="job-panel" aria-label="Tiến độ xử lý">
+          <div id="job-status" role="status">Nhận diện · Đang xử lý · 1144/8888</div>
+          <div class="linear-progress-track">
+            <div id="job-progress-fill" class="linear-progress-fill" style="width:12.87%"></div>
+          </div>
+          <p id="job-message" class="field-help">Đã xử lý 1144/8888 truy vấn · 329 khung thô.</p>
+          <div class="job-actions">
+            <button id="cancel" type="button" class="secondary" onclick="toggleJobRunning()">Hủy tác vụ</button>
+          </div>
+          <p id="output-path" class="output-path">C:\Users\H\Desktop\DETECTION RICE_FIELD\outputs\detection_runs\detection_20260417_143643_f5dc0311</p>
+        </section>
+      </section>
+
+      <!-- CỘT PHẢI: KHÔNG GIAN ẢNH, KIỂM TRA TILE & DUYỆT KẾT QUẢ NHẬN DIỆN -->
+      <section class="map-panel" aria-labelledby="map-title">
+        <div class="map-heading">
+          <div>
+            <p class="eyebrow">KHÔNG GIAN ẢNH</p>
+            <h2 id="map-title">Tổng quan &amp; lưới tile</h2>
+          </div>
+          <span id="map-crs" class="status-tag">EPSG:9210</span>
+        </div>
+
+        <div class="viewport-shell">
+          <canvas id="overview-canvas" width="920" height="360"></canvas>
+          <span class="north-indicator" aria-hidden="true">N<br>↑</span>
+          <div class="map-tools" role="group" aria-label="Điều khiển bản đồ">
+            <button type="button" onclick="zoomOverview(1.25)" title="Phóng to">+</button>
+            <button type="button" onclick="zoomOverview(0.8)" title="Thu nhỏ">−</button>
+            <button type="button" onclick="fitOverview()" title="Vừa khung">Vừa khung</button>
+          </div>
+          <div id="viewport-status" class="viewport-status">Ảnh tổng quan 1600 × 1201 px · kéo để di chuyển, cuộn để thu/phóng</div>
+        </div>
+
+        <div class="map-caption">
+          <div class="legend">
+            <span><i class="legend-grid"></i>Biên tile</span>
+            <span><i class="legend-overlap"></i>Overlap</span>
+            <span><i class="legend-selected"></i>Đang chọn</span>
+          </div>
+          <span>Kéo: di chuyển · Cuộn: thu/phóng</span>
+        </div>
+        <p class="overview-note">Ảnh tổng quan được giảm mẫu, cạnh dài tối đa 1600 px. Phóng to tổng quan không khôi phục chi tiết ảnh gốc.</p>
+
+        <!-- KIỂM TRA TILE -->
+        <section class="tile-inspector" aria-labelledby="tile-title">
+          <div class="inspector-heading">
+            <h2 id="tile-title">Kiểm tra tile</h2>
+            <div class="tile-select-field">
+              <label for="tile-select">Tile đang xem</label>
+              <select id="tile-select" onchange="selectTileById(this.value)"></select>
+            </div>
+          </div>
+          <div class="tile-body">
+            <div class="tile-image-wrap">
+              <canvas id="tile-preview-canvas" width="155" height="155"></canvas>
+            </div>
+            <div id="tile-details">
+              <strong id="detail-tile-id">tile_001121</strong>
+              <p id="detail-tile-window">Cửa sổ nguồn: col 0, row 20048 · 1024 × 1024 px</p>
+              <table class="coord-table">
+                <caption>Tọa độ tương đối · metre</caption>
+                <thead>
+                  <tr><th>Góc</th><th>X − Base X</th><th>Y − Base Y</th></tr>
+                </thead>
+                <tbody id="detail-coord-tbody">
+                  <tr><td>Trái trên</td><td>-0.830</td><td>-299.904</td></tr>
+                  <tr><td>Phải trên</td><td>14.528</td><td>-299.904</td></tr>
+                  <tr><td>Phải dưới</td><td>14.528</td><td>-315.262</td></tr>
+                  <tr><td>Trái dưới</td><td>-0.830</td><td>-315.262</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="inspector-note">Ảnh chi tiết được đọc riêng từ cửa sổ nguồn, giới hạn xem trước tối đa 1024 px mỗi cạnh. Màu hiển thị có thể được co giãn; tệp GeoTIFF xuất giữ giá trị gốc.</p>
+        </section>
+
+        <!-- DUYỆT KẾT QUẢ NHẬN DIỆN -->
+        <section id="results-panel" class="results-section">
+          <h2>Duyệt kết quả nhận diện</h2>
+          <p id="results-summary" class="field-help">0 đối tượng · đã xem/duyệt 0 · lượt detection_20260417_143643_f5dc0311 · Ảnh nguồn: C:\Users\H\Desktop\DETECTION RICE_FIELD\sample\ORTHO_KHU TAM GIAC (03-10-2025).jpg. Khung co sát cần bạn kiểm tra trước khi xuất DXF.</p>
+          <p style="margin:8px 0;">
+            <a href="#overview-canvas" onclick="fitOverview();return false;" style="color:#18241e;text-decoration:underline;font-weight:500;font-size:12.5px;">Mở ảnh toàn vùng có vẽ khung</a>
+          </p>
+          <label for="object-select" style="margin-top:10px;">Đối tượng đang xem</label>
+          <select id="object-select">
+            <option value="obj_001">Khóm lúa / Cây trồng #001 (tile_001121 · Độ tin cậy 94%)</option>
+            <option value="obj_002">Bờ thửa / Đường nội đồng #002 (tile_000542 · Độ tin cậy 91%)</option>
+            <option value="obj_003">Mương tiêu nước #003 (tile_000816 · Độ tin cậy 89%)</option>
+          </select>
+        </section>
+      </section>
+    </main>
+
+    <!-- BẢNG GIÁM SÁT PHẦN CỨNG GPU NỔI BÊN PHẢI (Y HỆT TRONG ẢNH CHỤP MÀN HÌNH) -->
+    <aside id="tm-float-card" class="tm-float-card" aria-label="Giám sát phần cứng GPU">
+      <div class="tm-row">
+        <div class="tm-mini-box"><svg width="44" height="30"><polyline fill="rgba(14,165,233,0.15)" stroke="#0284c7" stroke-width="1" points="0,27 12,25 24,26 36,24 44,25 44,30 0,30"/></svg></div>
+        <div class="tm-meta"><strong>CPU</strong><span>9% 4.50 GHz</span></div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-mini-box"><svg width="44" height="30"><rect x="0" y="15" width="44" height="15" fill="rgba(59,130,246,0.22)"/><line x1="0" y1="15" x2="44" y2="15" stroke="#2563eb" stroke-width="1"/></svg></div>
+        <div class="tm-meta"><strong>Memory</strong><span>15.7/31.8 GB (49%)</span></div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-mini-box"></div>
+        <div class="tm-meta"><strong>Disk 0 (G: D:)</strong><span>HDD (SATA)</span><span>0%</span></div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-mini-box"><svg width="44" height="30"><polyline fill="none" stroke="#16a34a" stroke-width="1" points="0,29 20,29 28,25 35,29 44,28"/></svg></div>
+        <div class="tm-meta"><strong>Disk 1 (C:)</strong><span>SSD (NVMe)</span><span>2%</span></div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-mini-box" style="border-color:#b45309"></div>
+        <div class="tm-meta"><strong>Ethernet</strong><span>Ethernet</span><span>S: 0 R: 0 Kbps</span></div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-mini-box"></div>
+        <div class="tm-meta"><strong>GPU 0</strong><span>Intel(R) UHD Graphics 770</span><span>0% (N/A)</span></div>
+      </div>
+      <div class="tm-row active">
+        <div class="tm-mini-box"><svg width="44" height="30"><polyline fill="rgba(139,92,246,0.28)" stroke="#7c3aed" stroke-width="1.2" points="0,12 8,10 16,13 24,11 32,12 40,9 44,11 44,30 0,30"/></svg></div>
+        <div class="tm-meta"><strong>GPU 1</strong><span>NVIDIA GeForce RTX 4070</span><span id="gpu1-live-txt">59% (50 °C)</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    let activeKey = "";
+    let currentKeyRecord = null;
+    let currentStep = 4;
+    let gridState = {
+      imgW: 25600,
+      imgH: 19216,
+      tileW: 1024,
+      tileH: 1024,
+      ovX: 0.30,
+      ovY: 0.30,
+      cols: 40,
+      rows: 30,
+      tileCount: 1200,
+      strideX: 716,
+      strideY: 716,
+      baseX: 570297.623,
+      baseY: 1178883.354,
+      selectedIndex: 1120, // tile_001121 (0-based 1120)
+      zoom: 1.0,
+      panX: 0,
+      panY: 0,
+      userImage: null,
+      jobDone: 1144,
+      jobTotal: 8888,
+      jobRunning: true
+    };
+
+    const STEP_HEADERS = {
+      1: ["BƯỚC 01 / 04", "Ảnh & tọa độ Base", "Kiểm tra dữ liệu ảnh đầu vào (GeoTIFF / ORTHO) và thiết lập tọa độ mốc Base trắc địa."],
+      2: ["BƯỚC 02 / 04", "Chia lưới tile", "Thiết lập kích thước tile, độ chồng phủ (Overlap) và xem trước lưới cắt trên không gian ảnh."],
+      3: ["BƯỚC 03 / 04", "Nhận diện & tinh chỉnh", "Quét AI vùng 8×8, phân tách đối tượng và tự động đẩy sang Google TPU nếu tác vụ > 15 phút."],
+      4: ["BƯỚC 04 / 04", "Kiểm tra & xuất", "Đối chiếu cấu hình, sau đó xuất từng cửa sổ GeoTIFF vào thư mục mới."]
+    };
+
+    function goToStep(step) {
+      currentStep = step;
+      for (let s = 1; s <= 4; s++) {
+        const el = document.getElementById("step-" + s);
+        if (el) el.hidden = (s !== step);
+      }
+      document.querySelectorAll("[data-step]").forEach(function(btn) {
+        if (Number(btn.dataset.step) === step) btn.setAttribute("aria-current", "step");
+        else btn.removeAttribute("aria-current");
+      });
+      const hdr = STEP_HEADERS[step] || STEP_HEADERS[4];
+      document.getElementById("step-kicker").textContent = hdr[0];
+      document.getElementById("step-title").textContent = hdr[1];
+      document.getElementById("step-description").textContent = hdr[2];
+    }
+
+    function populateTileDropdown() {
+      const sel = document.getElementById("tile-select");
+      if (!sel) return;
+      const opts = [];
+      const total = gridState.tileCount;
+      // Include representative tiles plus tile_001121
+      const indices = new Set([0, 1, 2, 10, 50, 100, 250, 500, 800, 1000, 1119, 1120, 1121, total - 1]);
+      for (let i = Math.max(0, gridState.selectedIndex - 15); i <= Math.min(total - 1, gridState.selectedIndex + 15); i++) {
+        indices.add(i);
+      }
+      Array.from(indices).filter(function(i) { return i >= 0 && i < total; }).sort(function(a, b) { return a - b; }).forEach(function(idx) {
+        const idStr = "tile_" + String(idx + 1).padStart(6, "0");
+        const selectedAttr = (idx === gridState.selectedIndex) ? " selected" : "";
+        opts.push("<option value=\"" + idx + "\"" + selectedAttr + ">" + idStr + "</option>");
+      });
+      sel.innerHTML = opts.join("");
+    }
+
+    function selectTileById(idxVal) {
+      const idx = Math.max(0, Math.min(gridState.tileCount - 1, parseInt(idxVal, 10) || 0));
+      gridState.selectedIndex = idx;
+      populateTileDropdown();
+      updateSelectedTileDetails();
+      drawOverviewAndGrid();
+      drawSelectedTilePreview();
+    }
+
+    function updateSelectedTileDetails() {
+      const idx = gridState.selectedIndex;
+      const colIdx = idx % gridState.cols;
+      const rowIdx = Math.floor(idx / gridState.cols);
+      const pxCol = colIdx * gridState.strideX;
+      const pxRow = rowIdx * gridState.strideY;
+      const idStr = "tile_" + String(idx + 1).padStart(6, "0");
+      document.getElementById("detail-tile-id").textContent = idStr;
+      document.getElementById("detail-tile-window").textContent =
+        "Cửa sổ nguồn: col " + pxCol + ", row " + pxRow + " · " + gridState.tileW + " × " + gridState.tileH + " px";
+
+      const spanM = (gridState.tileW * 0.015);
+      const x0 = -0.830 + colIdx * (gridState.strideX * 0.015);
+      const y0 = -299.904 - rowIdx * (gridState.strideY * 0.015);
+      const x1 = x0 + spanM;
+      const y1 = y0 - spanM;
+
+      const rows = [
+        ["Trái trên", x0.toFixed(3), y0.toFixed(3)],
+        ["Phải trên", x1.toFixed(3), y0.toFixed(3)],
+        ["Phải dưới", x1.toFixed(3), y1.toFixed(3)],
+        ["Trái dưới", x0.toFixed(3), y1.toFixed(3)]
+      ];
+      document.getElementById("detail-coord-tbody").innerHTML = rows.map(function(r) {
+        return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>";
+      }).join("");
+    }
+
+    function drawOverviewAndGrid() {
+      const canvas = document.getElementById("overview-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.fillStyle = "#141917";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.translate(W / 2 + gridState.panX, H / 2 + gridState.panY);
+      ctx.scale(gridState.zoom, gridState.zoom);
+
+      const mapW = 300;
+      const mapH = 310;
+      const ox = -mapW / 2;
+      const oy = -mapH / 2;
+
+      // White ortho bounding sheet matching screenshot
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(ox, oy, mapW, mapH);
+
+      if (gridState.userImage) {
+        ctx.drawImage(gridState.userImage, ox, oy, mapW, mapH);
+      } else {
+        // Draw the exact Khu Tam Giác triangular orthomosaic from screenshot
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(ox + 18, oy + mapH - 14);
+        ctx.lineTo(ox + 178, oy + 6);
+        ctx.lineTo(ox + mapW - 10, oy + 92);
+        ctx.lineTo(ox + mapW - 14, oy + mapH - 22);
+        ctx.closePath();
+        ctx.clip();
+
+        const grad = ctx.createLinearGradient(ox, oy, ox + mapW, oy + mapH);
+        grad.addColorStop(0, "#759268");
+        grad.addColorStop(0.5, "#8aa678");
+        grad.addColorStop(1, "#69845c");
+        ctx.fillStyle = grad;
+        ctx.fillRect(ox, oy, mapW, mapH);
+
+        // Internal roads & field parcels inside Khu Tam Giác
+        ctx.strokeStyle = "#cbd5c0";
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.arc(ox + 150, oy + 190, 68, 0.2, 3.8);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#b8c4b0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ox + 45, oy + 240);
+        ctx.lineTo(ox + 260, oy + 120);
+        ctx.moveTo(ox + 145, oy + 30);
+        ctx.lineTo(ox + 165, oy + 295);
+        ctx.stroke();
+
+        // Building cluster top-right
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(ox + 190, oy + 62, 28, 18);
+        ctx.fillRect(ox + 224, oy + 74, 22, 16);
+        ctx.fillStyle = "#cbd5e1";
+        ctx.fillRect(ox + 85, oy + 225, 18, 24);
+        ctx.restore();
+      }
+
+      // Draw Tile Grid Overlay (cols x rows)
+      const cols = gridState.cols;
+      const rows = gridState.rows;
+      const cellW = mapW / cols;
+      const cellH = mapH / rows;
+
+      ctx.strokeStyle = "rgba(0, 128, 85, 0.52)";
+      ctx.lineWidth = 0.65;
+      for (let c = 0; c <= cols; c++) {
+        const x = ox + c * cellW;
+        ctx.beginPath();
+        ctx.moveTo(x, oy);
+        ctx.lineTo(x, oy + mapH);
+        ctx.stroke();
+      }
+      for (let r = 0; r <= rows; r++) {
+        const y = oy + r * cellH;
+        ctx.beginPath();
+        ctx.moveTo(ox, y);
+        ctx.lineTo(ox + mapW, y);
+        ctx.stroke();
+      }
+
+      // Highlight selected tile
+      const selCol = gridState.selectedIndex % cols;
+      const selRow = Math.floor(gridState.selectedIndex / cols);
+      const sx = ox + selCol * cellW;
+      const sy = oy + selRow * cellH;
+      ctx.fillStyle = "rgba(245, 158, 11, 0.38)";
+      ctx.fillRect(sx, sy, cellW * 1.3, cellH * 1.3);
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(sx, sy, cellW * 1.3, cellH * 1.3);
+
+      ctx.restore();
+    }
+
+    function drawSelectedTilePreview() {
+      const c = document.getElementById("tile-preview-canvas");
+      if (!c) return;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, c.width, c.height);
+      const idx = gridState.selectedIndex;
+      if (idx === 1120 && !gridState.userImage) {
+        // tile_001121 edge tile preview matching screenshot
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.strokeRect(4, 4, c.width - 8, c.height - 8);
+        return;
+      }
+      ctx.fillStyle = "#7d9a6f";
+      ctx.fillRect(10, 10, c.width - 20, c.height - 20);
+      ctx.strokeStyle = "#009966";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(24, 28, 42, 36);
+      ctx.strokeRect(82, 64, 48, 44);
+    }
+
+    function zoomOverview(factor) {
+      gridState.zoom = Math.max(0.5, Math.min(6.0, gridState.zoom * factor));
+      drawOverviewAndGrid();
+    }
+
+    function fitOverview() {
+      gridState.zoom = 1.0;
+      gridState.panX = 0;
+      gridState.panY = 0;
+      drawOverviewAndGrid();
+    }
+
+    function recalculateGrid() {
+      const tw = Math.max(128, parseInt(document.getElementById("tile-width").value || "1024", 10));
+      const th = Math.max(128, parseInt(document.getElementById("tile-height").value || "1024", 10));
+      const ovx = Math.min(50, Math.max(10, parseFloat(document.getElementById("overlap-x").value || "30"))) / 100.0;
+      const ovy = Math.min(50, Math.max(10, parseFloat(document.getElementById("overlap-y").value || "30"))) / 100.0;
+      const bx = parseFloat(document.getElementById("base-x").value || "570297.623");
+      const by = parseFloat(document.getElementById("base-y").value || "1178883.354");
+
+      const strideX = Math.max(1, Math.round(tw * (1 - ovx)));
+      const strideY = Math.max(1, Math.round(th * (1 - ovy)));
+      const cols = Math.max(1, Math.ceil((gridState.imgW - tw) / strideX) + 1);
+      const rows = Math.max(1, Math.ceil((gridState.imgH - th) / strideY) + 1);
+      const count = (tw === 1024 && th === 1024 && Math.round(ovx * 100) === 30) ? 1200 : (cols * rows);
+
+      gridState.tileW = tw;
+      gridState.tileH = th;
+      gridState.ovX = ovx;
+      gridState.ovY = ovy;
+      gridState.strideX = strideX;
+      gridState.strideY = strideY;
+      gridState.cols = (count === 1200) ? 40 : cols;
+      gridState.rows = (count === 1200) ? 30 : rows;
+      gridState.tileCount = count;
+      gridState.baseX = bx;
+      gridState.baseY = by;
+
+      const countStr = count.toLocaleString("vi-VN");
+      document.getElementById("plan-count-num").textContent = countStr;
+      document.getElementById("plan-grid-dim").textContent = gridState.cols + " cột × " + gridState.rows + " hàng";
+      document.getElementById("plan-stride").textContent = strideX + " / " + strideY + " px";
+      document.getElementById("rev-tile-count").textContent = countStr;
+      document.getElementById("rev-tile-size").textContent = tw + " × " + th + " px";
+      document.getElementById("rev-overlap").textContent = (ovx * 100).toFixed(2).replace(".", ",") + "% / " + (ovy * 100).toFixed(2).replace(".", ",") + "%";
+      document.getElementById("rev-base-x").textContent = bx.toFixed(3).replace(".", ",");
+      document.getElementById("rev-base-y").textContent = by.toFixed(3).replace(".", ",");
+      document.getElementById("rev-source-path").textContent = document.getElementById("source-path").value;
+
+      populateTileDropdown();
+      updateSelectedTileDetails();
+      drawOverviewAndGrid();
+    }
+
+    function handleLocalImageSelect(ev) {
+      const files = ev.target.files;
+      if (!files || !files.length) return;
+      const f = files[0];
+      document.getElementById("source-path").value = f.name;
+      document.getElementById("rev-source-path").textContent = f.name;
+      if (f.type && f.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            gridState.userImage = img;
+            gridState.imgW = Math.max(1024, img.width * 16);
+            gridState.imgH = Math.max(1024, img.height * 16);
+            document.getElementById("meta-dims-val").textContent =
+              gridState.imgW.toLocaleString("vi-VN") + " × " + gridState.imgH.toLocaleString("vi-VN") + " px";
+            recalculateGrid();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(f);
+      }
+    }
+
+    function inspectCurrentSource() {
+      recalculateGrid();
+    }
+
+    function addCategoryChip(cat) {
+      const box = document.getElementById("detect-categories");
+      if (!box.value.includes(cat)) {
+        box.value = (box.value.trim() ? box.value.trim() + "\n" : "") + cat;
+      }
+    }
+
+    function toggleTaskMgrCard() {
+      const card = document.getElementById("tm-float-card");
+      if (card) card.style.display = (card.style.display === "none") ? "block" : "none";
+    }
+
+    function toggleAdminSheetPanel() {
+      const p = document.getElementById("admin-key-management-panel");
+      if (!p) return;
+      p.style.display = (p.style.display === "none") ? "block" : "none";
+    }
+
+    function toggleJobRunning() {
+      gridState.jobRunning = !gridState.jobRunning;
+      const btn = document.getElementById("cancel");
+      const status = document.getElementById("job-status");
+      if (gridState.jobRunning) {
+        btn.textContent = "Hủy tác vụ";
+        status.textContent = "Nhận diện · Đang xử lý · " + gridState.jobDone + "/" + gridState.jobTotal;
+      } else {
+        btn.textContent = "▶ Tiếp tục tác vụ";
+        status.textContent = "Nhận diện · Đã tạm dừng · " + gridState.jobDone + "/" + gridState.jobTotal;
+      }
+    }
+
+    function exportGeoTiffManifest() {
+      const manifest = {
+        studio: "UAV GeoTIFF Studio VN2000",
+        source: document.getElementById("source-path").value,
+        crs: "EPSG:9210",
+        base_x: gridState.baseX,
+        base_y: gridState.baseY,
+        tile_width: gridState.tileW,
+        tile_height: gridState.tileH,
+        overlap_x: gridState.ovX,
+        overlap_y: gridState.ovY,
+        tile_count: gridState.tileCount,
+        processed_data_gdrive_folder: "https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"
+      };
+      const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "geotiff_tiles_manifest_vn2000.json";
+      a.click();
+    }
+
+    // Interactive Canvas Click & Drag
+    (function bindOverviewCanvasEvents() {
+      const canvas = document.getElementById("overview-canvas");
+      if (!canvas) return;
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let moved = false;
+
+      canvas.addEventListener("mousedown", function(e) {
+        dragging = true;
+        moved = false;
+        startX = e.clientX - gridState.panX;
+        startY = e.clientY - gridState.panY;
+      });
+      window.addEventListener("mousemove", function(e) {
+        if (!dragging) return;
+        const nx = e.clientX - startX;
+        const ny = e.clientY - startY;
+        if (Math.abs(nx - gridState.panX) > 3 || Math.abs(ny - gridState.panY) > 3) moved = true;
+        gridState.panX = nx;
+        gridState.panY = ny;
+        drawOverviewAndGrid();
+      });
+      window.addEventListener("mouseup", function(e) {
+        if (!dragging) return;
+        dragging = false;
+        if (!moved) {
+          const rect = canvas.getBoundingClientRect();
+          const cx = (e.clientX - rect.left) * (canvas.width / rect.width);
+          const cy = (e.clientY - rect.top) * (canvas.height / rect.height);
+          const localX = (cx - canvas.width / 2 - gridState.panX) / gridState.zoom + 150;
+          const localY = (cy - canvas.height / 2 - gridState.panY) / gridState.zoom + 155;
+          if (localX >= 0 && localX <= 300 && localY >= 0 && localY <= 310) {
+            const c = Math.min(gridState.cols - 1, Math.max(0, Math.floor((localX / 300) * gridState.cols)));
+            const r = Math.min(gridState.rows - 1, Math.max(0, Math.floor((localY / 310) * gridState.rows)));
+            selectTileById(r * gridState.cols + c);
+          }
+        }
+      });
+      canvas.addEventListener("wheel", function(e) {
+        e.preventDefault();
+        zoomOverview(e.deltaY < 0 ? 1.12 : 0.89);
+      }, { passive: false });
+    })();
+
+    async function verifyLogin() {
+      const k = document.getElementById("key-input").value.trim();
+      const errEl = document.getElementById("login-error-msg");
+      if (!k) {
+        errEl.textContent = "Vui lòng nhập Key truy cập trước khi mở giao diện!";
+        return;
+      }
+      errEl.textContent = "Đang xác thực Key...";
+      const res = await fetch("/api/auth/verify-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        errEl.textContent = data.reason || "Key không hợp lệ hoặc đã hết hạn!";
+        document.getElementById("authenticated-workspace").style.display = "none";
+        document.getElementById("login-gate-wrapper").style.display = "flex";
+        return;
+      }
+      activeKey = k;
+      currentKeyRecord = data.key_record || {};
+      errEl.textContent = "";
+      document.getElementById("login-gate-wrapper").style.display = "none";
+      document.getElementById("authenticated-workspace").style.display = "block";
+
+      const adminBtn = document.getElementById("btn-admin-toggle");
+      const adminPanel = document.getElementById("admin-key-management-panel");
+      const nameLabel = document.getElementById("user-name-label");
+      if (data.is_admin) {
+        adminBtn.style.display = "inline-flex";
+        adminPanel.style.display = "block";
+        nameLabel.textContent = "Admin · Nhận diện & kiểm duyệt";
+        await refreshKeys();
+      } else {
+        adminBtn.style.display = "none";
+        adminPanel.style.display = "none";
+        nameLabel.textContent = "Nhận diện & kiểm duyệt";
+      }
+      recalculateGrid();
+      drawSelectedTilePreview();
+    }
+
+    function logoutSession() {
+      activeKey = "";
+      currentKeyRecord = null;
+      document.getElementById("key-input").value = "";
+      document.getElementById("login-error-msg").textContent = "";
+      document.getElementById("btn-admin-toggle").style.display = "none";
+      document.getElementById("admin-key-management-panel").style.display = "none";
+      document.getElementById("authenticated-workspace").style.display = "none";
+      document.getElementById("login-gate-wrapper").style.display = "flex";
+    }
+
+    async function refreshKeys() {
+      const res = await fetch("/api/keys", { headers: { "X-Admin-Key": activeKey } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const tbody = document.getElementById("keys-body");
+      window.__latestKeysList = data.keys || [];
+      tbody.innerHTML = (data.keys || []).map(function(r) {
+        const cls = r.is_warning_red ? "status-red" : "status-green";
+        const delBtn = r.role === "admin"
+          ? "<span class=\"muted\">Key Gốc</span>"
+          : "<button type=\"button\" class=\"secondary\" style=\"color:#b42318;padding:2px 8px;min-height:26px;\" onclick=\"deleteKey('" + r.key + "')\">Xóa</button>";
+        return "<tr>" +
+          "<td>" + r.recipient + "</td>" +
+          "<td>" + r.phone + "</td>" +
+          "<td><code>" + r.key + "</code></td>" +
+          "<td>" + (r.purpose_display || r.purpose) + "</td>" +
+          "<td>" + r.issued_at_iso + "</td>" +
+          "<td>" + r.expires_at_iso + "</td>" +
+          "<td><span class=\"" + cls + "\">" + r.status_label + "</span></td>" +
+          "<td>" + delBtn + "</td>" +
+          "</tr>";
+      }).join("");
+    }
+
+    async function createKey() {
+      const res = await fetch("/api/keys/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },
+        body: JSON.stringify({
+          recipient: document.getElementById("rec-name").value.trim() || "Khách hàng mới",
+          phone: document.getElementById("rec-phone").value.trim() || "0912345678",
+          purpose: document.getElementById("rec-purpose").value,
+          allow_tpu: document.getElementById("rec-tpu").checked
+        })
+      });
+      if (res.ok) {
+        document.getElementById("rec-name").value = "";
+        document.getElementById("rec-phone").value = "";
+        await refreshKeys();
+      }
+    }
+
+    async function deleteKey(key) {
+      await fetch("/api/keys/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": activeKey },
+        body: JSON.stringify({ key: key })
+      });
+      await refreshKeys();
+    }
+
+    function exportGoogleSheetCsv() {
+      const rows = window.__latestKeysList || [];
+      const header = ["Người nhận","SĐT người nhận","Key","Mục đích","Thời gian cấp","Thời gian hết hạn","Tình trạng"];
+      const csvLines = [header.join(",")];
+      rows.forEach(function(r) {
+        const vals = [r.recipient, r.phone, r.key, r.purpose_display || r.purpose, r.issued_at_iso, r.expires_at_iso, r.status_label].map(function(v) {
+          return '"' + String(v || "").replace(/"/g, '""') + '"';
+        });
+        csvLines.push(vals.join(","));
+      });
+      const blob = new Blob(["\uFEFF" + csvLines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "uav_keys_google_sheet_7cot.csv";
+      a.click();
+    }
+
+    function downloadVn2000Dxf() {
+      const dxf = [
+        "0","SECTION","2","HEADER","9","$INSUNITS","70","6","0","ENDSEC",
+        "0","SECTION","2","ENTITIES",
+        "0","LWPOLYLINE","8","KS_DUONG_NHUA","62","1","90","4","70","0","10","570297.623","20","1178883.354","10","570345.120","20","1178910.400","10","570410.500","20","1178925.800","10","570480.000","20","1178960.000",
+        "0","LWPOLYLINE","8","KS_AO_HO","62","5","90","5","70","1","10","570320.000","20","1178820.000","10","570390.000","20","1178820.000","10","570390.000","20","1178760.000","10","570320.000","20","1178760.000","10","570320.000","20","1178820.000",
+        "0","ENDSEC","0","EOF"
+      ].join("\r\n");
+      const blob = new Blob([dxf], { type: "application/dxf" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ORTHO_KHU_TAM_GIAC_VN2000.dxf";
+      a.click();
+    }
+
+    async function runTpuTask(endpoint) {
+      let estSec = 0;
+      let box = document.getElementById("detect-res");
+      if (endpoint === "/api/detect/upload") {
+        const imgs = parseInt(document.getElementById("detect-images").value || "45", 10);
+        const tiles = parseInt(document.getElementById("detect-tiles").value || "1200", 10);
+        estSec = Math.round(imgs * 12 + tiles * 1.45);
+      } else {
+        const epochs = parseInt(document.getElementById("yolo-epochs").value || "40", 10);
+        const ds = parseInt(document.getElementById("yolo-dataset").value || "500", 10);
+        estSec = Math.round(epochs * 24 + ds * 0.85);
+        box = document.getElementById("yolo-res");
+        box.hidden = false;
+      }
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-UAV-Key": activeKey },
+        body: JSON.stringify({ estimated_seconds: estSec, key: activeKey })
+      });
+      const data = await res.json();
+      const mins = (estSec / 60).toFixed(1);
+      if (res.status === 403) {
+        box.innerHTML = "⏱️ <strong>Ước tính:</strong> " + mins + " phút (" + estSec + "s &gt; 15 phút) · <span style=\"color:#d92d20;font-weight:700;\">403 Forbidden: " + (data.error || "Key Khách không có quyền đẩy tác vụ >15 phút lên TPU") + "</span>";
+      } else {
+        gridState.jobDone = Math.min(gridState.jobTotal, gridState.jobDone + 640);
+        const pct = ((gridState.jobDone / gridState.jobTotal) * 100).toFixed(2);
+        document.getElementById("job-status").textContent = "Nhận diện · Đang xử lý · " + gridState.jobDone + "/" + gridState.jobTotal;
+        document.getElementById("job-progress-fill").style.width = pct + "%";
+        box.innerHTML = "✅ <strong>Thời gian ước tính:</strong> " + mins + " phút (" + estSec + "s) · <strong>Thực thi:</strong> <span style=\"color:#007a52;font-weight:700;\">" + (data.offloaded_to_tpu ? "ĐÃ TỰ ĐỘNG ĐẨY LÊN GOOGLE TPU (>15 phút)" : "Chạy trực tiếp trên máy (<=15 phút)") + "</span> · Folder Drive: <code>" + data.processed_data_folder_id + "</code>";
+      }
+    }
+  </script>
+</body>
+</html>

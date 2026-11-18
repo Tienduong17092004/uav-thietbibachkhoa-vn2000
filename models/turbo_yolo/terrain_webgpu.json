@@ -1,0 +1,211 @@
+{
+  "model_name": "TerrainSegUNetLite-WebGPU-9Class",
+  "classes": [
+    "background",
+    "asphalt_road",
+    "concrete_road",
+    "dirt_road",
+    "footpath",
+    "pond",
+    "masonry_ditch",
+    "house_building",
+    "landscape_tree"
+  ],
+  "input_shape": [
+    1,
+    3,
+    512,
+    512
+  ],
+  "output_shape": [
+    1,
+    9,
+    512,
+    512
+  ],
+  "opset": 17,
+  "device_trained": "cuda",
+  "steps": 220,
+  "batch_size": 8,
+  "real_dwg_zones_count": 4,
+  "real_dwg_zones_trained": [
+    {
+      "folder": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\sample\\RGB",
+      "dwg_file": "Topographic Map_Triangle Zone (07 October 2026)_Preliminary.dwg",
+      "ortho_file": "ORTHO_KHU TAM GIAC (03-10-2026).jpg",
+      "dem_file": "DEM_TAM GIAC (03-10-2026).tif",
+      "resolution": "3824x3015",
+      "class_pixels": {
+        "background": 7055152,
+        "asphalt_road": 364124,
+        "concrete_road": 56518,
+        "dirt_road": 204375,
+        "footpath": 407789,
+        "pond": 978965,
+        "masonry_ditch": 43923,
+        "house_building": 285969,
+        "landscape_tree": 2132545
+      }
+    },
+    {
+      "folder": "D:\\LUUTRU VIEC N\\ACAD\\Waterpoint_10.3.26\\ACAD_KHU SAT CONG (08-10-2026)",
+      "dwg_file": "ACAD_KHU SAT CONG (08-10-2026).dwg",
+      "ortho_file": "ORTHO_KHU SAT CONG (03-10-2026).jpg",
+      "dem_file": null,
+      "resolution": "2616x2551",
+      "class_pixels": {
+        "background": 5217689,
+        "asphalt_road": 259527,
+        "concrete_road": 3348,
+        "dirt_road": 2608,
+        "footpath": 42169,
+        "pond": 119887,
+        "masonry_ditch": 0,
+        "house_building": 13086,
+        "landscape_tree": 1015102
+      }
+    },
+    {
+      "folder": "D:\\LUUTRU VIEC N\\ACAD\\Waterpoint_10.3.26\\ACAD_KHU TRUONG HOC (08-10-2026)",
+      "dwg_file": "ACAD_KHU TRUONG HOC (08-10-2026).dwg",
+      "ortho_file": "ORTHO_TRUONG HOC (03-10-2026).jpg",
+      "dem_file": null,
+      "resolution": "1648x1934",
+      "class_pixels": {
+        "background": 1351042,
+        "asphalt_road": 335190,
+        "concrete_road": 30428,
+        "dirt_road": 100059,
+        "footpath": 68187,
+        "pond": 294748,
+        "masonry_ditch": 0,
+        "house_building": 5575,
+        "landscape_tree": 1002003
+      }
+    },
+    {
+      "folder": "D:\\LUUTRU VIEC N\\ACAD\\Waterpoint_10.3.26\\WATER POINT - KHU TAM GIAC 25-11-2023\\BINH DO DIA HINH_WATERPOINT KHU TAM GIAC_TL500 (25-11-2023)",
+      "dwg_file": "BINH DO DIA HINH_WATERPOINT KHU TAM GIAC_TL500 (25-11-2023)-UAV.dwg",
+      "ortho_file": "ORTHO_KHU TAM GIAC_2023.jpg",
+      "dem_file": null,
+      "resolution": "6502x5522",
+      "class_pixels": {
+        "background": 25657386,
+        "asphalt_road": 1573345,
+        "concrete_road": 28736,
+        "dirt_road": 2448,
+        "footpath": 1065802,
+        "pond": 1740721,
+        "masonry_ditch": 58540,
+        "house_building": 0,
+        "landscape_tree": 5777066
+      }
+    }
+  ],
+  "real_patches_sampled": 1371,
+  "total_class_pixels": {
+    "background": 39281269,
+    "asphalt_road": 2532186,
+    "concrete_road": 119030,
+    "dirt_road": 309490,
+    "footpath": 1583947,
+    "pond": 3134321,
+    "masonry_ditch": 102463,
+    "house_building": 304630,
+    "landscape_tree": 9926716
+  },
+  "final_loss": 0.7559,
+  "val_pixel_accuracy": 0.8344,
+  "size_bytes": 377144,
+  "elapsed_seconds": 124.63,
+  "val_miou": 0.348,
+  "inference_ms_per_tile": 54.42,
+  "speedup_x": 1.28,
+  "argon_review_score": 0.7669,
+  "argon_model_approved": true,
+  "updated_at": "2026-11-10T05:34:06.097434+00:00",
+  "classes_9_trained": [
+    "asphalt_road",
+    "concrete_road",
+    "dirt_road",
+    "footpath",
+    "pond",
+    "masonry_ditch",
+    "house_building",
+    "landscape_tree",
+    "newly_transplanted_rice"
+  ],
+  "distillation_deferred": true,
+  "enable_distillation": false,
+  "training_mode": "direct_9class_supervised",
+  "estimated_5ha_detection_and_dwg_seconds": 11.93,
+  "target_5ha_under_5min_pass": true,
+  "reference_dwg_path": "c:\\Users\\HL\\OneDrive\\09 1.KCPD DOAN 67-71\\ACAD\\Waterpoint_10.3.26\\ACAD-KHU TAM GIAC (06-10-2026)\\ACAD_KHU TAM GIAC.dwg",
+  "reference_dwg_layers_mapped": {
+    "asphalt_road": [
+      "1.BK. DUONG CU-NHUA",
+      "Đường nhựa",
+      "QC41_VS2.1",
+      "QC41_VS2.2",
+      "QC41_VS2.3a",
+      "QC41_VS7.3a",
+      "QC41_VS9.3",
+      "1.BK. DEN DUONG",
+      "KS_DUONG_NHUA"
+    ],
+    "concrete_road": [
+      "1.BK. CAU",
+      "KS_DUONG_BETONG"
+    ],
+    "dirt_road": [
+      "Giao_thong",
+      "Dan_cu_kinh_te_xa_hoi",
+      "KS_DUONG_DAT"
+    ],
+    "footpath": [
+      "1.BK. DUONG XE DAP",
+      "1.BK. VIA HE",
+      "1.BK. CONG VIEN",
+      "KS_DUONG_DIBO"
+    ],
+    "pond": [
+      "1.BK. AO NUOC",
+      "Thuy_he",
+      "1.BK. SONG+MUONG+RACH",
+      "KS_AO_HO"
+    ],
+    "masonry_ditch": [
+      "1.BK. TALUY KENH",
+      "KS_MUONG_XAY"
+    ],
+    "house_building": [
+      "Nha",
+      "Nha-2d",
+      "textnha",
+      "KS_NHA_CONGTRINH"
+    ],
+    "landscape_tree": [
+      "07-CAY XANH",
+      "1.BK. CAY DO THI",
+      "1.BK. THUC VAT",
+      "Thuc_vat",
+      "THUCVAT",
+      "CAY",
+      "Thuvien",
+      "Ranhgioi_thucvat",
+      "KS_CAY_CANHQUAN"
+    ],
+    "newly_transplanted_rice": [
+      "Ranhgioi_thucvat",
+      "Thuc_vat"
+    ]
+  },
+  "vegetation_grid_blocks": [
+    "cumcay2",
+    "caylato",
+    "cothap",
+    "cocao",
+    "cumcay1",
+    "hoa"
+  ]
+}

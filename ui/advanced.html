@@ -1,0 +1,701 @@
+<template id="warp-template">
+  <details class="advanced-tools"><summary>Chuẩn hóa ảnh xoay hoặc đổi hệ tọa độ</summary>
+    <label for="warp-crs">Hệ tọa độ đích (EPSG hoặc WKT)</label><input id="warp-crs" placeholder="EPSG:9210 hoặc WKT" data-mutable>
+    <div class="field-grid"><div><label for="warp-gsd">Kích thước pixel đích (cm)</label><input id="warp-gsd" type="number" min="0.1" step="any" value="2" data-mutable></div><div><label for="warp-resampling">Cách lấy màu pixel mới</label><select id="warp-resampling" data-mutable><option value="bilinear">Nội suy mượt</option><option value="nearest">Lấy pixel gần nhất</option><option value="cubic">Nội suy cubic</option></select></div></div>
+    <button id="warp-preview-button" type="button" class="secondary wide" data-mutable>Xem trước chuẩn hóa</button><p id="warp-plan-info" class="field-help" role="status"></p><img id="warp-preview-image" alt="Ảnh dự kiến sau khi chuẩn hóa" class="warp-preview" hidden>
+    <button id="warp-start" type="button" class="primary wide" data-mutable disabled>Duyệt và tạo ảnh chuẩn hóa</button>
+  </details>
+</template>
+<template id="detection-template">
+  <div class="workflow-stack">
+    <section class="workflow-card">
+      <div class="workflow-card-head">
+        <span class="workflow-badge">01</span>
+        <div>
+          <h2>Đối tượng cần tìm</h2>
+        </div>
+      </div>
+      <div id="detect-prompt-group">
+        <label for="detect-categories">Danh sách đối tượng</label>
+      <textarea id="detect-categories" rows="3" data-detection data-mutable>newly transplanted rice
+grass</textarea>
+      <div class="chip-row" aria-label="Gợi ý nhanh danh mục">
+        <button type="button" class="chip-btn" data-cat-chip="newly transplanted rice">🌾 + Lúa mới cấy</button>
+        <button type="button" class="chip-btn" data-cat-chip="ornamental tree">🌳 + Cây cảnh</button>
+        <button type="button" class="chip-btn" data-cat-chip="grass">🌱 + Cỏ</button>
+        <button type="button" class="chip-btn" data-cat-chip="hedge">🌿 + Hàng rào cây</button>
+        <button type="button" class="chip-btn" data-cat-chip="person">📡 + Trạm / Người</button>
+        <button type="button" class="chip-btn" data-cat-chip="vehicle">🚜 + Máy nông nghiệp / Xe</button>
+      </div>
+      </div>
+    </section>
+
+    <section class="workflow-card">
+      <div class="workflow-card-head">
+        <span class="workflow-badge">02</span>
+        <div>
+          <h2>Phạm vi quét</h2>
+        </div>
+      </div>
+      <label for="detect-scope">Phạm vi nhận diện</label>
+      <select id="detect-scope" data-detection data-mutable>
+        <option id="detect-selected" value="selected">1. Chỉ ảnh đang chọn trên bản đồ</option>
+        <option value="multi">2. Nhận diện theo vùng vẽ (Polyline / Chữ nhật)</option>
+        <option value="all">3. Toàn bộ ảnh gốc</option>
+      </select>
+      <div id="multi-region-box" class="multi-region-box" hidden>
+        <div class="action-row cad-btn-row cad-btn-row-4">
+          <button id="cad-draw-pline-btn" type="button" class="primary" data-mutable>📐 Vẽ vùng Polyline</button>
+          <button id="cad-draw-rect-btn" type="button" class="secondary" data-mutable>▭ Vẽ vùng Chữ nhật</button>
+          <button id="cad-finish-pline-btn" type="button" class="secondary" data-mutable>✓ Đóng vùng</button>
+          <button id="cad-edit-btn" type="button" class="secondary" data-mutable>🧭 Kéo đỉnh / Chọn vùng</button>
+        </div>
+        <div class="action-row cad-btn-row cad-btn-row-3">
+          <button id="add-region-btn" type="button" class="secondary" data-mutable>+ Thêm ảnh đang chọn</button>
+          <button id="delete-selected-region-btn" type="button" class="secondary" data-mutable>✕ Xóa vùng đang chọn</button>
+          <button id="clear-regions-btn" type="button" class="secondary" data-mutable>Xóa tất cả vùng</button>
+        </div>
+        <p id="cad-mode-hint" class="field-help cad-hint" role="status">Vẽ vùng Polyline bằng cách chấm đỉnh trên ảnh.</p>
+        <ul id="multi-region-list" class="region-list"></ul>
+      </div>
+    </section>
+
+    <section class="workflow-card workflow-card-run">
+      <div class="workflow-card-head">
+        <span class="workflow-badge workflow-badge-primary">03</span>
+        <div>
+          <h2>Thực thi Nhận diện AI</h2>
+        </div>
+      </div>
+      <p id="detection-plan-info" class="notice subtle" role="status">Kiểm tra lượt trước khi chạy nhận diện.</p>
+      <div class="action-row run-action-row">
+        <button id="detect-plan" type="button" class="secondary" data-mutable>1. Kiểm tra lượt nhận diện</button>
+        <button id="detect-start" type="button" class="primary" data-mutable disabled>2. Bắt đầu nhận diện</button>
+        <button id="detect-pause" type="button" class="secondary" hidden>⏸ Tạm dừng</button>
+        <button id="detect-resume" type="button" class="primary" hidden>▶ Tiếp tục quét</button>
+      </div>
+    </section>
+  </div>
+
+  <details class="advanced-tools"><summary>🎛️ Cài đặt nâng cao</summary>
+    <div class="field-grid">
+      <div style="grid-column:1 / -1">
+        <label for="spectral-mode">Chế độ Đa phổ</label>
+        <select id="spectral-mode" data-detection data-mutable>
+          <option value="auto" selected>Tự động kết hợp Đa Phổ (NDVI + NDRE + NDWI)</option>
+          <option value="spectral_fusion">Trộn Phổ Cận Hồng Ngoại vào RGB</option>
+          <option value="false_color_nir">Tổ hợp màu giả Cận Hồng Ngoại (NIR-Red-Green)</option>
+          <option value="rgb_only">Chỉ dùng RGB thông thường</option>
+        </select>
+      </div>
+      <div><label for="micro-size">Cỡ ô nhỏ (pixel)</label><select id="micro-size" data-detection data-mutable><option value="256">256</option><option value="384" selected>384</option><option value="512">512</option><option value="1024">1024</option></select></div>
+      <div><label for="micro-overlap">Chồng phủ ô nhỏ (%)</label><input id="micro-overlap" type="number" value="30" min="10" max="50" data-detection data-mutable></div>
+      <div><label for="upscale">Phóng ảnh (UAV SR)</label><select id="upscale" data-detection data-mutable><option value="1">Giữ nguyên</option><option value="2" selected>2 lần</option><option value="4">4 lần</option></select></div>
+      <div><label for="sr-mode">Bộ AI Siêu phân giải</label><select id="sr-mode" data-detection data-mutable>
+        <option value="ttst" selected>TTST 4x (ttst_4x.pth)</option>
+        <option value="uav_detail">UAV Detail Residual</option>
+        <option value="realesrgan">Real-ESRGAN</option>
+        <option value="swinir">SwinIR</option>
+        <option value="hat">HAT Transformer</option>
+        <option value="lanczos">Lanczos cơ bản</option>
+      </select></div>
+      <div><label for="model-image-size">Cạnh ảnh tối đa</label><select id="model-image-size" data-detection data-mutable><option value="512">512 px</option><option value="768" selected>768 px</option><option value="1024">1024 px</option></select></div>
+      <div><label for="model-tokens">Độ dài câu trả lời</label><select id="model-tokens" data-detection data-mutable><option value="256">256 token</option><option value="512" selected>512 token</option><option value="1024">1024 token</option><option value="2048">2048 token</option></select></div>
+    </div>
+    <p id="sr-status-note" class="field-help" hidden></p>
+    <label class="check-label"><input id="merge-boxes" type="checkbox" data-detection data-mutable>Gộp khung trùng lặp</label>
+    <select id="merge-mode-select" data-detection data-mutable style="margin-bottom:8px">
+      <option value="smart_overlap" selected>Gộp thông minh</option>
+      <option value="equal_weight">Gộp theo ngưỡng hình học (IoU / DIoU)</option>
+    </select>
+    <label class="check-label"><input id="refine-boxes" type="checkbox" checked data-detection data-mutable>Tạo khung đề nghị co sát</label>
+    <label for="refine-padding">Chừa thêm quanh vùng xanh (pixel)</label><input id="refine-padding" type="number" value="0" min="0" max="30" data-detection data-mutable>
+    <div class="action-row" style="margin-top:12px"><button id="save-detection" type="button" class="secondary" data-mutable>Lưu cấu hình mặc định</button></div>
+  </details>
+  <details class="advanced-tools"><summary>Trợ lý gợi ý cấu hình</summary>
+    <div class="kilo-providers" aria-label="Danh sách AI Providers">
+      <div class="kilo-header"><strong>Nhà cung cấp AI</strong><span id="kilo-active-badge" class="status-tag">Đang dùng: Quy tắc trên máy</span></div>
+      <div class="kilo-provider-item" data-provider-row="anthropic"><div><strong>Anthropic</strong><small>Claude models</small></div><button type="button" class="secondary kilo-connect-btn" data-connect-provider="anthropic">+ Connect</button></div>
+      <div class="kilo-provider-item" data-provider-row="openai"><div><strong>OpenAI</strong><small>GPT models</small></div><button type="button" class="secondary kilo-connect-btn" data-connect-provider="openai">+ Connect</button></div>
+      <div class="kilo-provider-item" data-provider-row="deepseek"><div><strong>DeepSeek</strong><small>DeepSeek models</small></div><button type="button" class="secondary kilo-connect-btn" data-connect-provider="deepseek">+ Connect</button></div>
+      <div class="kilo-provider-item" data-provider-row="google"><div><strong>Google</strong><small>Gemini models</small></div><button type="button" class="secondary kilo-connect-btn" data-connect-provider="google">+ Connect</button></div>
+      <div class="kilo-provider-item" data-provider-row="openrouter"><div><strong>OpenRouter</strong><small>OpenRouter API</small></div><button type="button" class="secondary kilo-connect-btn" data-connect-provider="openrouter">+ Connect</button></div>
+    </div>
+    <div id="kilo-modal" class="kilo-modal" hidden>
+      <div class="kilo-modal-card" role="dialog" aria-labelledby="kilo-modal-title">
+        <div class="kilo-modal-head"><strong id="kilo-modal-title">Connect Provider</strong><button id="kilo-modal-close" type="button" class="text-button">✕</button></div>
+        <p id="kilo-modal-desc" class="field-help">Nhập API key:</p>
+        <label for="kilo-api-key-input">API key</label>
+        <input id="kilo-api-key-input" type="password" placeholder="API key" autocomplete="new-password">
+        <div class="action-row" style="justify-content:flex-end;margin-top:12px">
+          <button id="kilo-modal-back" type="button" class="secondary">Back</button>
+          <button id="kilo-modal-submit" type="button" class="primary">Submit</button>
+        </div>
+      </div>
+    </div>
+    <label for="advisor-provider">Nơi tạo gợi ý</label><select id="advisor-provider" data-mutable><option value="local">Quy tắc trên máy</option><option value="openai">OpenAI API</option><option value="anthropic">Claude API</option><option value="deepseek">DeepSeek API</option><option value="google">Google Gemini API</option><option value="openrouter">OpenRouter API</option></select>
+    <div id="advisor-cloud" hidden><label for="advisor-model">Tên model</label><input id="advisor-model" autocomplete="off" placeholder="Tự động theo nhà cung cấp" data-mutable><label for="advisor-key">Khóa API</label><input id="advisor-key" type="password" autocomplete="new-password" data-mutable><label for="advisor-workspace">Mã workspace</label><input id="advisor-workspace" autocomplete="off" data-mutable></div>
+    <label for="advisor-request">Yêu cầu tối ưu</label><textarea id="advisor-request" rows="2" placeholder="Yêu cầu tối ưu..." data-mutable></textarea><button id="advisor-propose" type="button" class="secondary wide" data-mutable>Tạo gợi ý</button></details>
+  <div id="proposals"></div>
+</template>
+<template id="results-template">
+  <div class="workflow-stack">
+    <button id="use-normalized" type="button" class="secondary wide" hidden>Nạp ảnh vừa chuẩn hóa</button>
+
+    <section class="workflow-card">
+      <div class="workflow-card-head">
+        <span class="workflow-badge workflow-badge-primary">01</span>
+        <div>
+          <h2>Xuất Bản vẽ AutoCAD (DXF / DWG)</h2>
+        </div>
+      </div>
+      <p id="export-objects-summary" class="notice subtle">Xuất đối tượng sang DXF hoặc AutoCAD.</p>
+      <div class="action-row">
+        <button id="export-cad" type="button" class="primary" data-mutable>Xuất DXF</button>
+        <button id="export-dwg" type="button" class="primary" data-mutable>Xuất AutoCAD (DWG)</button>
+        <button id="open-detection-dir-btn" type="button" class="secondary" title="Mở thư mục kết quả">📁 Mở thư mục kết quả</button>
+      </div>
+      <p id="cad-result" class="field-help" role="status"></p>
+    </section>
+
+    <section class="workflow-card workflow-card-run">
+      <div class="workflow-card-head">
+        <span class="workflow-badge workflow-badge-primary">02</span>
+        <div>
+          <h2>Lưu Mẫu Huấn luyện &amp; Dữ liệu Đã Duyệt</h2>
+        </div>
+      </div>
+      <p id="dataset-ready-summary" class="notice subtle">Lưu đối tượng vào Dataset Ground Truth (chuẩn bị huấn luyện YOLO11).</p>
+      <div class="action-row">
+        <button id="save-dataset-btn" type="button" class="primary" data-mutable>💾 Lưu mẫu huấn luyện</button>
+        <button id="download-reviewed-json-btn" type="button" class="secondary" title="Tải tệp JSON">📥 Lưu file nhãn (.json)</button>
+        <button id="label-template" type="button" class="secondary">Mẫu JSON kiểm chứng</button>
+      </div>
+      <div class="action-row" style="margin-top:8px">
+        <button id="step4-goto-yolo-btn" type="button" class="secondary wide">⚡ Sang Bước 05: Huấn luyện &amp; Quét YOLO</button>
+      </div>
+      <p id="dataset-export-status" class="field-help" role="status"></p>
+
+      <details class="advanced-tools">
+        <summary>So sánh với nhãn kiểm chứng (.json)</summary>
+        <label for="truth-path">Đường dẫn JSON nhãn kiểm chứng</label>
+        <input id="truth-path" placeholder="C:\Du_lieu\nhan_kiem_chung.json" data-mutable>
+        <button id="evaluate-button" type="button" class="secondary wide" data-mutable>So sánh độ chính xác</button>
+        <p id="evaluation-result" class="field-help" role="status"></p>
+      </details>
+    </section>
+
+    <section class="workflow-card">
+      <div class="workflow-card-head">
+        <span class="workflow-badge">03</span>
+        <div>
+          <h2>Bình đồ Khảo sát &amp; Phân vùng Địa hình 9 Lớp</h2>
+        </div>
+      </div>
+
+      <div class="terrain-seg-panel" style="margin-bottom:12px;padding:12px;border-radius:10px;border:1px solid rgba(16,185,129,0.28);background:rgba(16,185,129,0.05)">
+        <div id="trained-model-status-badge" style="margin-bottom:8px;padding:6px 10px;border-radius:7px;background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.36);font-size:12px;line-height:1.4">
+          🧠 <strong>Model 9 Lớp (Huấn luyện chuẩn <code>ACAD_KHU TAM GIAC.dwg</code> + Mylib2 Block Grid + TCVN Scale)</strong>
+        </div>
+        <div class="field-group" style="margin-bottom:8px">
+          <label for="advMapScaleSelect" style="display:block;font-size:12.5px;font-weight:700;margin-bottom:4px">📐 Tỉ lệ bản đồ chuẩn TCVN (TT 68/2015/TT-BTNMT)</label>
+          <select id="advMapScaleSelect" data-mutable style="width:100%;padding:6px 10px;border-radius:7px;font-size:12.5px;font-weight:600">
+            <option value="500" selected>1:500 — Bình đồ chi tiết / Quy hoạch 1/500 (Block ×1.0, Lưới cây 20×10m, Cỏ 10×5m, Cao độ 12.5m, Chữ 1.2m, ĐM 0.5m)</option>
+            <option value="1000">1:1000 — Bình đồ kỹ thuật 1/1000 (Block ×2.0, Lưới cây 40×20m, Cỏ 20×10m, Cao độ 25m, Chữ 2.4m, ĐM 0.5m)</option>
+            <option value="2000">1:2000 — Bản đồ quy hoạch phân khu 1/2000 (Block ×4.0, Lưới cây 80×40m, Cỏ 40×20m, Cao độ 50m, Chữ 4.8m, ĐM 0.5m/1.0m)</option>
+            <option value="5000">1:5000 — Bản đồ địa hình tổng thể 1/5000 (Block ×10.0, Lưới cây 200×100m, Cỏ 100×50m, Cao độ 125m, Chữ 12.0m, ĐM 1.0m)</option>
+          </select>
+          <div id="tcvnScaleInfoBadge" data-role="tcvnScaleInfoBadge" role="status" aria-live="polite" style="margin-top:5px;padding:5px 9px;border-radius:6px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.32);font-size:11.5px;line-height:1.35">
+            <strong>TCVN 1:500</strong> · Hệ số <code>k = ×1.0</code> · Lưới cây <code>20×10m</code> · Cỏ <code>10×5m</code> · Cao độ <code>12.5m</code> · Chữ <code>1.2m</code> · ĐM <code>0.5m</code>
+          </div>
+        </div>
+        <div class="field-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="asphalt_road" checked style="width:16px;min-height:16px">Đường nhựa (<code>KS_DUONG_NHUA</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="concrete_road" checked style="width:16px;min-height:16px">Đường bê tông (<code>KS_DUONG_BETONG</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="dirt_road" checked style="width:16px;min-height:16px">Đường đất (<code>KS_DUONG_DAT</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="footpath" checked style="width:16px;min-height:16px">Đường đi bộ (<code>KS_DUONG_DIBO</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="pond" checked style="width:16px;min-height:16px">Sông / Ao / Hồ (<code>KS_AO_HO</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="masonry_ditch" checked style="width:16px;min-height:16px">Mương xây (<code>KS_MUONG_XAY</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="house_building" checked style="width:16px;min-height:16px">Nhà / Công trình (<code>KS_NHA</code>)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin:0"><input type="checkbox" class="terrain-cls-chk" value="landscape_tree" checked style="width:16px;min-height:16px">Cây xanh Mylib2 (<code>KS_CAY_XANH</code>)</label>
+        </div>
+        <div class="action-row">
+          <button id="terrain-seg-run-btn" type="button" class="primary" data-mutable>🛣️ Quét Địa hình &amp; Xuất PL (.dxf)</button>
+          <button id="terrain-train-dwg-btn" type="button" class="secondary" data-mutable>🎓 Huấn luyện từ .DWG + ORTHO</button>
+          <a href="/webgpu.html" target="_blank" rel="noopener" class="secondary" style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600">🌐 Cổng WebGPU</a>
+        </div>
+        <p id="terrain-seg-status" class="field-help" role="status" style="margin:6px 0 0"></p>
+      </div>
+
+      <details class="advanced-tools survey-module-box" id="survey-module-details" style="margin-top:0">
+        <summary>Bảng quy tắc Block / Layer CAD &amp; Xuất Bình đồ VN2000</summary>
+        <div class="survey-lib-bar">
+          <div>
+            <label for="survey-lib-path">Tệp thư viện CAD mẫu (.dwg / .dxf)</label>
+            <input id="survey-lib-path" type="text" placeholder="D:\thu_muc\mau_cad.dwg" data-mutable>
+          </div>
+          <button id="survey-load-lib-btn" type="button" class="secondary" data-mutable>Nạp thư viện CAD</button>
+        </div>
+        <div class="chip-row" aria-label="Thêm nhanh đối tượng khảo sát địa hình vào Bước 3">
+          <span class="tiny-label" style="align-self:center;margin-right:4px">Thêm vào danh mục quét:</span>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="road">📐 + Đường giao thông (road)</button>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="ditch">🌊 + Mương thủy lợi (ditch)</button>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="bridge">🧭 + Cầu / Cống (bridge)</button>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="building">🏛️ + Công trình (building)</button>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="fence">🌿 + Tường rào (fence)</button>
+          <button type="button" class="chip-btn survey-chip" data-survey-cat="electric pole">📡 + Cột điện / Trạm (electric pole)</button>
+        </div>
+        <div class="survey-table-wrap">
+          <table class="survey-rules-table" aria-label="Bảng quy tắc ánh xạ ký hiệu Bình đồ Khảo sát CAD">
+            <thead>
+              <tr>
+                <th>Đối tượng</th>
+                <th>Kiểu vẽ CAD</th>
+                <th>Tên Block</th>
+                <th>Tên Layer</th>
+                <th>Màu ACI</th>
+                <th>Rộng / Tỷ lệ</th>
+                <th>Tim tuyến</th>
+              </tr>
+            </thead>
+            <tbody id="survey-rules-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-row">
+          <button id="survey-save-rules-btn" type="button" class="secondary" data-mutable>Lưu bảng quy tắc</button>
+          <button id="survey-export-dxf-btn" type="button" class="primary" data-mutable>Xuất Bình đồ Khảo sát (.dxf)</button>
+        </div>
+        <p id="survey-module-status" class="field-help" role="status"></p>
+      </details>
+    </section>
+  </div>
+
+  <section id="results-panel" class="results-panel" hidden>
+    <div class="results-panel-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h2>Đối chiếu &amp; Duyệt Đối tượng</h2>
+          <span id="live-detect-pill" class="live-detect-pill" hidden></span>
+        </div>
+        <p id="results-summary" class="field-help" role="status" style="margin:2px 0 0"></p>
+      </div>
+      <button id="review-help-btn" type="button" class="help-toggle-btn" aria-pressed="false" aria-label="Trợ giúp (?)" title="Trợ giúp (?)">?</button>
+    </div>
+
+    <div class="session-bar">
+      <div class="session-select-group"><label for="session-select">Phiên nhận diện</label><select id="session-select"></select></div>
+      <div class="session-actions">
+        <button id="session-load-btn" type="button" class="secondary" data-mutable>Mở phiên</button>
+        <button id="session-pause-btn" type="button" class="secondary" hidden>⏸ Tạm dừng</button>
+        <button id="session-resume-btn" type="button" class="primary" hidden>▶ Tiếp tục quét</button>
+        <button id="browse-detection-btn" type="button" class="secondary" data-mutable title="Mở file detections.json">📂 Chọn file (.json)</button>
+      </div>
+    </div>
+
+    <div class="comparison-workspace-grid">
+      <div class="comparison-main-col">
+        <div class="review-toolbar">
+          <button id="toggle-box-overlay" type="button" class="secondary active-box-toggle" aria-pressed="true">🎯 Ẩn khung viền</button>
+          <a id="results-overview-link" target="_blank" rel="noopener">🛰️ Mở ảnh toàn vùng có vẽ khung</a>
+        </div>
+        <div class="review-images">
+          <figure id="fig-raw"><figcaption>Khung gốc (Cam)</figcaption><img id="object-raw" alt="Khung nhận diện gốc" hidden></figure>
+          <figure id="fig-candidate"><figcaption>Khung đề nghị (Xanh)</figcaption><img id="object-candidate" alt="Vùng cây xanh và khung đề nghị co sát" hidden></figure>
+          <figure id="object-context-fig"><figcaption>Vị trí trên ảnh tổng</figcaption><div class="context-overview-wrap"><img id="object-context-img" alt="Vị trí đối tượng trên ảnh tổng" hidden><div id="object-context-box" class="context-box-indicator" hidden></div></div></figure>
+        </div>
+        <div id="object-meta" class="object-meta-card"></div>
+        <p id="object-info" class="field-help" hidden></p>
+
+        <div class="subclass-bar">
+          <div><label for="object-subclass">Phân lớp đối tượng</label>
+            <select id="object-subclass">
+              <option value="">Giữ nguyên theo truy vấn gốc</option>
+              <option value="Newly transplanted rice + Partial Grass">🌾+🌱 Lúa mới cấy + 1 phần Cỏ bờ</option>
+              <option value="Grass + Partial Rice">🌱+🌾 Bờ cỏ + 1 phần Lúa mới cấy</option>
+              <option value="Newly transplanted rice">🌾 Newly transplanted rice (Lúa mới cấy)</option>
+              <option value="Healthy rice">🌿 Healthy rice (Lúa khỏe)</option>
+              <option value="Grass">🌱 Grass (Cỏ)</option>
+              <option value="Individual tree">🌳 Individual tree (Cây đơn lẻ)</option>
+              <option value="Tree cluster">🌲 Tree cluster (Cụm cây)</option>
+              <option value="Hedge">🌿 Hedge (Hàng rào cây)</option>
+              <option value="Person">📡 Person (Trạm / Người)</option>
+              <option value="Vehicle">🚜 Vehicle (Máy nông nghiệp / Xe)</option>
+            </select>
+          </div>
+          <div><label for="results-filter">Bộ lọc</label>
+            <select id="results-filter">
+              <option value="all">Tất cả đối tượng</option>
+              <option value="unreviewed">Chưa duyệt</option>
+              <option value="low_confidence">Độ tin cậy thấp</option>
+              <option value="accepted">Đã duyệt</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="review-decision-bar">
+          <div class="review-decision-actions">
+            <button id="review-raw" type="button" class="secondary">Giữ khung gốc</button>
+            <button id="review-candidate" type="button" class="primary">Dùng khung co</button>
+            <button id="crop-out-grass-btn" type="button" class="secondary mixed-grass-btn" title="Loại bỏ cỏ bờ và co khung về khóm lúa">🌾+🌱 Có 1 phần Cỏ</button>
+            <button id="split-mixed-btn" type="button" class="secondary mixed-split-btn" title="Tách thành khung Cỏ riêng và Khóm lúa riêng">✂️ Tách Cỏ &amp; Lúa</button>
+            <button id="review-reject" type="button" class="secondary">Loại bỏ</button>
+          </div>
+          <div class="review-nav-actions">
+            <button id="object-prev" type="button" class="secondary">◀ Ảnh trước</button>
+            <button id="object-next" type="button" class="secondary">Ảnh tiếp ▶</button>
+          </div>
+        </div>
+
+        <div class="object-nav-grid">
+          <div>
+            <label for="object-select">Đối tượng đang xem</label>
+            <select id="object-select"></select>
+          </div>
+          <div>
+            <label for="page-range-select">Trang danh sách</label>
+            <select id="page-range-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <aside class="comparison-sidebar" aria-label="Sidebar Quy trình Xử lý &amp; Phân tích">
+        <div class="sidebar-wf-header">
+          <span class="sidebar-wf-kicker">WORKFLOW XỬ LÝ</span>
+          <h3>Công cụ Phân tích &amp; Lọc</h3>
+        </div>
+
+        <div class="sidebar-wf-card" id="wf-card-spectral-dem">
+          <div class="sidebar-wf-card-title"><span class="wf-step-pill">A</span><span>Phân tích Phổ &amp; Hạ DEM</span></div>
+          <button id="enrich-ms-btn" type="button" class="secondary wide" data-mutable>🛰️ 1. Phân tích Đa phổ toàn ảnh</button>
+          <button id="repair-dem-btn" type="button" class="secondary wide" data-mutable>⛰️ 2. Hạ / Khử nhiễu nền DEM</button>
+          <button id="enrich-dem-btn" type="button" class="secondary wide" data-mutable>📡 3. Cập nhật cao độ RTK / DEM</button>
+        </div>
+
+        <div class="sidebar-wf-card" id="wf-card-geometry">
+          <div class="sidebar-wf-card-title"><span class="wf-step-pill">B</span><span>Tách Khóm &amp; Gộp Khung</span></div>
+          <button id="split-clumps-btn" type="button" class="secondary wide" data-mutable>🌾 4. Tách khóm lúa gộp</button>
+          <button id="fuse-existing-btn" type="button" class="secondary wide" data-mutable>🧭 5. Gộp khung trùng biên</button>
+        </div>
+
+        <div class="sidebar-wf-card" id="wf-card-sr">
+          <div class="sidebar-wf-card-title">
+            <span class="wf-step-pill">C</span>
+            <span>Tăng Phân Giải Đối Tượng</span>
+            <select id="sidebar-sr-scale" class="sr-scale-mini" aria-label="Hệ số phóng đại siêu phân giải" title="Hệ số phóng đại" data-mutable>
+              <option value="2">2x</option>
+              <option value="4" selected>4x</option>
+            </select>
+          </div>
+          <button id="sr-enhance-btn" type="button" class="secondary wide sr-mode-btn active-sr-mode" data-sr-mode="ttst" data-mutable>🛰️ 6.1 TTST 4x (Viễn thám UAV)</button>
+          <button id="sr-btn-uav-detail" type="button" class="secondary wide sr-mode-btn" data-sr-mode="uav_detail" data-mutable>🌿 6.2 UAV Detail (Khử mờ tán lá)</button>
+          <button id="sr-btn-realesrgan" type="button" class="secondary wide sr-mode-btn" data-sr-mode="realesrgan" data-mutable>⚡ 6.3 Real-ESRGAN (Khôi phục biên)</button>
+          <button id="sr-btn-swinir" type="button" class="secondary wide sr-mode-btn" data-sr-mode="swinir" data-mutable>🌾 6.4 SwinIR (Giữ hình học lúa)</button>
+          <button id="sr-btn-hat" type="button" class="secondary wide sr-mode-btn" data-sr-mode="hat" data-mutable>🔬 6.5 HAT Transformer (Chi tiết sâu)</button>
+          <button id="sr-btn-lanczos" type="button" class="secondary wide sr-mode-btn" data-sr-mode="lanczos" data-mutable>📐 6.6 Lanczos (Nội suy trắc địa)</button>
+        </div>
+
+        <div class="sidebar-wf-card" id="wf-card-triage">
+          <div class="sidebar-wf-card-title"><span class="wf-step-pill">D</span><span>Lọc &amp; Duyệt Hàng Loạt</span></div>
+          <button id="auto-triage-btn" type="button" class="primary wide" data-mutable>⚡ 7. Lọc nhanh theo mẫu đã duyệt</button>
+          <button id="review-all-candidate" type="button" class="secondary wide" data-mutable>✓ Duyệt tất cả (Khung co)</button>
+          <button id="review-all-raw" type="button" class="secondary wide" data-mutable>✓ Duyệt tất cả (Khung gốc)</button>
+          <button id="quick-save-dataset-btn" type="button" class="primary wide" data-mutable>💾 8. Lưu mẫu huấn luyện</button>
+        </div>
+
+        <div id="pipeline-tools-status" class="sidebar-wf-status" role="status">Sẵn sàng.</div>
+      </aside>
+    </div>
+  </section>
+</template>
+
+<template id="taskmgr-template">
+  <section id="taskmgr-panel" class="taskmgr-panel" aria-label="Task Manager · Giám sát Phần cứng &amp; Đối tượng UAV">
+    <div class="tm-header">
+      <div class="tm-header-left">
+        <span class="tm-header-kicker">🖥️ PERFORMANCE · TASK MANAGER TELEMETRY</span>
+        <h3>Giám sát Phần cứng GPU &amp; Đối tượng UAV</h3>
+      </div>
+      <div class="tm-header-right">
+        <span id="tm-live-indicator" class="tm-live-pill">🛰️ Trực tiếp · 1.5s</span>
+        <button id="tm-toggle-3d-btn" type="button" class="tm-3d-btn active" aria-pressed="true" title="Bật/Tắt sóng 3D">🎛️ 3D Wave</button>
+      </div>
+    </div>
+
+    <div class="tm-body">
+      <div class="tm-rail" role="tablist" aria-label="Chọn thành phần giám sát">
+        <button type="button" class="tm-rail-item" role="tab" aria-selected="false" data-tm-tab="cpu" id="tm-tab-cpu">
+          <canvas id="tm-spark-cpu" class="tm-spark-canvas" width="66" height="36" aria-hidden="true"></canvas>
+          <div class="tm-rail-meta">
+            <strong>CPU</strong>
+            <span id="tm-rail-cpu-name">Intel Core i7-14700K</span>
+            <small id="tm-rail-cpu-val">12% 4.28 GHz</small>
+          </div>
+        </button>
+
+        <button type="button" class="tm-rail-item" role="tab" aria-selected="false" data-tm-tab="ram" id="tm-tab-ram">
+          <canvas id="tm-spark-ram" class="tm-spark-canvas" width="66" height="36" aria-hidden="true"></canvas>
+          <div class="tm-rail-meta">
+            <strong>Memory</strong>
+            <span id="tm-rail-ram-name">RAM Hệ thống</span>
+            <small id="tm-rail-ram-val">21.5/31.8 GB (68%)</small>
+          </div>
+        </button>
+
+        <button type="button" class="tm-rail-item" role="tab" aria-selected="false" data-tm-tab="gpu0" id="tm-tab-gpu0">
+          <canvas id="tm-spark-gpu0" class="tm-spark-canvas" width="66" height="36" aria-hidden="true"></canvas>
+          <div class="tm-rail-meta">
+            <strong>GPU 0</strong>
+            <span id="tm-rail-gpu0-name">Intel(R) UHD Graphics 770</span>
+            <small id="tm-rail-gpu0-val">1% (Shared)</small>
+          </div>
+        </button>
+
+        <button type="button" class="tm-rail-item active" role="tab" aria-selected="true" data-tm-tab="gpu1" id="tm-tab-gpu1">
+          <canvas id="tm-spark-gpu1" class="tm-spark-canvas" width="66" height="36" aria-hidden="true"></canvas>
+          <div class="tm-rail-meta">
+            <strong>GPU 1</strong>
+            <span id="tm-rail-gpu1-name">NVIDIA GeForce RTX 4070</span>
+            <small id="tm-rail-gpu1-val">96% (48 °C)</small>
+          </div>
+        </button>
+
+        <button type="button" class="tm-rail-item" role="tab" aria-selected="false" data-tm-tab="objects" id="tm-tab-objects">
+          <canvas id="tm-spark-obj" class="tm-spark-canvas" width="66" height="36" aria-hidden="true"></canvas>
+          <div class="tm-rail-meta">
+            <strong>🌾 Đối tượng</strong>
+            <span id="tm-rail-obj-name">Lúa &amp; Cây trồng UAV</span>
+            <small id="tm-rail-obj-val">0 khung · 0 khóm</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="tm-detail">
+        <div class="tm-detail-head">
+          <div class="tm-detail-title-group">
+            <h4 id="tm-unit-title">GPU 1</h4>
+            <span id="tm-temp-badge" class="tm-temp-badge">48 °C · Ổn định</span>
+          </div>
+          <strong id="tm-unit-model" class="tm-unit-model">NVIDIA GeForce RTX 4070</strong>
+        </div>
+
+        <div id="tm-webgl-wrap" class="tm-webgl-wrap" aria-label="Biểu đồ 3D biến động thời gian thực (Three.js + Anime.js)">
+          <canvas id="tm-webgl-canvas" class="tm-webgl-canvas"></canvas>
+          <div class="tm-webgl-overlay">
+            <span>🎛️ 3D Live Wave (Three.js + Anime.js)</span>
+            <span id="tm-webgl-caption">CUDA 3D · VRAM · Tốc độ quét</span>
+          </div>
+        </div>
+
+        <div class="tm-charts-grid">
+          <div class="tm-chart-card">
+            <div class="tm-chart-label-row">
+              <span id="tm-chart1-label">⌄ 3D / CUDA Compute</span>
+              <strong id="tm-chart1-val">96%</strong>
+            </div>
+            <div class="tm-canvas-shell">
+              <canvas id="tm-canvas-1" class="tm-osc-canvas" width="320" height="86"></canvas>
+            </div>
+          </div>
+
+          <div class="tm-chart-card">
+            <div class="tm-chart-label-row">
+              <span id="tm-chart2-label">⌄ Copy / Shared DMA</span>
+              <strong id="tm-chart2-val">0%</strong>
+            </div>
+            <div class="tm-canvas-shell">
+              <canvas id="tm-canvas-2" class="tm-osc-canvas" width="320" height="86"></canvas>
+            </div>
+          </div>
+
+          <div class="tm-chart-card tm-chart-wide">
+            <div class="tm-chart-label-row">
+              <span id="tm-chart3-label">Dedicated GPU memory</span>
+              <strong id="tm-chart3-val">11.5 / 12.0 GB</strong>
+            </div>
+            <div class="tm-canvas-shell">
+              <canvas id="tm-canvas-3" class="tm-osc-canvas" width="640" height="68"></canvas>
+            </div>
+          </div>
+
+          <div class="tm-chart-card tm-chart-wide">
+            <div class="tm-chart-label-row">
+              <span id="tm-chart4-label">Shared GPU memory</span>
+              <strong id="tm-chart4-val">3.5 / 15.9 GB</strong>
+            </div>
+            <div class="tm-canvas-shell">
+              <canvas id="tm-canvas-4" class="tm-osc-canvas" width="640" height="68"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="tm-specs-grid">
+          <div class="tm-metrics-col">
+            <div class="tm-metric-box">
+              <span id="tm-stat1-label">Utilization</span>
+              <strong id="tm-stat-util">96%</strong>
+            </div>
+            <div class="tm-metric-box">
+              <span id="tm-stat2-label">Dedicated GPU memory</span>
+              <strong id="tm-stat-ded">11.5/12.0 GB</strong>
+            </div>
+            <div class="tm-metric-box">
+              <span id="tm-stat3-label">GPU Memory</span>
+              <strong id="tm-stat-total-mem">15.0/27.9 GB</strong>
+            </div>
+            <div class="tm-metric-box">
+              <span id="tm-stat4-label">Shared GPU memory</span>
+              <strong id="tm-stat-shared">3.5/15.9 GB</strong>
+            </div>
+            <div class="tm-metric-box">
+              <span id="tm-stat5-label">Temperature</span>
+              <strong id="tm-stat-temp">48 °C</strong>
+            </div>
+            <div class="tm-metric-box">
+              <span id="tm-stat6-label">Power / Clock</span>
+              <strong id="tm-stat-power">185 W · 2475 MHz</strong>
+            </div>
+          </div>
+
+          <dl class="tm-kv-col">
+            <dt>Driver version:</dt><dd id="tm-meta-driver">32.0.16.1088</dd>
+            <dt>Driver date:</dt><dd id="tm-meta-date">7/22/2026</dd>
+            <dt>DirectX version:</dt><dd id="tm-meta-dx">12 (FL 12.2)</dd>
+            <dt>Physical location:</dt><dd id="tm-meta-loc">PCI bus 1, device 0, function 0</dd>
+            <dt>GPU 0 (iGPU):</dt><dd id="tm-meta-gpu0">Intel(R) UHD Graphics 770</dd>
+            <dt>CPU / RAM:</dt><dd id="tm-meta-cpu">i7-14700K · 31.8 GB RAM</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="tm-objects-section">
+      <div class="tm-objects-head">
+        <span class="tm-objects-title">🌾 THEO DÕI ĐỐI TƯỢNG TRỰC TIẾP</span>
+        <span id="tm-obj-status-pill" class="tm-obj-pill">🛰️ Đang chờ phiên quét</span>
+      </div>
+      <div class="tm-objects-kpis">
+        <div class="tm-obj-kpi">
+          <span>🌾 Đối tượng phát hiện</span>
+          <strong id="tm-obj-total">0</strong>
+          <small id="tm-obj-rate">Mật độ: 0 khung</small>
+        </div>
+        <div class="tm-obj-kpi">
+          <span>🌱 Tổng khóm lúa đơn lẻ</span>
+          <strong id="tm-obj-clumps">0</strong>
+          <small id="tm-obj-clump-sub">Tách từ vùng gộp</small>
+        </div>
+        <div class="tm-obj-kpi tm-obj-kpi-clickable" id="tm-kpi-review-box" role="button" tabindex="0" title="Lọc đối tượng Chưa duyệt">
+          <span>🎯 Đã duyệt / Gắn nhãn</span>
+          <strong id="tm-obj-reviewed">0</strong>
+          <small id="tm-obj-unreviewed">Chưa duyệt: 0 ↗</small>
+        </div>
+        <div class="tm-obj-kpi">
+          <span>🛰️ Tiến độ lưới UAV</span>
+          <strong id="tm-obj-progress">0%</strong>
+          <small id="tm-obj-queries">0 / 0 lượt quét</small>
+        </div>
+      </div>
+      <div id="tm-class-bars" class="tm-class-bars" aria-label="Biểu đồ phân bố phân lớp đối tượng"></div>
+    </div>
+  </section>
+</template>
+<template id="yolo-template">
+  <div class="workflow-stack">
+    <section class="workflow-card">
+      <div class="workflow-card-head">
+        <span class="workflow-badge workflow-badge-primary">01</span>
+        <div>
+          <h2>Huấn luyện Mô hình YOLO11 Turbo</h2>
+        </div>
+      </div>
+      <div class="turbo-train-box" id="turbo-train-box" style="margin-top:0">
+        <div class="turbo-train-head">
+          <strong>🚀 Huấn luyện YOLO11s-FP16 (best.pt + best.onnx)</strong>
+          <span id="turbo-gpu-pill" class="turbo-pill">RTX CUDA FP16</span>
+        </div>
+        <div id="turbo-dataset-counts" class="turbo-counts-row">
+          <span class="turbo-count-chip pos">✅ Mẫu dương đã lưu: 0</span>
+          <span class="turbo-count-chip neg">🛡️ Mẫu âm (Loại bỏ): 0</span>
+        </div>
+        <p id="turbo-neg-tip" class="field-help" style="margin:4px 0 8px">
+          Mẫu âm (Hard Negatives): Bổ sung bằng cách bấm Loại bỏ ở Bước 03.
+        </p>
+        <div class="field-grid" style="margin-bottom:8px">
+          <div>
+            <label for="turbo-train-mode">Chế độ mô hình cần huấn luyện</label>
+            <select id="turbo-train-mode" data-mutable>
+              <option value="both" selected>⚡+🌱 Cả 2 chế độ (Quét Vùng 640px + Khóm Lẻ ~15cm)</option>
+              <option value="zone">⚡ Chỉ Chế độ 1: Quét Vùng Lúa &amp; Cỏ bờ (640px)</option>
+              <option value="clump">🌱 Chỉ Chế độ 2: Từng Khóm Lúa Lẻ (~15cm · 512px)</option>
+            </select>
+          </div>
+          <div>
+            <label for="turbo-train-epochs">Số vòng lặp (Epochs)</label>
+            <select id="turbo-train-epochs" data-mutable>
+              <option value="30">30 Epochs (Nhanh · ~2 phút)</option>
+              <option value="50" selected>50 Epochs (Khuyên dùng · ~4 phút)</option>
+              <option value="80">80 Epochs (Huấn luyện kỹ · ~7 phút)</option>
+            </select>
+          </div>
+        </div>
+        <div class="action-row">
+          <button id="train-turbo-btn" type="button" class="primary" data-mutable>🚀 Huấn luyện Mô hình Turbo</button>
+          <button id="yolo-back-step3-neg-btn" type="button" class="secondary">🌾 Về Bước 03 bổ sung mẫu</button>
+        </div>
+        <div id="turbo-models-badges" class="turbo-models-grid"></div>
+        <p id="turbo-train-status" class="field-help" role="status"></p>
+      </div>
+    </section>
+
+    <section class="workflow-card workflow-card-run">
+      <div class="workflow-card-head">
+        <span class="workflow-badge workflow-badge-primary">02</span>
+        <div>
+          <h2>Quét Thực địa Siêu Tốc YOLO11</h2>
+        </div>
+      </div>
+      <label for="detect-engine">Chế độ Động cơ YOLO11 Turbo</label>
+      <select id="detect-engine" data-yolo-detection data-mutable>
+        <option value="turbo_zone" selected>⚡ Turbo YOLO11 · Quét Vùng Lúa &amp; Cỏ bờ (640×640 · FP16 · Batch=32)</option>
+        <option value="turbo_clump">🌱 Turbo YOLO11 · Bắt Từng Khóm Lúa Lẻ &amp; Cỏ bờ (~15cm · 512×512 · FP16 · Batch=32)</option>
+      </select>
+      <p id="detect-engine-status" class="field-help turbo-engine-note" role="status"></p>
+
+      <label for="yolo-detect-scope">Phạm vi quét YOLO trên bản đồ</label>
+      <select id="yolo-detect-scope" data-yolo-detection data-mutable>
+        <option id="yolo-detect-selected" value="selected">1. Chỉ ảnh đang chọn trên bản đồ</option>
+        <option value="multi">2. Quét theo vùng vẽ CAD (Polyline / Chữ nhật)</option>
+        <option value="all" selected>3. Toàn bộ ảnh gốc GeoTIFF (Quét đồng loạt)</option>
+      </select>
+
+      <div id="yolo-multi-region-box" class="multi-region-box" hidden>
+        <div class="action-row cad-btn-row cad-btn-row-4">
+          <button id="yolo-cad-draw-pline-btn" type="button" class="primary" data-mutable>📐 Vẽ vùng Polyline</button>
+          <button id="yolo-cad-draw-rect-btn" type="button" class="secondary" data-mutable>▭ Vẽ vùng Chữ nhật</button>
+          <button id="yolo-cad-finish-pline-btn" type="button" class="secondary" data-mutable>✓ Đóng vùng</button>
+          <button id="yolo-cad-edit-btn" type="button" class="secondary" data-mutable>🧭 Kéo đỉnh / Chọn vùng</button>
+        </div>
+        <div class="action-row cad-btn-row cad-btn-row-3">
+          <button id="yolo-add-region-btn" type="button" class="secondary" data-mutable>+ Thêm ảnh đang chọn</button>
+          <button id="yolo-delete-selected-region-btn" type="button" class="secondary" data-mutable>✕ Xóa vùng đang chọn</button>
+          <button id="yolo-clear-regions-btn" type="button" class="secondary" data-mutable>Xóa tất cả vùng</button>
+        </div>
+        <p id="yolo-cad-mode-hint" class="field-help cad-hint" role="status">Chấm các đỉnh vùng cần quét YOLO trên bản đồ.</p>
+        <ul id="yolo-multi-region-list" class="region-list"></ul>
+      </div>
+
+      <p id="yolo-plan-info" class="notice subtle" role="status" style="margin-top:10px">Kiểm tra lượt quét trước khi chạy YOLO.</p>
+      <div class="action-row run-action-row">
+        <button id="yolo-plan-btn" type="button" class="secondary" data-mutable>1. Kiểm tra lượt quét YOLO</button>
+        <button id="yolo-start-btn" type="button" class="primary" data-mutable disabled>⚡ 2. Bắt đầu quét YOLO Siêu Tốc</button>
+        <button id="yolo-pause-btn" type="button" class="secondary" hidden>⏸ Tạm dừng</button>
+        <button id="yolo-resume-btn" type="button" class="primary" hidden>▶ Tiếp tục quét</button>
+      </div>
+
+      <div class="action-row" style="margin-top:10px">
+        <button id="yolo-goto-review-btn" type="button" class="secondary">🔍 Xem &amp; Duyệt khung (Bước 03)</button>
+        <button id="yolo-goto-export-btn" type="button" class="secondary">📐 Xuất Bản vẽ CAD (Bước 04)</button>
+      </div>
+    </section>
+  </div>
+</template>

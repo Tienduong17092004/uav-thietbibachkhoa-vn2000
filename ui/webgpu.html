@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UAV Survey WebGPU Portal · Nhận diện Địa hình 6 Lớp &amp; Quản lý Key</title>
+  <link rel="stylesheet" href="/webgpu.css?v=20261109_3">
+</head>
+<body class="license-locked">
+  <!-- CỔNG KHÓA BẢN QUYỀN TOÀN MÀN HÌNH (BẮT BUỘC NHẬP KEY TRƯỚC KHI HIỆN GIAO DIỆN) -->
+  <div id="license-gate-overlay" class="license-gate-overlay" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="license-gate-card">
+      <div class="gate-brand">
+        <div class="brand-logo">🔐</div>
+        <div>
+          <div class="brand-kicker">BẢO MẬT BẢN QUYỀN · AES-256-GCM HARDWARE LOCK</div>
+          <h2 id="gate-title">Xác thực License Key</h2>
+        </div>
+      </div>
+
+      <div id="gate-gpu-badge" class="pill pill-gpu" style="width:100%;text-align:center">Đang kiểm tra phần cứng GPU…</div>
+
+      <label class="field-label" for="gate-license-key-input">Mã License Key</label>
+      <input id="gate-license-key-input" type="text" value="" placeholder="Nhập mã License Key để mở giao diện…" autocomplete="off">
+
+      <label class="field-label" for="gate-model-select">Mô hình xử lý GPU</label>
+      <select id="gate-model-select">
+        <option value="terrain_seg">🧠 Model 9 Lớp (Huấn luyện chuẩn ACAD_KHU TAM GIAC.dwg + Mylib2 Block Grid + TCVN Scale)</option>
+      </select>
+
+      <button type="button" id="btn-gate-auth" class="btn btn-accent btn-block" style="margin-top:6px;padding:10px 14px;font-size:13px">
+        🔑 Xác thực Key &amp; Mở Giao diện
+      </button>
+
+      <div id="gate-status" class="status-banner" style="margin-top:4px">
+        Vui lòng nhập mã License Key hợp lệ để hiển thị giao diện.
+      </div>
+
+      <details id="gate-admin-drawer" class="admin-drawer" style="margin-top:6px">
+        <summary>🛡️ Quản trị viên (Tạo / Quản lý Key)</summary>
+        <div class="admin-body">
+          <div class="key-input-row">
+            <input id="gate-adm-password-input" type="password" placeholder="Mật khẩu Quản trị viên…" autocomplete="current-password" style="flex:1">
+            <button type="button" id="btn-gate-adm-unlock" class="btn btn-secondary">🔓 Mở khóa Admin</button>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <header class="portal-header">
+    <div class="brand-cluster">
+      <div class="brand-logo">🌐</div>
+      <div>
+        <div class="brand-kicker">WEBGPU BROWSER PORTAL · AES-256-GCM RAM</div>
+        <h1>Cổng WebGPU Bình đồ Địa hình 6 Lớp</h1>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span id="gpu-adapter-badge" class="pill pill-gpu">Đang dò Card GPU…</span>
+      <span class="pill pill-privacy">🔒 0 Byte Upload · RAM</span>
+      <a href="/index.html" id="workstation-back-link" class="pill pill-link">← Workstation</a>
+    </div>
+  </header>
+
+  <main class="portal-grid">
+    <!-- Cột điều khiển 3 bước -->
+    <aside class="control-column">
+      <!-- BƯỚC 1: LICENSE KEY & NẠP MÔ HÌNH MÃ HÓA -->
+      <section class="card" id="step1-card">
+        <div class="card-head">
+          <span class="step-tag">BƯỚC 01</span>
+          <h2>Xác thực Key &amp; Mô hình GPU</h2>
+        </div>
+
+        <label class="field-label" for="license-key-input">License Key</label>
+        <div class="key-input-row">
+          <input id="license-key-input" type="text" value="" placeholder="VD: UAV-2026-XXX-YYY" autocomplete="off">
+        </div>
+        <div class="quick-keys hidden" id="quick-keys-row">
+          <span class="quick-label">Key mẫu:</span>
+          <button type="button" class="chip-btn" data-sample-key="UAV-WEBGPU-2026-PRO">PRO (500 ha)</button>
+          <button type="button" class="chip-btn" data-sample-key="UAV-SURVEY-VN2000-VIP">VIP (2500 ha)</button>
+          <button type="button" class="chip-btn" data-sample-key="UAV-TRIAL-DEMO-50HA">TRIAL (50 ha)</button>
+        </div>
+
+        <label class="field-label" for="model-select">Mô hình GPU</label>
+        <select id="model-select">
+          <option value="terrain_seg">🧠 Model 9 Lớp (Huấn luyện chuẩn ACAD_KHU TAM GIAC.dwg + Mylib2 Block Grid + TCVN Scale)</option>
+        </select>
+
+        <button type="button" id="btn-auth-load" class="btn btn-primary btn-block">
+          🔑 Xác thực &amp; Nạp GPU
+        </button>
+
+        <div id="auth-telemetry" class="telemetry-box hidden">
+          <div class="tele-row">
+            <span>Chủ tài khoản / Gói:</span>
+            <strong id="tele-owner">—</strong>
+          </div>
+          <div class="tele-row">
+            <span>Mã khóa phần cứng (Device ID):</span>
+            <code id="tele-device">—</code>
+          </div>
+          <div class="tele-row">
+            <span>Động cơ thực thi trình duyệt:</span>
+            <strong id="tele-ep" class="text-accent">—</strong>
+          </div>
+          <div class="tele-row">
+            <span>Bảo mật luồng trọng số:</span>
+            <code id="tele-crypto">—</code>
+          </div>
+          <div class="quota-wrap">
+            <div class="tele-row">
+              <span>Hạn mức diện tích còn lại:</span>
+              <strong id="tele-quota-text">0 / 0 ha</strong>
+            </div>
+            <div class="quota-bar"><div id="tele-quota-fill" class="quota-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <details id="admin-key-drawer" class="admin-drawer hidden">
+          <summary>🛡️ Quản trị Key</summary>
+          <div class="admin-body">
+            <div id="admin-unlock-box" class="key-input-row hidden">
+              <input id="adm-password-input" type="password" placeholder="Nhập mật khẩu Quản trị viên…" autocomplete="current-password" style="flex:1">
+              <button type="button" id="btn-adm-unlock" class="btn btn-secondary">🔓 Mở khóa</button>
+            </div>
+            <div id="admin-protected-content">
+              <div class="admin-form-grid">
+                <input id="adm-owner" type="text" placeholder="Tên khách hàng / đơn vị" value="Công ty Đo đạc Bản đồ">
+                <input id="adm-quota" type="number" min="5" max="50000" step="10" value="300" title="Hạn mức Hecta">
+                <input id="adm-devices" type="number" min="1" max="20" step="1" value="2" title="Số máy tối đa">
+                <button type="button" id="btn-adm-create" class="btn btn-secondary">➕ Cấp Key mới</button>
+              </div>
+              <div id="adm-license-list" class="adm-list"></div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- BƯỚC 2: ĐỌC ORTHO (.JPG + .JGW + .PRJ) + DEM (.TIF) HOẶC GEOTIFF TẠI MÁY -->
+      <section class="card" id="step2-card">
+        <div class="card-head">
+          <span class="step-tag">BƯỚC 02</span>
+          <h2>Dữ liệu Khảo sát (ORTHO + DEM)</h2>
+        </div>
+
+        <label class="dropzone" for="local-tiff-input" id="tiff-dropzone">
+          <input id="local-tiff-input" type="file" multiple accept=".tif,.tiff,.jpg,.jpeg,.png,.jgw,.tfw,.pgw,.wld,.prj,image/tiff,image/jpeg,image/png">
+          <span class="drop-title">📂 Chọn hoặc Kéo-Thả tệp ORTHO / DEM / GeoTIFF</span>
+          <span class="drop-sub" id="local-file-label">.JPG + .JGW + .PRJ + DEM.TIF hoặc GeoTIFF</span>
+        </label>
+
+        <div class="bundle-action-row">
+          <label class="btn btn-secondary folder-picker-btn" for="local-folder-input" title="Chọn thư mục chứa bộ tệp khảo sát để trình duyệt tự ghép ORTHO.jpg + .jgw + .prj + DEM.tif">
+            <input id="local-folder-input" type="file" webkitdirectory directory multiple style="display:none">
+            📁 Chọn Thư mục
+          </label>
+          <button type="button" id="btn-clear-bundle" class="btn btn-secondary" title="Xóa bộ tệp đang nạp để chọn khu đo mới">
+            ↺ Làm mới
+          </button>
+        </div>
+
+        <div id="bundle-checklist" class="bundle-checklist hidden">
+          <div class="bundle-pill" id="bdl-ortho">🖼️ Ảnh màu RGB: <span>Chưa có</span></div>
+          <div class="bundle-pill" id="bdl-world">🧭 World File (.jgw/.tfw): <span>Tự đọc từ TIF / Chưa có</span></div>
+          <div class="bundle-pill" id="bdl-prj">🌐 Hệ chiếu (.prj): <span>Mặc định Mét</span></div>
+          <div class="bundle-pill" id="bdl-dem">⛰️ Cao độ 3D (DEM.tif): <span>Tùy chọn (Chưa gắn)</span></div>
+        </div>
+
+        <button type="button" id="btn-load-demo-tiff" class="btn btn-secondary btn-block">
+          🧪 Nạp Ảnh Mẫu 6 Lớp (EPSG:32648)
+        </button>
+
+        <div class="base-grid">
+          <div>
+            <label class="field-label" for="base-x-input">Base X (m)</label>
+            <input id="base-x-input" type="number" step="0.01" value="584100">
+          </div>
+          <div>
+            <label class="field-label" for="base-y-input">Base Y (m)</label>
+            <input id="base-y-input" type="number" step="0.01" value="1040200">
+          </div>
+        </div>
+
+        <div id="raster-meta-box" class="telemetry-box hidden">
+          <div class="tele-row"><span>Mô hình áp dụng:</span><strong id="meta-model" class="text-accent">🧠 Model 9 Lớp (Huấn luyện chuẩn ACAD_KHU TAM GIAC.dwg + Mylib2 Block Grid + TCVN Scale)</strong></div>
+          <div class="tele-row"><span>Kích thước ảnh màu:</span><strong id="meta-dims">—</strong></div>
+          <div class="tele-row"><span>Hệ tọa độ &amp; GSD:</span><strong id="meta-gsd">—</strong></div>
+          <div class="tele-row"><span>Kênh cao độ DEM 3D:</span><strong id="meta-dem">—</strong></div>
+          <div class="tele-row"><span>Diện tích vùng quét:</span><strong id="meta-area">—</strong></div>
+        </div>
+      </section>
+
+      <!-- BƯỚC 3: QUÉT WEBGPU & XUẤT BÌNH ĐỒ DXF -->
+      <section class="card" id="step3-card">
+        <div class="card-head">
+          <span class="step-tag">BƯỚC 03</span>
+          <h2>Nhận diện Địa hình &amp; Xuất CAD</h2>
+        </div>
+
+        <div class="class-checklist" id="terrain-class-checklist">
+          <label class="cls-item"><input type="checkbox" value="asphalt_road" checked><span class="swatch" style="background:#ef4444"></span>Đường ô tô nhựa</label>
+          <label class="cls-item"><input type="checkbox" value="concrete_road" checked><span class="swatch" style="background:#94a3b8"></span>Đường bê tông</label>
+          <label class="cls-item"><input type="checkbox" value="dirt_road" checked><span class="swatch" style="background:#d97706"></span>Đường đi / đất</label>
+          <label class="cls-item"><input type="checkbox" value="footpath" checked><span class="swatch" style="background:#a855f7"></span>Đường đi bộ</label>
+          <label class="cls-item"><input type="checkbox" value="pond" checked><span class="swatch" style="background:#0ea5e9"></span>Sông / Ao / Hồ</label>
+          <label class="cls-item"><input type="checkbox" value="masonry_ditch" checked><span class="swatch" style="background:#06b6d4"></span>Mương xây</label>
+          <label class="cls-item"><input type="checkbox" value="house_building" checked><span class="swatch" style="background:#f59e0b"></span>Nhà / Công trình</label>
+          <label class="cls-item"><input type="checkbox" value="landscape_tree" checked><span class="swatch" style="background:#10b981"></span>Cây cảnh quan</label>
+        </div>
+
+        <div id="dwg-trainer-box" class="hidden" style="margin-bottom:6px;padding:6px 8px;border-radius:6px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);font-size:11px">
+          <div id="dwg-train-summary" style="color:#a7f3d0;margin-bottom:4px">
+            🧠 <strong>Model 9 Lớp (Huấn luyện chuẩn <code>ACAD_KHU TAM GIAC.dwg</code> + Mylib2 Block Grid + TCVN Scale)</strong>
+          </div>
+          <button type="button" id="btn-train-dwg" class="btn btn-secondary btn-block" style="padding:5px 8px;font-size:11px">
+            🎓 Huấn luyện từ .DWG + ORTHO
+          </button>
+        </div>
+
+        <div class="tcvn-scale-box" style="margin-bottom:4px">
+          <label class="field-label" for="mapScaleSelect" style="margin:2px 0">📐 Tỉ lệ bản đồ chuẩn TCVN (TT 68/2015/TT-BTNMT)</label>
+          <select id="mapScaleSelect" aria-label="Tỉ lệ bản đồ chuẩn TCVN">
+            <option value="500" selected>1:500 — Bình đồ chi tiết / Quy hoạch 1/500 (Block ×1.0, Lưới cây 20×10m, Cỏ 10×5m, Cao độ 12.5m, Chữ 1.2m, ĐM 0.5m)</option>
+            <option value="1000">1:1000 — Bình đồ kỹ thuật 1/1000 (Block ×2.0, Lưới cây 40×20m, Cỏ 20×10m, Cao độ 25m, Chữ 2.4m, ĐM 0.5m)</option>
+            <option value="2000">1:2000 — Bản đồ quy hoạch phân khu 1/2000 (Block ×4.0, Lưới cây 80×40m, Cỏ 40×20m, Cao độ 50m, Chữ 4.8m, ĐM 0.5m/1.0m)</option>
+            <option value="5000">1:5000 — Bản đồ địa hình tổng thể 1/5000 (Block ×10.0, Lưới cây 200×100m, Cỏ 100×50m, Cao độ 125m, Chữ 12.0m, ĐM 1.0m)</option>
+          </select>
+          <div id="tcvnScaleInfoBadge" class="tcvn-scale-badge">
+            1:500 (k=1.0×) · Block ×1.0 · Cây 20×10m · Cỏ 10×5m · Cao độ 12.5m · Chữ 1.2m · ĐM 0.5m
+          </div>
+        </div>
+
+        <label class="cls-item" style="margin-bottom:4px;padding:3px 6px;border-radius:6px;background:rgba(255,255,255,0.04)">
+          <input type="checkbox" id="toggle-pl-only" checked>
+          <span>Chỉ xuất Polyline (PL) ra CAD</span>
+        </label>
+
+        <button type="button" id="btn-run-webgpu" class="btn btn-accent btn-block" disabled>
+          ⚡ Chạy Nhận diện WebGPU
+        </button>
+
+        <div class="export-row" style="grid-template-columns:1.2fr 1fr 1fr;gap:4px;margin-top:4px">
+          <button type="button" id="btn-download-dwg" class="btn btn-primary" disabled style="padding:6px 8px;font-size:11.5px">
+            📐 Xuất DWG
+          </button>
+          <button type="button" id="btn-download-dxf" class="btn btn-secondary" disabled style="padding:6px 8px;font-size:11.5px">
+            📐 Tải DXF
+          </button>
+          <button type="button" id="btn-download-geojson" class="btn btn-secondary" disabled style="padding:6px 8px;font-size:11.5px">
+            🗺️ GeoJSON
+          </button>
+        </div>
+
+        <div id="portal-status" class="status-banner"></div>
+      </section>
+    </aside>
+
+    <!-- Khung bản đồ Canvas tương tác -->
+    <section class="viewport-column">
+      <div class="viewport-toolbar">
+        <div class="layer-toggles">
+          <label><input type="checkbox" id="toggle-rgb" checked> Ảnh gốc RGB</label>
+          <label><input type="checkbox" id="toggle-mask" checked> Phủ màu AI</label>
+          <label class="opacity-ctrl">Độ đậm: <input type="range" id="mask-opacity" min="0.1" max="0.9" step="0.05" value="0.42"></label>
+          <label><input type="checkbox" id="toggle-vectors" checked> Vector CAD 2 Mép &amp; Tim</label>
+        </div>
+        <div class="zoom-controls">
+          <span id="perf-readout" class="perf-badge">Chưa chạy GPU</span>
+          <button type="button" id="btn-zoom-fit" class="btn-mini">Vừa khung</button>
+        </div>
+      </div>
+
+      <div class="canvas-stage" id="canvas-stage">
+        <canvas id="webgpu-canvas" width="1024" height="768"></canvas>
+        <div id="canvas-empty-overlay" class="empty-overlay">
+          <div class="empty-card">
+            <h3>Trạm Khảo sát Địa hình WebGPU</h3>
+            <p>Nạp License Key và chọn bộ ảnh khảo sát (ORTHO + DEM hoặc GeoTIFF) để bắt đầu nhận diện.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-strip" id="feature-summary-strip">
+        <div class="sum-chip"><span class="dot" style="background:#ef4444"></span>Đường nhựa: <strong id="cnt-asphalt_road">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#94a3b8"></span>Đường bê tông: <strong id="cnt-concrete_road">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#d97706"></span>Đường đất: <strong id="cnt-dirt_road">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#a855f7"></span>Đường đi bộ: <strong id="cnt-footpath">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#0ea5e9"></span>Sông / Ao: <strong id="cnt-pond">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#06b6d4"></span>Mương xây: <strong id="cnt-masonry_ditch">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#f59e0b"></span>Nhà: <strong id="cnt-house_building">0</strong></div>
+        <div class="sum-chip"><span class="dot" style="background:#10b981"></span>Cây cảnh quan: <strong id="cnt-landscape_tree">0</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/vendor/geotiff/geotiff.js"></script>
+  <script src="/vendor/ort/ort.webgpu.min.js"></script>
+  <script type="module" src="/webgpu_app.js?v=20261109_2"></script>
+  <script type="module" src="/argon_host_panel.js?v=20261109_2"></script>
+</body>
+</html>
