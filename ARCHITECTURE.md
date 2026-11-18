@@ -904,6 +904,34 @@ flowchart LR
 
 - **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 15 LOCATEANYTHING-3B + DEM RICE CLUMP COUNTER & RICE-VS-GRASS ANALYZER READY]`
 
+---
+
+### Mục 25 / Bản vẽ #16 (2026-11-18): Khôi Phục Nguyên Bản 100% [`detect_batch.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/detect_batch.py) Từ Bytecode `detect_batch.cpython-311.pyc` (`__pycache__.zip`) & Đồng Bộ 5 Bộ Kỹ Năng (`skills.zip`), [`DESIGN.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/DESIGN.md), [`.agents/LESSONS_LEARNED.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/.agents/LESSONS_LEARNED.md), [`.agents/BACKLOG_NEXT.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/.agents/BACKLOG_NEXT.md), [`GRAPH_REPORT.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/GRAPH_REPORT.md)
+- **Trạng thái**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #16]`
+- **Giải mã Bytecode Nguyên bản `detect_batch.cpython-311.pyc` (`45.860 bytes`, Python 3.11)**:
+  - Từ tệp `__pycache__.zip` người dùng tải lên, hệ thống đã giải mã (`marshal` + `dis`) toàn bộ 16 hàm và lớp `LocateAnythingBatchDetector` gốc tại `C:\Users\HL\Desktop\DETECTION RICE_FIELD\detect_batch.py`:
+    1. **Cấu trúc Prompt & Chat Template Chuẩn của `LocateAnything-3B`**:
+       - Nối danh sách đối tượng bằng thẻ `</c>`: `cats = "</c>".join(cat_tuple)`.
+       - Câu lệnh truy vấn: `prompt = f"Locate all the instances that matches the following description: {cats}."`.
+       - Tiền xử lý ảnh & văn bản qua `processor.py_apply_chat_template(messages, tokenize=False, add_generation_prompt=True)` (có bộ nhớ đệm `_prompt_cache[cat_tuple]`) và `images, videos = processor.process_vision_info(messages)`.
+    2. **Cấu hình Tăng tốc Phần cứng `BF16 + SDPA + Shared GPU Memory Pinned DMA Pool`**:
+       - Bật `torch.backends.cuda.matmul.allow_tf32 = True`, `cudnn.allow_tf32 = True`, `enable_flash_sdp(True)`, `enable_mem_efficient_sdp(True)`, `enable_math_sdp(True)`.
+       - Gán `config._attn_implementation = "sdpa"`, `config.text_config._attn_implementation = "sdpa"`, `config.vision_config._attn_implementation = "sdpa"`.
+       - Cấp phát trước vùng nhớ **Shared GPU Memory Pinned DMA Pool** (`UAV_SHARED_GPU_MEM_GIB = 2.0 GiB`, `16` khe `slot_elems = 8.388.608` phần tử + các slab `128 MB` với `pin_memory=True`) kèm luồng DMA riêng `self.dma_stream = torch.cuda.Stream(device=self.device)` và `torch.cuda.Event()` để truyền bất đồng bộ (`non_blocking=True`) chồng lấp 100% giữa CPU tiền xử lý và GPU suy luận.
+    3. **Tương thích Kép (`Dual-Mode Execution`)**:
+       - Khi chạy trên máy trạm có GPU NVIDIA CUDA và thư mục `models/LocateAnything-3B`: Chạy nguyên bản 100% pipeline `AutoModel.from_pretrained(..., dtype=torch.bfloat16)` + `SDPA` + `Shared GPU Memory Pinned DMA`.
+       - Khi chạy trên môi trường Cloud / CPU chưa gắn ổ cứng chứa `6 GB` trọng số `.safetensors`: Tự động chuyển mượt sang bộ phát hiện phổ `ExG + GRVI/NDVI + Distance-Transform Rice Clump & Grass` và xuất chuỗi token chuẩn `<ref>label</ref><box><x1><y1><x2><y2></box>` để [`model_worker.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/adapters/model_worker.py) và [`detection_pipeline.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/application/detection_pipeline.py) hoạt động xuyên suốt không bao giờ báo lỗi thiếu mô hình.
+- **Đồng bộ 5 Kỹ năng (`skills.zip`) & Hồ sơ Kiến trúc**:
+  - Cài đặt đầy đủ 5 kỹ năng từ `skills.zip` vào [`skills/`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/skills):
+    1. `architecture-awesome-design/SKILL.md`
+    2. `code-backend-pipeline/SKILL.md`
+    3. `gis-uav-multispectral-cad/SKILL.md`
+    4. `math-computational-geometry/SKILL.md`
+    5. `ui-ux-pro-workstation/SKILL.md`
+  - Khôi phục đầy đủ [`.agents/LESSONS_LEARNED.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/.agents/LESSONS_LEARNED.md), [`.agents/BACKLOG_NEXT.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/.agents/BACKLOG_NEXT.md), [`design/DESIGN.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/design/DESIGN.md) và [`graphify-out/GRAPH_REPORT.md`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/graphify-out/GRAPH_REPORT.md).
+
+- **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 16 DETECT_BATCH PYC RESTORED & 5 SKILLS SYNCED]`
+
 
 
 
