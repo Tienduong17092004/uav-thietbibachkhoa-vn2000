@@ -556,13 +556,10 @@ function renderPortalHtml() {{
       if (!res.ok) return;
       const data = await res.json();
       const tbody = document.getElementById("keys-body");
-      tbody.innerHTML = (data.keys || []).map((r) => \`
-        <tr>
-          <td>${{r.recipient}}</td><td>${{r.phone}}</td><td><code>${{r.key}}</code></td><td>${{r.purpose}}</td>
-          <td>${{r.issued_at_iso}}</td><td>${{r.expires_at_iso}}</td>
-          <td><span class="${{r.is_warning_red ? "status-red" : "status-green"}}">${{r.status_label}}</span></td>
-          <td><button class="danger" onclick="deleteKey('${{r.key}}')">Xóa</button></td>
-        </tr>\`).join("");
+      tbody.innerHTML = (data.keys || []).map(function(r) {{
+        const cls = r.is_warning_red ? "status-red" : "status-green";
+        return "<tr><td>" + r.recipient + "</td><td>" + r.phone + "</td><td><code>" + r.key + "</code></td><td>" + r.purpose + "</td><td>" + r.issued_at_iso + "</td><td>" + r.expires_at_iso + "</td><td><span class=\\"" + cls + "\\">" + r.status_label + "</span></td><td><button class=\\"danger\\" onclick=\\"deleteKey('" + r.key + "')\\">Xóa</button></td></tr>";
+      }}).join("");
     }}
     async function createKey() {{
       await fetch("/api/keys/create", {{
