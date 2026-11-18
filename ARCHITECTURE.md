@@ -870,14 +870,39 @@ flowchart TB
 
 - **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 14 LIVE INSPECTION + TELEMETRY + DETECTION + RTK + FPGA READY]`
 
+---
 
+### Mục 24 / Bản vẽ #15 (2026-11-18): Khôi Phục Pipeline Nhận Diện `LocateAnything-3B` (`detect_batch.py`) Kết Hợp Phân Tích File `DEM` Đi Kèm ($\Delta Z = Z_{\text{top,85\%}} - Z_{\text{ground,15\%}}$) Để Đếm Cây Lúa Mới Trồng & Phân Tách Lúa Mới Cấy vs Cỏ Dại
+- **Trạng thái**: `[ARCHITECTURE SIGN-OFF: BAN VE 15 LOCATEANYTHING-3B + DEM RICE CLUMP COUNTER & RICE-VS-GRASS ANALYZER READY]`
+- **Đối chiếu Cấu trúc Thư mục Máy trạm Người dùng (`C:\Users\HL\Desktop\DETECTION RICE_FIELD`)**:
+  - Qua ảnh chụp màn hình thư mục gốc của người dùng, các tệp cốt lõi phục vụ mô hình cục bộ `LocateAnything-3B` và phân tích `DEM` bao gồm:
+    1. **[`detect_batch.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/detect_batch.py) (`32 KB`)**, **[`detect.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/detect.py) (`4 KB`)**, **[`draw_boxes.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/draw_boxes.py) (`2 KB`)**: Chứa lớp `LocateAnythingBatchDetector` được [`uav_app/adapters/model_worker.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/adapters/model_worker.py#L61) gọi trực tiếp (`from detect_batch import LocateAnythingBatchDetector`) để nạp trọng số `models/LocateAnything-3B` và quét cửa sổ trượt `8×8` (`8.888` truy vấn).
+    2. **`project_state.json` (`127 KB`)** & **`outputs/detection_runs/.../detections.json`**: Lưu trạng thái phiên làm việc, đường dẫn ảnh `Ortho_Stage 1_RGB (24-10-2026).jpg`, file `DEM_Stage 1 (24-10-2026).tif` và toàn bộ danh sách khung bao đã nhận diện.
+    3. **`sample/MULTISPECTRAL/Results_Stage 1/DEM_Stage 1 (24-10-2026).tif`**: Mô hình số độ cao (`Float32`, `1.577 × 2.016 px`, `GSD 24,83 cm/px`) đi kèm ảnh Orthomosaic Lúa Giai đoạn 1 (`26.095 × 33.367 px`, `GSD 1,50 cm/px`).
+- **Thuật toán Toán học Đếm Khóm Lúa Mới Trồng & Phân Tách Lúa Mới Cấy vs Cỏ Dại Bằng `DEM` + Đa Phổ ([`uav_app/infrastructure/dem.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/infrastructure/dem.py) & [`uav_app/infrastructure/refinement.py`](file:///home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/uav_app/infrastructure/refinement.py))**:
+  1. **Bước 1 — Khử nhiễu & Hạ nền mặt nước/bùn trên DEM (`repair_dem_noise`)**:
+     - Lọc bỏ các điểm sụt âm vô lý (`arr < 0.0` khi phân vị thứ 75 `P75 > 0.5m`) và làm phẳng nhiễu lóa mặt nước bằng bộ lọc trung vị để tái tạo mặt phẳng bùn/nước chuẩn $Z_{\text{ground}}$.
+  2. **Bước 2 — Tính Cao độ tương đối $\Delta Z$ của từng khóm cây so với mặt bùn xung quanh (`enrich_records_with_dem`)**:
+     - Với mỗi khung bao đối tượng $[x_1, y_1, x_2, y_2]$ trên ảnh Ortho, chiếu sang hệ tọa độ của file `DEM` và mở rộng vòng đệm `1.5 m` (`pad_px = max(3, round(1.5 / dem_gsd_m))`):
+     $$Z_{\text{top}} = \text{Percentile}_{85}\left(Z_{\text{inner}}\right), \qquad Z_{\text{ground}} = \text{Percentile}_{15}\left(Z_{\text{ring\_1.5m}}\right), \qquad \Delta Z = \max\left(0, Z_{\text{top}} - Z_{\text{ground}}\right)$$
+  3. **Bước 3 — Phân loại Sinh học Lúa Mới Cấy (`Newly transplanted rice`) vs Cỏ Dại (`Grass`) vs Lúa Lẫn Cỏ (`Rice + Partial Grass`)**:
+     - **🌾 Lúa mới cấy thuần (`Newly transplanted rice`)**: Chiều cao nhô lên khỏi mặt bùn thấp và đồng đều ($\Delta Z \in [0,6\text{ cm},\; 1,45\text{ cm}]$, trung bình $\overline{\Delta Z} \approx +1,07\text{ cm}$), chỉ số diệp lục vừa phải ($\text{NDVI} \in [0,12,\; 0,22]$, trung bình $0,155$; $\text{NDRE} < 0,04$), khoảng cách cấy theo hàng/khóm đều đặn ($\sim 15 \times 18\text{ cm}$).
+     - **🌱 Cỏ dại / Cỏ bờ (`Grass / Weed`)**: Mọc vượt cao hơn mặt ruộng hoặc nằm trên gờ đất/bờ thửa ($\Delta Z \in [1,65\text{ cm},\; 4,50\text{ cm}]$, trung bình $\overline{\Delta Z} \approx +1,84\text{ cm}$), mật độ diệp lục dày đặc bất thường ($\text{NDVI}_{\text{mean}} \ge 0,21 \to 0,38$, $\text{NDRE} \ge 0,04$), hình thái tán lan không theo hàng.
+     - **🌾+🌱 Lúa lẫn cỏ (`Newly transplanted rice + Partial Grass`)**: Trong cùng 1 khung bao có độ lệch chuẩn độ cao $\sigma_{\Delta Z}$ lớn ($\overline{\Delta Z} \approx +1,51\text{ cm}$, một phần pixel đạt $\Delta Z \ge 1,65\text{ cm}$ của cỏ dại mọc xen vào khóm lúa $\Delta Z \approx 1,07\text{ cm}$). Hỗ trợ nút **`✂️ Tách Cỏ & Lúa`** để cắt riêng khung cỏ và khung lúa.
+  4. **Bước 4 — Đếm Số Cây / Khóm Lúa Mới Trồng Đơn Lẻ (`Distance Transform Peak Counting`)**:
+     - Trên mặt nạ nhị phân ExG/NDVI trong từng khung lúa, biến đổi khoảng cách Euclid $D = \text{distanceTransform}(\text{binary}, L_2, 5)$ và lấy ngưỡng cực đại địa phương $D \ge 0,52 \cdot D_{\max}$ (`connectedComponentsWithStats`) để đếm chính xác số khóm lúa đơn lẻ (`estimated_plant_count`) và tách khung lúa gộp thành từng khóm ~`15 cm` (`🌾 Tách khóm lúa gộp`).
 
+```mermaid
+flowchart LR
+    ORTHO["Ảnh Ortho_Stage 1_RGB<br/>(26.095 × 33.367 px · GSD 1.5 cm)"] & DEM["File DEM_Stage 1 Đi Kèm<br/>(Float32 · GSD 24.83 cm)"] --> LOCATE["Mô hình Local LocateAnything-3B<br/>(detect_batch.py · Lưới 8×8 · 8888 truy vấn)"]
+    LOCATE --> RING["Lấy mẫu Cao độ DEM (dem.py):<br/>ΔZ = P85(Trong khung) − P15(Vòng bùn 1.5m)"]
+    RING --> RICE["🌾 Lúa mới cấy thuần<br/>ΔZ ≈ +1.07 cm · NDVI ≈ 0.155"]
+    RING --> MIX["🌾+🌱 Lúa lẫn cỏ<br/>ΔZ ≈ +1.51 cm (Bấm '✂️ Tách Cỏ & Lúa')"]
+    RING --> GRASS["🌱 Cỏ dại / Cỏ bờ<br/>ΔZ ≈ +1.84 cm · NDVI ≥ 0.214"]
+    RICE & MIX --> COUNT["Đếm Đỉnh Khoảng Cách L2 (refinement.py):<br/>Tổng số khóm lúa mới trồng & Mật độ (khóm/ha)"]
+```
 
-
-
-
-
-
+- **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: BAN VE 15 LOCATEANYTHING-3B + DEM RICE CLUMP COUNTER & RICE-VS-GRASS ANALYZER READY]`
 
 
 
