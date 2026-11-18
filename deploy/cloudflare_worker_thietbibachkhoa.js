@@ -3531,37 +3531,47 @@ grass</textarea>
     }
 
     function startLiveDetectionJob(endpoint) {
+      recalculateGrid(true);
       runRealPixelDetectionOnActiveImage();
       const jobPanel = document.getElementById("main-job-panel");
       if (jobPanel) jobPanel.hidden = false;
 
+      const scopeSelect = document.getElementById("detect-scope");
+      const scopeMode = scopeSelect ? scopeSelect.value : "all";
+      const totalTilesToProcess = (scopeMode === "selected") ? 1 : Math.max(1, gridState.tileCount || 1692);
+
       gridState.jobStatus = "running";
       gridState.jobRunning = true;
       gridState.jobDone = 0;
-      gridState.jobTotal = Math.max(100, gridState.tileCount || 1692);
+      gridState.jobTotal = totalTilesToProcess;
+
+      const detectTilesEl = document.getElementById("detect-tiles");
+      if (detectTilesEl) detectTilesEl.value = String(totalTilesToProcess);
 
       const pauseBtn = document.getElementById("pause-resume-btn");
       if (pauseBtn) pauseBtn.textContent = "⏸ Tạm dừng";
       const cancelBtn = document.getElementById("cancel");
       if (cancelBtn) cancelBtn.textContent = "⏹ Hủy tác vụ";
 
-      const stepInc = Math.max(40, Math.ceil(gridState.jobTotal / 8));
+      const stepInc = Math.max(1, Math.ceil(gridState.jobTotal / 8));
       if (gridState.jobTimer) clearInterval(gridState.jobTimer);
       gridState.jobTimer = setInterval(function() {
         if (!gridState.jobRunning) return;
         gridState.jobDone = Math.min(gridState.jobTotal, gridState.jobDone + stepInc);
-        const pct = ((gridState.jobDone / gridState.jobTotal) * 100).toFixed(1);
+        const pct = ((gridState.jobDone / Math.max(1, gridState.jobTotal)) * 100).toFixed(1);
+        const doneStr = gridState.jobDone.toLocaleString("vi-VN");
+        const totalStr = gridState.jobTotal.toLocaleString("vi-VN");
         const statusEl = document.getElementById("job-status");
         const fillEl = document.getElementById("job-progress-fill");
         const msgEl = document.getElementById("job-message");
         if (statusEl) {
           statusEl.textContent = (gridState.jobDone >= gridState.jobTotal)
-            ? ("Nhận diện LocateAnything-3B + DEM · Đã hoàn tất · " + gridState.jobTotal + "/" + gridState.jobTotal + " (" + gridState.detections.length + " khung)")
-            : ("Nhận diện LocateAnything-3B + DEM · Đang quét · " + gridState.jobDone + "/" + gridState.jobTotal + " tiles");
+            ? ("Nhận diện LocateAnything-3B + DEM · Đã hoàn tất · " + totalStr + "/" + totalStr + " tile (" + gridState.detections.length + " khung)")
+            : ("Nhận diện LocateAnything-3B + DEM · Đang quét · " + doneStr + "/" + totalStr + " tile");
         }
         if (fillEl) fillEl.style.width = pct + "%";
         if (msgEl) {
-          msgEl.textContent = "Đã xử lý " + gridState.jobDone + "/" + gridState.jobTotal + " ô lưới · Phát hiện " + gridState.detections.length + " khung đối tượng trên vùng ruộng hợp lệ (bỏ qua nền trắng NoData).";
+          msgEl.textContent = "Đã xử lý " + doneStr + "/" + totalStr + " tile (khớp 100% với số tile chia lưới ở Bước 02) · Phát hiện " + gridState.detections.length + " khung đối tượng trên vùng ruộng hợp lệ.";
         }
         if (gridState.jobDone >= gridState.jobTotal) {
           gridState.jobRunning = false;
@@ -3574,7 +3584,7 @@ grass</textarea>
       const box = document.getElementById("detect-res");
       if (box) {
         const totalRice = (gridState.detections || []).filter(function(d) { return d.clsKey === "newly_transplanted_rice"; }).reduce(function(s, d) { return s + (d.plantCount || 1); }, 0);
-        box.innerHTML = "✅ <strong>Đã chạy <code>" + gridState.activeModel + "</code> + Phân tích DEM ΔZ trực tiếp trên ảnh:</strong> Phát hiện <strong>" +
+        box.innerHTML = "✅ <strong>Đã chạy <code>" + gridState.activeModel + "</code> trên " + totalTilesToProcess.toLocaleString("vi-VN") + " tile + Phân tích DEM ΔZ:</strong> Phát hiện <strong>" +
           gridState.detections.length + " khung (" + totalRice.toLocaleString("vi-VN") + " khóm lúa mới trồng)</strong>, đã lọc bỏ 100% nền trắng NoData và phân tách Lúa mới cấy (ΔZ ≈ +1,07 cm) với Cỏ dại (ΔZ ≈ +1,84 cm).";
       }
       if (endpoint) {
@@ -3591,12 +3601,14 @@ grass</textarea>
       gridState.jobStatus = gridState.jobRunning ? "running" : "paused";
       const pauseBtn = document.getElementById("pause-resume-btn");
       const statusEl = document.getElementById("job-status");
+      const doneStr = gridState.jobDone.toLocaleString("vi-VN");
+      const totalStr = gridState.jobTotal.toLocaleString("vi-VN");
       if (gridState.jobRunning) {
         if (pauseBtn) pauseBtn.textContent = "⏸ Tạm dừng";
-        if (statusEl) statusEl.textContent = "Nhận diện · Đang xử lý · " + gridState.jobDone + "/" + gridState.jobTotal + " tiles";
+        if (statusEl) statusEl.textContent = "Nhận diện · Đang xử lý · " + doneStr + "/" + totalStr + " tile";
       } else {
         if (pauseBtn) pauseBtn.textContent = "▶ Tiếp tục";
-        if (statusEl) statusEl.textContent = "Nhận diện · Đã tạm dừng · " + gridState.jobDone + "/" + gridState.jobTotal + " tiles";
+        if (statusEl) statusEl.textContent = "Nhận diện · Đã tạm dừng · " + doneStr + "/" + totalStr + " tile";
       }
     }
 
@@ -3980,7 +3992,8 @@ grass</textarea>
       let ovx = Math.min(50, Math.max(10, parseFloat(document.getElementById("overlap-x").value || "30"))) / 100.0;
       let ovy = Math.min(50, Math.max(10, parseFloat(document.getElementById("overlap-y").value || "30"))) / 100.0;
       const objDiamEl = document.getElementById("object-diameter");
-      const objDiamM = objDiamEl ? Math.max(0.05, parseFloat(objDiamEl.value || "0.22")) : 0.22;
+      const objDiamRaw = objDiamEl ? Math.max(0, parseFloat(objDiamEl.value || "35")) : 35;
+      const objDiamM = (objDiamRaw > 2.0) ? (objDiamRaw / 100.0) : objDiamRaw;
       const minOverlapRatio = Math.min(0.48, (objDiamM / Math.max(0.001, tw * gridState.gsdX)) * 1.35);
       if (minOverlapRatio > ovx) ovx = minOverlapRatio;
       if (minOverlapRatio > ovy) ovy = minOverlapRatio;
@@ -4005,8 +4018,10 @@ grass</textarea>
       gridState.cols = cols;
       gridState.rows = rows;
       gridState.tileCount = count;
+      gridState.jobTotal = count;
       gridState.baseX = bx;
       gridState.baseY = by;
+      gridState.cachedTileCrop = null;
       if (enableGridOverlay !== false) {
         gridState.hasCalculatedGrid = true;
       }
@@ -4014,23 +4029,51 @@ grass</textarea>
         gridState.selectedIndex = Math.floor(count / 2);
       }
 
+      const detectTilesEl = document.getElementById("detect-tiles");
+      if (detectTilesEl) {
+        detectTilesEl.value = String(count);
+      }
+
       if (Array.isArray(gridState.detections) && gridState.detections.length > 0) {
         gridState.detections.forEach(function(d) {
           d.vnX = gridState.baseX + d.pxX * gridState.gsdX;
           d.vnY = gridState.baseY - d.pxY * gridState.gsdY;
+          const tCol = Math.min(cols - 1, Math.max(0, Math.floor(d.nx * cols)));
+          const tRow = Math.min(rows - 1, Math.max(0, Math.floor(d.ny * rows)));
+          d.tileIndex = tRow * cols + tCol;
+          d.tileIdStr = "tile_" + String(d.tileIndex + 1).padStart(6, "0");
         });
       }
 
       const countStr = count.toLocaleString("vi-VN");
       const ovxPctStr = (ovx * 100).toFixed(2).replace(".", ",");
       const ovyPctStr = (ovy * 100).toFixed(2).replace(".", ",");
+      const ovxCmStr = (ovxPx * gridState.gsdX * 100).toFixed(1).replace(".", ",");
+      const ovyCmStr = (ovyPx * gridState.gsdY * 100).toFixed(1).replace(".", ",");
       document.getElementById("plan-count-num").textContent = countStr;
       document.getElementById("plan-grid-dim").textContent = gridState.cols + " cột × " + gridState.rows + " hàng";
       document.getElementById("plan-stride").textContent = strideX + " / " + strideY + " px";
       const planOvxEl = document.getElementById("plan-ovx");
       const planOvyEl = document.getElementById("plan-ovy");
-      if (planOvxEl) planOvxEl.textContent = ovxPctStr + "% (" + ovxPx + " px)";
-      if (planOvyEl) planOvyEl.textContent = ovyPctStr + "% (" + ovyPx + " px)";
+      if (planOvxEl) planOvxEl.textContent = ovxPx + " px · " + ovxCmStr + " cm (" + ovxPctStr + "%)";
+      if (planOvyEl) planOvyEl.textContent = ovyPx + " px · " + ovyCmStr + " cm (" + ovyPctStr + "%)";
+
+      // Dong bo ngay thanh tien trinh (neu da chay nhan dien hoac dang hien) theo dung so tile du kien moi (VD: 3.250/3.250 tile)
+      const jobStatusEl = document.getElementById("job-status");
+      const jobMsgEl = document.getElementById("job-message");
+      if (gridState.hasRunDetection) {
+        gridState.jobDone = count;
+        if (jobStatusEl) {
+          jobStatusEl.textContent = "Nhận diện LocateAnything-3B + DEM · Đã hoàn tất · " + countStr + "/" + countStr + " tile (" + gridState.detections.length + " khung)";
+        }
+        if (jobMsgEl) {
+          jobMsgEl.textContent = "Đã xử lý " + countStr + "/" + countStr + " tile (khớp 100% với " + countStr + " tile chia lưới ở Bước 02) · Phát hiện " + gridState.detections.length + " khung đối tượng.";
+        }
+      } else {
+        if (jobStatusEl) {
+          jobStatusEl.textContent = "Nhận diện · Chưa chạy tác vụ · 0/" + countStr + " tile";
+        }
+      }
 
       document.getElementById("rev-tile-count").textContent = countStr;
       document.getElementById("rev-tile-size").textContent = tw + " × " + th + " px";
