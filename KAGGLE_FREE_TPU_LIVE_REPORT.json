@@ -1,0 +1,297 @@
+{
+  "method_applied": "Cách 2: Kaggle Free TPU (TPU v5e-8 / v3-8 — Miễn phí 30 giờ/tuần)",
+  "free_verified": true,
+  "cost_usd": 0.0,
+  "weekly_quota_hours": 30,
+  "requires_credit_card": false,
+  "governance_workflow": {
+    "initial_survey": {
+      "phase": "initial_survey",
+      "model_tier": "hydrogen",
+      "agent_count": 5,
+      "effort": "low",
+      "status": "READY"
+    },
+    "architecture_plan": {
+      "plan_id": "plan-method2-kaggle-free-tpu",
+      "summary": "Method 2 Architecture: Zero-Cost Kaggle Free TPU (TPU v5e-8 / v3-8, 30h/week Free) connected to https://thietbibachkhoa.id.vn/ (Port 8765) via TPUOffloadWorker.",
+      "planner_tier": "argon_high",
+      "approved": true,
+      "approved_by": "argon_high",
+      "status": "APPROVED_FOR_ROLE_ASSIGNMENT"
+    },
+    "assigned_roles": [
+      {
+        "task_id": "task-kaggle-free-tpu-server",
+        "role": "kaggle_tpu_integrator",
+        "difficulty": "medium",
+        "effort": "medium",
+        "effort_level": "medium",
+        "tier": "hydrogen",
+        "assigned_tier": "hydrogen",
+        "requires_deep_optimization": false,
+        "use_argon": false,
+        "plan_id": "plan-method2-kaggle-free-tpu",
+        "max_concurrent": 300,
+        "max_self_fix_attempts": 2,
+        "failure_count": 0,
+        "self_fix_attempts": 0,
+        "escalated": false,
+        "status": "ASSIGNED",
+        "errors": []
+      },
+      {
+        "task_id": "task-kaggle-free-tpu-live-test",
+        "role": "kaggle_tpu_tester",
+        "difficulty": "high",
+        "effort": "high",
+        "effort_level": "high",
+        "tier": "hydrogen",
+        "assigned_tier": "hydrogen",
+        "requires_deep_optimization": false,
+        "use_argon": false,
+        "plan_id": "plan-method2-kaggle-free-tpu",
+        "max_concurrent": 300,
+        "max_self_fix_attempts": 2,
+        "failure_count": 0,
+        "self_fix_attempts": 0,
+        "escalated": false,
+        "status": "ASSIGNED",
+        "errors": []
+      }
+    ]
+  },
+  "tpu_health_status": {
+    "status": "ok",
+    "tpu_available": true,
+    "online": true,
+    "backend": "remote_google_tpu",
+    "active_backend": "remote_google_tpu",
+    "provider": "kaggle_free_tpu",
+    "free_tier": true,
+    "cost_usd": 0.0,
+    "weekly_quota_hours": 30,
+    "endpoint_url": "http://127.0.0.1:46691",
+    "tpu_device": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+    "local_gpu_offload_active": true,
+    "gpu_load_saved_pct": 92.5,
+    "batch_size": 3,
+    "fallback_to_local": true,
+    "supported_tpu_platforms": [
+      "Google Colab Pro/Ultra TPU (v2-8 / v5e-1 / v6e)",
+      "Kaggle Free/Pro TPU (TPU v3-8 / v5e-8)",
+      "Google Cloud Vertex AI TPU Endpoint",
+      "Gemini Ultra / Google AI Studio Batch Vision Offload"
+    ],
+    "remote_health": {
+      "status": "ok",
+      "service": "uav-kaggle-free-tpu-server",
+      "provider": "kaggle_free_tpu",
+      "free_tier": true,
+      "cost_usd": 0.0,
+      "weekly_quota_hours": 30,
+      "tpu_available": true,
+      "runtime": "kaggle_tpu_v5e_8_xla",
+      "tpu_device": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "gpu_load_saved_pct": 92.5,
+      "supported_classes": [
+        "asphalt_road",
+        "concrete_road",
+        "dirt_road",
+        "footpath",
+        "pond",
+        "masonry_ditch"
+      ]
+    }
+  },
+  "benchmark": {
+    "total_latency_ms": 9.77,
+    "avg_ms_per_tile": 1.63,
+    "tiles_processed": 6,
+    "batches_dispatched": 2,
+    "backend_used": "remote_google_tpu",
+    "provider": "kaggle_free_tpu",
+    "tpu_device": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+    "gpu_load_saved_pct": 92.5,
+    "classes_detected": [
+      "asphalt_road",
+      "concrete_road",
+      "dirt_road",
+      "footpath",
+      "masonry_ditch",
+      "pond"
+    ],
+    "vn2000_layers": [
+      "KS_AO_HO",
+      "KS_DUONG_BETONG",
+      "KS_DUONG_DAT",
+      "KS_DUONG_DIBO",
+      "KS_DUONG_NHUA",
+      "KS_MUONG_XAY"
+    ]
+  },
+  "tile_results": [
+    {
+      "tile_id": "tile_vn2000_01_duong_nhua",
+      "terrain_class": "asphalt_road",
+      "class_id": 1,
+      "name_vi": "Đường nhựa",
+      "cad_layer": "KS_DUONG_NHUA",
+      "aci_color": 1,
+      "linetype": "CONTINUOUS",
+      "confidence": 0.8651,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.2495,
+        "exg": 0.0,
+        "earth_warmth": -0.0157,
+        "water_index": 0.031
+      },
+      "lwpolyline_vn2000": [
+        [
+          584200.0,
+          1194500.0
+        ],
+        [
+          584251.2,
+          1194524.576
+        ]
+      ]
+    },
+    {
+      "tile_id": "tile_vn2000_02_duong_betong",
+      "terrain_class": "concrete_road",
+      "class_id": 2,
+      "name_vi": "Đường bê tông",
+      "cad_layer": "KS_DUONG_BETONG",
+      "aci_color": 7,
+      "linetype": "CONTINUOUS",
+      "confidence": 0.9198,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.7994,
+        "exg": 0.0118,
+        "earth_warmth": 0.0196,
+        "water_index": -0.0123
+      },
+      "lwpolyline_vn2000": [
+        [
+          584251.2,
+          1194500.0
+        ],
+        [
+          584302.4,
+          1194524.576
+        ]
+      ]
+    },
+    {
+      "tile_id": "tile_vn2000_03_duong_dat",
+      "terrain_class": "dirt_road",
+      "class_id": 3,
+      "name_vi": "Đường đất",
+      "cad_layer": "KS_DUONG_DAT",
+      "aci_color": 30,
+      "linetype": "DASHED",
+      "confidence": 0.95,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.5145,
+        "exg": -0.0235,
+        "earth_warmth": 0.3373,
+        "water_index": -0.3426
+      },
+      "lwpolyline_vn2000": [
+        [
+          584302.4,
+          1194500.0
+        ],
+        [
+          584353.6,
+          1194524.576
+        ]
+      ]
+    },
+    {
+      "tile_id": "tile_vn2000_04_duong_dibo",
+      "terrain_class": "footpath",
+      "class_id": 4,
+      "name_vi": "Đường đi bộ",
+      "cad_layer": "KS_DUONG_DIBO",
+      "aci_color": 8,
+      "linetype": "DASHED",
+      "confidence": 0.86,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.4973,
+        "exg": 0.102,
+        "earth_warmth": 0.0078,
+        "water_index": -0.0084
+      },
+      "lwpolyline_vn2000": [
+        [
+          584353.6,
+          1194500.0
+        ],
+        [
+          584404.8,
+          1194524.576
+        ]
+      ]
+    },
+    {
+      "tile_id": "tile_vn2000_05_ao_ho",
+      "terrain_class": "pond",
+      "class_id": 5,
+      "name_vi": "Ao / Hồ",
+      "cad_layer": "KS_AO_HO",
+      "aci_color": 5,
+      "linetype": "CONTINUOUS",
+      "confidence": 0.98,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.3307,
+        "exg": -0.0353,
+        "earth_warmth": -0.4039,
+        "water_index": 0.5309
+      },
+      "lwpolyline_vn2000": [
+        [
+          584404.8,
+          1194500.0
+        ],
+        [
+          584456.0,
+          1194524.576
+        ]
+      ]
+    },
+    {
+      "tile_id": "tile_vn2000_06_muong_xay",
+      "terrain_class": "masonry_ditch",
+      "class_id": 6,
+      "name_vi": "Mương xây",
+      "cad_layer": "KS_MUONG_XAY",
+      "aci_color": 4,
+      "linetype": "CONTINUOUS",
+      "confidence": 0.98,
+      "accelerator": "Kaggle Free TPU v5e-8 (128GB HBM - 30h/week Free)",
+      "spectral_features": {
+        "luminance": 0.3549,
+        "exg": -0.0157,
+        "earth_warmth": -0.3529,
+        "water_index": 0.4478
+      },
+      "lwpolyline_vn2000": [
+        [
+          584456.0,
+          1194500.0
+        ],
+        [
+          584507.2,
+          1194524.576
+        ]
+      ]
+    }
+  ]
+}

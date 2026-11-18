@@ -1,0 +1,120 @@
+{
+  "version": "1.0.0",
+  "project": "UAV_GeoTIFF_WebGPU_Survey_VN2000",
+  "initial_survey": {
+    "agent_count": 5,
+    "model_tier": "hydrogen",
+    "purpose": "Read and survey project documentation and codebase before updating rules or architecture"
+  },
+  "architecture_gate": {
+    "planner_tier": "argon_high",
+    "approval_required_before_role_assignment": true,
+    "sign_off_token": "[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING]"
+  },
+  "tiers": {
+    "argon_high": {
+      "name": "Model 4 Argon High",
+      "role": "Detailed planning, system architecture design, and architecture approval gate",
+      "max_concurrent": null,
+      "flexible_usage": true,
+      "token_consumption": "high"
+    },
+    "argon": {
+      "name": "Model 4 Argon",
+      "role": "Flexible architectural synthesis, cross-module coordination, and on-demand reasoning",
+      "max_concurrent": null,
+      "flexible_usage": true,
+      "token_consumption": "medium_high"
+    },
+    "hydrogen": {
+      "name": "Gemini 4 Hydrogen",
+      "role": "Initial 5-agent survey, concrete plan execution, and iterative code-and-test loops",
+      "max_concurrent": 300,
+      "max_self_fix_attempts": 2,
+      "escalate_to": "carbon",
+      "token_consumption": "low"
+    },
+    "carbon": {
+      "name": "Model 4 Carbon",
+      "role": "Escalated tasks after 2 failed Hydrogen self-fix attempts, and deep algorithmic/function optimization",
+      "max_concurrent": 10,
+      "use_cases": [
+        "escalated_after_2_failed_fixes",
+        "deep_function_optimization"
+      ],
+      "token_consumption": "high"
+    }
+  },
+  "difficulty_effort_mapping": {
+    "low": {
+      "effort": "low",
+      "default_tier": "hydrogen"
+    },
+    "medium": {
+      "effort": "medium",
+      "default_tier": "hydrogen"
+    },
+    "high": {
+      "effort": "high",
+      "default_tier": "hydrogen"
+    },
+    "critical": {
+      "effort": "max",
+      "default_tier": "carbon"
+    }
+  },
+  "escalation_policy": {
+    "max_self_fix_attempts": 2,
+    "initial_executor": "hydrogen",
+    "escalation_target": "carbon",
+    "trigger": "test_or_code_error_persists_after_2_self_fix_attempts"
+  },
+  "auto_task_division": {
+    "enabled": true,
+    "directive": "// tự động spam số lượng agent và chia task theo file rule\\",
+    "entrypoint": "uav_app.infrastructure.agent_governance.auto_divide_and_spawn_tasks",
+    "survey_agents_count": 5,
+    "survey_model_tier": "hydrogen",
+    "architecture_planner_tier": "argon_high",
+    "sign_off_token": "[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING]"
+  },
+  "tpu_auto_offload_policy": {
+    "threshold_seconds": 900,
+    "threshold_minutes": 15,
+    "applies_to": [
+      "image_detection",
+      "yolo_model_update"
+    ],
+    "admin_always_allowed": true,
+    "guest_requires_allow_tpu": true
+  },
+  "key_management_policy": {
+    "storage_type": "google_sheet_7_columns",
+    "headers": [
+      "Người nhận",
+      "SĐT người nhận",
+      "Key",
+      "Mục đích",
+      "Thời gian cấp",
+      "Thời gian hết hạn",
+      "Tình trạng"
+    ],
+    "purposes": [
+      "1h",
+      "3h",
+      "5h",
+      "1m",
+      "3m",
+      "6m",
+      "1y"
+    ],
+    "red_warning_remaining_ratio": 0.3333333333333333,
+    "admin_web_crud_only": true,
+    "guest_http_status": 403
+  },
+  "gdrive_storage": {
+    "main_project_folder_id": "1J88JdSVTjXc8WMStzV-jdqPhFkd3DeBV",
+    "processed_data_folder_id": "1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN",
+    "processed_data_folder_url": "https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"
+  }
+}

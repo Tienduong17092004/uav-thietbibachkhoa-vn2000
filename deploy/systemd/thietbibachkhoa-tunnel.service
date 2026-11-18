@@ -1,0 +1,16 @@
+[Unit]
+Description=Zero-Hosting Cloudflare Tunnel for https://thietbibachkhoa.id.vn/ (Port 8765)
+After=network-online.target thietbibachkhoa-web.service
+Requires=thietbibachkhoa-web.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000
+ExecStart=/usr/bin/cloudflared tunnel --config /home/antigravity/UAV_GeoTIFF_WebGPU_Survey_VN2000/config/cloudflared_thietbibachkhoa.yml run
+KillSignal=SIGTERM
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

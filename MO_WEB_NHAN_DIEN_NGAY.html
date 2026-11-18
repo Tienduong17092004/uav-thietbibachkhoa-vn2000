@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UAV GeoTIFF WebGPU Survey VN2000 — https://thietbibachkhoa.id.vn/ (Port 8765)</title>
+  <style>
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      display: inline-block;
+      background: #059669;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    code {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    input, select, button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 14px;
+    }
+    button {
+      background: #2563eb;
+      border-color: #3b82f6;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.danger {
+      background: #dc2626;
+      border-color: #ef4444;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: #38bdf8;
+    }
+    .status-green {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .status-red {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
+      border: 1px solid #ef4444;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .hidden-admin-panel {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">ONLINE · ZERO-HOSTING POWER-COUPLED WORKSTATION</span>
+      <h1>UAV GeoTIFF Studio &amp; Cổng WebGPU Khảo Sát Địa Hình 6 Lớp (Chuẩn VN2000)</h1>
+      <p>Tên miền chính thức: <code>https://thietbibachkhoa.id.vn/</code> · Cổng máy trạm mặc định: <code>8765</code></p>
+      <p>Thư mục Google Drive lưu Data xử lý: <a href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN" style="color:#38bdf8" target="_blank"><code>1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN</code></a> (https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN)</p>
+      <p>Khi máy trạm bật nguồn: Web &amp; Cloudflare Tunnel tự động mở. Khi máy trạm tắt nguồn: Web tự động đóng.</p>
+    </div>
+
+    <div class="card" id="key-login-section">
+      <h2>🔐 Đăng Nhập Key Truy Cập (Admin / Khách Hàng)</h2>
+      <p>Nhập <strong>Key Admin</strong> để mở bảng quản lý Google Sheet 7 cột (Tạo mới / Xóa key / Theo dõi thời hạn báo đỏ &le; 1/3). Nếu đăng nhập bằng <strong>Key Khách</strong>, khu vực quản trị key sẽ tự động ẩn hoàn toàn.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="password" id="auth-key-input" placeholder="Nhập Key truy cập..." style="min-width:280px;" />
+        <button type="button" onclick="loginWithKey()">Đăng Nhập Key</button>
+        <span id="auth-status-text" style="font-weight:600; color:#94a3b8;">Chưa đăng nhập (Chế độ Khách — Đã ẩn quản lý Key)</span>
+      </div>
+    </div>
+
+    <!-- ADMIN-ONLY KEY MANAGEMENT PANEL (HIDDEN FOR GUESTS) -->
+    <div class="card hidden-admin-panel" id="admin-key-management-panel" style="display:none;">
+      <h2>📊 Quản Lý Key Google Sheet 7 Cột (Chỉ Key Quyền Admin Mới Xem &amp; Thao Tác Được)</h2>
+      <p>Trạng thái thời hạn: <span class="status-green">Màu Xanh (&gt; 1/3 thời gian còn lại)</span> · <span class="status-red">Báo Đỏ (&le; 1/3 thời gian còn lại)</span></p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center;">
+        <input type="text" id="new-key-recipient" placeholder="1. Người nhận (VD: Nguyễn Văn A)" />
+        <input type="text" id="new-key-phone" placeholder="2. SĐT người nhận (VD: 0912345678)" />
+        <select id="new-key-purpose">
+          <option value="1h">Test thử 1 giờ (1h)</option>
+          <option value="3h">Test thử 3 giờ (3h)</option>
+          <option value="5h">Test thử 5 giờ (5h)</option>
+          <option value="1m">Mua 1 tháng (1m)</option>
+          <option value="3m">Mua 3 tháng (3m)</option>
+          <option value="6m">Mua 6 tháng (6m)</option>
+          <option value="1y">Mua 1 năm (1y)</option>
+        </select>
+        <label style="display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="new-key-allow-tpu" />
+          Cho phép đẩy TPU (&gt;15 phút)
+        </label>
+        <button type="button" onclick="createNewKey()">+ Tạo Key Mới</button>
+      </div>
+      <table id="admin-keys-table">
+        <thead>
+          <tr>
+            <th>Người nhận</th>
+            <th>SĐT người nhận</th>
+            <th>Key</th>
+            <th>Mục đích (TPU)</th>
+            <th>Thời gian cấp</th>
+            <th>Thời gian hết hạn</th>
+            <th>Tình trạng</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="admin-keys-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Lớp Địa Hình &amp; Layer AutoCAD Chuẩn VN2000 (.DWG / .DXF)</h2>
+        <ul>
+          <li><code>asphalt_road</code> — Đường nhựa (<code>KS_DUONG_NHUA</code>, <code>KS_TIM_DUONG</code>)</li>
+          <li><code>concrete_road</code> — Đường bê tông (<code>KS_DUONG_BETONG</code>, <code>KS_TIM_DUONG</code>)</li>
+          <li><code>dirt_road</code> — Đường đất (<code>KS_DUONG_DAT</code>)</li>
+          <li><code>footpath</code> — Đường đi bộ (<code>KS_DUONG_DIBO</code>)</li>
+          <li><code>pond</code> — Ao / Hồ (<code>KS_AO_HO</code>)</li>
+          <li><code>masonry_ditch</code> — Mương xây (<code>KS_MUONG_XAY</code>)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>2. Hệ Thống Điều Phối Multi-Agent (Argon High / Hydrogen / Carbon)</h2>
+        <ul>
+          <li><strong>Khảo sát ban đầu</strong>: 5 Agents <code>Gemini 4 Hydrogen</code> đọc dự án</li>
+          <li><strong>Lập Plan &amp; Duyệt Kiến trúc</strong>: <code>Model 4 Argon High</code> (Chốt kiến trúc trước khi phân role)</li>
+          <li><strong>Thực thi &amp; Test vòng lặp</strong>: <code>Gemini 4 Hydrogen</code> (Tối đa <code>300</code> agents đồng thời, tự sửa tối đa <code>2</code> lần)</li>
+          <li><strong>Escalation &amp; Tối ưu hàm sâu</strong>: <code>Model 4 Carbon</code> (Tối đa <code>10</code> agents đồng thời)</li>
+          <li><strong>Tự động chia Task</strong>: <code>// tự động spam số lượng agent và chia task theo file rule\</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>3. Tự Động Đẩy Lên Google TPU Khi Thời Gian Xử Lý &gt; 15 Phút</h2>
+        <p>Khi upload ảnh nhận diện (<code>/api/detect/upload</code>) hoặc cập nhật mô hình YOLO mới (<code>/api/yolo/update</code>), hệ thống tự động tính thời gian cần dùng:</p>
+        <ul>
+          <li>Nếu <strong>&gt; 15 phút (&gt; 900 giây)</strong>: Tự động đẩy lên <strong>Google TPU</strong>.</li>
+          <li><strong>Key Admin</strong>: Luôn được phép dùng TPU.</li>
+          <li><strong>Key Khách</strong>: Chỉ được dùng TPU nếu Admin bật quyền <code>allow_tpu</code> khi tạo key.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentAuthKey = "";
+    let currentIsAdmin = false;
+
+    async function loginWithKey() {
+      const keyVal = document.getElementById("auth-key-input").value.trim();
+      const statusEl = document.getElementById("auth-status-text");
+      const adminPanel = document.getElementById("admin-key-management-panel");
+      const resp = await fetch("/api/auth/verify-key", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({key: keyVal})
+      });
+      const data = await resp.json();
+      if (resp.ok && data.valid) {
+        currentAuthKey = keyVal;
+        currentIsAdmin = !!data.is_admin;
+        if (currentIsAdmin) {
+          statusEl.textContent = "Đã đăng nhập: QUYỀN ADMIN (Toàn quyền Quản lý Key & TPU >15p)";
+          statusEl.style.color = "#34d399";
+          adminPanel.style.display = "block";
+          adminPanel.classList.remove("hidden-admin-panel");
+          await refreshAdminKeyTable();
+        } else {
+          statusEl.textContent = "Đã đăng nhập: KEY KHÁCH (" + (data.allow_tpu ? "Có quyền TPU >15p" : "Không có quyền TPU >15p") + ")";
+          statusEl.style.color = "#38bdf8";
+          adminPanel.style.display = "none";
+          adminPanel.classList.add("hidden-admin-panel");
+        }
+      } else {
+        currentAuthKey = "";
+        currentIsAdmin = false;
+        statusEl.textContent = "Key không hợp lệ hoặc đã hết hạn!";
+        statusEl.style.color = "#f87171";
+        adminPanel.style.display = "none";
+        adminPanel.classList.add("hidden-admin-panel");
+      }
+    }
+
+    async function refreshAdminKeyTable() {
+      if (!currentIsAdmin || !currentAuthKey) return;
+      const resp = await fetch("/api/keys", {
+        headers: {"X-Admin-Key": currentAuthKey}
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const tbody = document.getElementById("admin-keys-tbody");
+      tbody.innerHTML = "";
+      (data.keys || []).forEach(row => {
+        const tr = document.createElement("tr");
+        const badgeClass = row.status_color === "red" ? "status-red" : "status-green";
+        tr.innerHTML = `
+          <td>${row.recipient}</td>
+          <td>${row.phone}</td>
+          <td><code>${row.key}</code></td>
+          <td>${row.purpose_label || row.purpose}</td>
+          <td>${row.issued_at}</td>
+          <td>${row.expires_at}</td>
+          <td><span class="${badgeClass}">${row.status}</span></td>
+          <td><button class="danger" onclick="deleteKeyRow('${row.key}')">Xóa</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function createNewKey() {
+      if (!currentIsAdmin) return;
+      const recipient = document.getElementById("new-key-recipient").value.trim();
+      const phone = document.getElementById("new-key-phone").value.trim();
+      const purpose = document.getElementById("new-key-purpose").value;
+      const allow_tpu = document.getElementById("new-key-allow-tpu").checked;
+      const resp = await fetch("/api/keys/create", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-Admin-Key": currentAuthKey},
+        body: JSON.stringify({recipient, phone, purpose, allow_tpu, admin_key: currentAuthKey})
+      });
+      if (resp.ok) {
+        await refreshAdminKeyTable();
+      }
+    }
+
+    async function deleteKeyRow(targetKey) {
+      if (!currentIsAdmin) return;
+      const resp = await fetch("/api/keys/delete", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-Admin-Key": currentAuthKey},
+        body: JSON.stringify({key: targetKey, admin_key: currentAuthKey})
+      });
+      if (resp.ok) {
+        await refreshAdminKeyTable();
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Zero-Hosting Cloudflare Tunnel Configuration for UAV GeoTIFF WebGPU Survey VN2000
+# Custom Domain: https://thietbibachkhoa.id.vn/ -> Local Machine Port 8765
+# Power-Coupled: Online when workstation is ON, Offline when workstation is OFF
+tunnel: uav-thietbibachkhoa-tunnel
+credentials-file: /etc/cloudflared/uav-thietbibachkhoa-tunnel.json
+protocol: quic
+no-autoupdate: true
+
+ingress:
+  - hostname: thietbibachkhoa.id.vn
+    service: http://127.0.0.1:8765
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 10s
+  - hostname: www.thietbibachkhoa.id.vn
+    service: http://127.0.0.1:8765
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 10s
+  - hostname: studio.thietbibachkhoa.id.vn
+    service: http://127.0.0.1:8766
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404

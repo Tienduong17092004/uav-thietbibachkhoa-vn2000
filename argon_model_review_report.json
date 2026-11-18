@@ -1,0 +1,171 @@
+{
+  "model_approved": true,
+  "auditor_model": "gemini-4-argon-high",
+  "argon_parallel_workers": 4,
+  "reviewed_at": "2026-11-10T05:34:32.463133+00:00",
+  "distillation_deferred": true,
+  "enable_distillation": false,
+  "training_mode": "direct_9class_supervised",
+  "reference_dwg_path": "c:\\Users\\HL\\OneDrive\\09 1.KCPD DOAN 67-71\\ACAD\\Waterpoint_10.3.26\\ACAD-KHU TAM GIAC (06-10-2026)\\ACAD_KHU TAM GIAC.dwg",
+  "reference_dwg_layers_mapped": {
+    "asphalt_road": [
+      "1.BK. DUONG CU-NHUA",
+      "Đường nhựa",
+      "QC41_VS2.1",
+      "QC41_VS2.2",
+      "QC41_VS2.3a",
+      "QC41_VS7.3a",
+      "QC41_VS9.3",
+      "1.BK. DEN DUONG",
+      "KS_DUONG_NHUA"
+    ],
+    "concrete_road": [
+      "1.BK. CAU",
+      "KS_DUONG_BETONG"
+    ],
+    "dirt_road": [
+      "Giao_thong",
+      "Dan_cu_kinh_te_xa_hoi",
+      "KS_DUONG_DAT"
+    ],
+    "footpath": [
+      "1.BK. DUONG XE DAP",
+      "1.BK. VIA HE",
+      "1.BK. CONG VIEN",
+      "KS_DUONG_DIBO"
+    ],
+    "pond": [
+      "1.BK. AO NUOC",
+      "Thuy_he",
+      "1.BK. SONG+MUONG+RACH",
+      "KS_AO_HO"
+    ],
+    "masonry_ditch": [
+      "1.BK. TALUY KENH",
+      "KS_MUONG_XAY"
+    ],
+    "house_building": [
+      "Nha",
+      "Nha-2d",
+      "textnha",
+      "KS_NHA_CONGTRINH"
+    ],
+    "landscape_tree": [
+      "07-CAY XANH",
+      "1.BK. CAY DO THI",
+      "1.BK. THUC VAT",
+      "Thuc_vat",
+      "THUCVAT",
+      "CAY",
+      "Thuvien",
+      "Ranhgioi_thucvat",
+      "KS_CAY_CANHQUAN"
+    ],
+    "newly_transplanted_rice": [
+      "Ranhgioi_thucvat",
+      "Thuc_vat"
+    ]
+  },
+  "vegetation_grid_blocks": [
+    "cumcay2",
+    "caylato",
+    "cothap",
+    "cocao",
+    "cumcay1",
+    "hoa"
+  ],
+  "segformer_onnx_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\assets\\models\\terrain_9classes_segformer.onnx",
+  "style_profile_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\assets\\models\\khu_tam_giac_style_profile.json",
+  "style_profile_sub_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\uav_geotiff\\assets\\models\\khu_tam_giac_style_profile.json",
+  "style_profile_blocks_learned": [
+    "caylato",
+    "cumcay2",
+    "cumcay1",
+    "cocao",
+    "cothap",
+    "hoa",
+    "Hoasen",
+    "cdt2",
+    "cdt39",
+    "cbui13"
+  ],
+  "style_profile_total_instances": 1593,
+  "classes_9_trained": [
+    "asphalt_road",
+    "concrete_road",
+    "dirt_road",
+    "footpath",
+    "pond",
+    "masonry_ditch",
+    "house_building",
+    "landscape_tree",
+    "newly_transplanted_rice"
+  ],
+  "tiles_audited": 12,
+  "overall_argon_review_score": 0.8223,
+  "audit_pass_rate": 1.0,
+  "benchmark_5ha_target": {
+    "area_ha": 5.0,
+    "estimated_detection_and_dwg_seconds": 11.93,
+    "limit_seconds": 15.0,
+    "under_15_seconds": true,
+    "under_5_minutes": true
+  },
+  "terrain_9class_benchmark": {
+    "before": {
+      "ms_per_tile": 69.58,
+      "total_ms": 417.48,
+      "pixel_acc": 0.7279,
+      "miou": 0.2589,
+      "argon_review_score": 0.6542
+    },
+    "after": {
+      "ms_per_tile": 54.42,
+      "total_ms": 326.49,
+      "pixel_acc": 0.8344,
+      "miou": 0.348,
+      "argon_review_score": 0.7669
+    },
+    "final_loss": 0.7559,
+    "speedup_x": 1.28,
+    "latency_reduction_pct": 21.8,
+    "onnx_paths": [
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\assets\\models\\terrain_9classes_segformer.onnx",
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\uav_geotiff\\assets\\models\\terrain_9classes_segformer.onnx",
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\turbo_yolo\\terrain_webgpu.onnx",
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\rgb_landscape_9class_webgpu.onnx"
+    ],
+    "size_bytes": 377144
+  },
+  "rice_stage1_4class_benchmark": {
+    "before": {
+      "ms_per_tile": 182.61,
+      "total_ms": 1095.66,
+      "pixel_acc": 0.9032,
+      "miou": 0.3082,
+      "argon_review_score": 0.8087
+    },
+    "after": {
+      "ms_per_tile": 38.72,
+      "total_ms": 232.32,
+      "pixel_acc": 0.9549,
+      "miou": 0.3716,
+      "argon_review_score": 0.8776
+    },
+    "final_loss": 0.1319,
+    "speedup_x": 4.72,
+    "latency_reduction_pct": 78.8,
+    "onnx_paths": [
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\models\\turbo_yolo\\rice_stage1_webgpu.onnx",
+      "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\uav_geotiff\\models\\turbo_yolo\\rice_stage1_webgpu.onnx"
+    ],
+    "size_bytes": 371414
+  },
+  "yolo11_detector": {
+    "ok": true,
+    "pt_path": "C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\outputs\\argon_active_learning\\trained_model\\best.pt",
+    "gpu": "NVIDIA GeForce RTX 4070"
+  },
+  "elapsed_seconds": 33.39,
+  "review_summary_vi": "4 luồng Gemini 4 Argon (gemini-4-argon-high) đã hỗ trợ nhận diện & PHÊ DUYỆT mô hình 9 lớp huấn luyện trực tiếp (Điểm đồng thuận: 82.2% · Đạt chuẩn 100% · distillation_deferred=True). Đã xuất ONNX `terrain_9classes_segformer.onnx` và hồ sơ mẫu `khu_tam_giac_style_profile.json`. Tốc độ suy luận ONNX 9-Lớp đạt 54.42ms/tile (nhanh gấp 1.28x), tổng thời gian nhận diện + vẽ DWG cho 5ha ước tính 11.93s (< 15s)."
+}

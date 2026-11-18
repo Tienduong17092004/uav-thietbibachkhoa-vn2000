@@ -1,0 +1,12 @@
+# Windsurf Multi-Agent Governance Rules — UAV_GeoTIFF_WebGPU_Survey_VN2000
+
+- Survey first with 5 concurrent `Gemini 4 Hydrogen` agents.
+- `Model 4 Argon High` (`argon_high`) creates the detailed plan and architecture first.
+- Enforce the Architecture Approval Gate before role assignment (`assign_role`).
+- Scale effort (`low`, `medium`, `high`, `max`) by task difficulty (`low`, `medium`, `high`, `critical`).
+- Run concrete plans and test loops with `Gemini 4 Hydrogen` (`hydrogen`, up to 300 concurrent agents).
+- Self-fix test errors with `Hydrogen` at most 2 times; after 2 failed fixes, escalate to `Model 4 Carbon` (`carbon`).
+- Use `Model 4 Carbon` for deep function optimization and escalated tasks, strictly capped at <= 10 concurrent agents.
+- Allow flexible on-demand usage of `Model 4 Argon` (`argon`).
+- Serve `https://thietbibachkhoa.id.vn/` via zero-hosting Cloudflare Tunnel coupled to local machine power state on default port `8765`.
+- Offload heavy GeoTIFF recognition to Google TPU via `TPUOffloadWorker` to reduce local GPU load.

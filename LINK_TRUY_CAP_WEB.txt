@@ -1,0 +1,59 @@
+======================================================================
+   UAV GEOTIFF STUDIO — LINK TRUY CẬP TRỰC TUYẾN & MẠNG NỘI BỘ (LAN)
+   Tên miền Chính thức (Zero-Hosting): https://thietbibachkhoa.id.vn/
+   Cổng Máy chủ Mặc định: 8765 (WebGPU) & 8766 (Studio) | Trạng thái: TỰ ĐỘNG BẬT/TẮT THEO MÁY
+======================================================================
+
+[0] TÊN MIỀN CHÍNH THỨC KHÔNG CẦN THUÊ HOSTING (POWER-COUPLED DOMAIN)
+    • Tên miền chính thức (HTTPS)            : https://thietbibachkhoa.id.vn/
+    • Cổng WebGPU trực tiếp trên tên miền    : https://thietbibachkhoa.id.vn/webgpu.html
+    • API Kiểm tra Trạng thái Máy chủ        : https://thietbibachkhoa.id.vn/api/health
+    • API Trạng thái Tên miền & Nguồn máy    : https://thietbibachkhoa.id.vn/api/domain-status
+    • API Trạng thái Google TPU Offload      : https://thietbibachkhoa.id.vn/api/tpu/status
+    • API Quản lý Key Admin (7 cột Sheet)    : https://thietbibachkhoa.id.vn/api/keys
+    • API Upload Nhận diện (>15p tự đẩy TPU) : https://thietbibachkhoa.id.vn/api/detect/upload
+    • API Update Mô hình YOLO (>15p đẩy TPU) : https://thietbibachkhoa.id.vn/api/yolo/update
+    • Cổng mặc định trên máy trạm (Codebase) : http://127.0.0.1:8765/ (và http://10.2.17.64:8765/)
+    • Cơ chế Bật/Tắt theo nguồn máy:
+      - Khi máy tính cài đặt codebase BẬT LÊN: Tự động mở Port 8765 và kết nối
+        Cloudflare Tunnel (`config/cloudflared_thietbibachkhoa.yml`) -> Truy cập
+        https://thietbibachkhoa.id.vn/ hoạt động ngay lập tức.
+      - Khi máy tính TẮT ĐI: Tiến trình Web Server & Tunnel tự động đóng ->
+        Tên miền https://thietbibachkhoa.id.vn/ tự động tắt theo máy.
+
+----------------------------------------------------------------------
+
+[1] LINK 1 — WEB NHẬN DIỆN 5 BƯỚC & NÂNG CAO (Đầy đủ tính năng)
+    • Link Tên miền Chính thức (HTTPS)        : https://thietbibachkhoa.id.vn/index.html
+    • Link Đa phổ & 9 Lớp (HTTPS)             : https://thietbibachkhoa.id.vn/advanced.html
+    • Link Dự phòng Quick Tunnel              : https://pixels-steven-amber-chronicles.trycloudflare.com/index.html
+    • Link Mạng LAN nội bộ (Cùng Wi-Fi/LAN)   : http://10.2.17.64:8766/index.html
+    • Công dụng: Chia lưới ảnh UAV GeoTIFF, Nhận diện Lúa / Khóm lúa /
+      Cây cảnh quan / Nhà / Đường / Sông / Mương, Duyệt mẫu & Xuất CAD.
+
+----------------------------------------------------------------------
+
+[2] LINK 2 — CỔNG WEBGPU 6/9 LỚP ĐỊA HÌNH, QUẢN LÝ KEY ADMIN & GOOGLE TPU (>15 PHÚT)
+    • Link Tên miền Chính thức (HTTPS)        : https://thietbibachkhoa.id.vn/webgpu.html
+    • Link Dự phòng Quick Tunnel              : https://vessels-schedules-included-wines.trycloudflare.com/webgpu.html
+    • Link Mạng LAN nội bộ (Port 8765)        : http://10.2.17.64:8765/webgpu.html
+    • Link Localhost Mặc định (Port 8765)     : http://127.0.0.1:8765/webgpu.html
+    • Key Admin Mặc định (Quản trị & TPU)     : uav_admin_master_key_vn2000
+    • Mã License Key dùng thử (50 ha)         : UAV-TRIAL-DEMO-50HA
+    • Mã License Key bản PRO (500 ha)         : UAV-WEBGPU-2026-PRO
+    • Công dụng:
+      1. Tự động tính toán thời gian khi upload ảnh nhận diện hoặc update mô hình YOLO:
+         nếu > 15 phút (> 900 giây) tự động đẩy lên Google TPU (chỉ Key Admin hoặc
+         Key Khách được Admin cấp quyền `allow_tpu` mới được dùng).
+      2. Quản lý Key theo chuẩn Google Sheet 7 cột: Người nhận - SĐT người nhận - Key -
+         Mục đích (Test 1h/3h/5h, Mua 1m/3m/6m/1y) - Thời gian cấp - Thời gian hết hạn -
+         Tình trạng (còn <= 1/3 thời gian báo đỏ, > 1/3 tô màu xanh; ẩn hoàn toàn với khách).
+
+----------------------------------------------------------------------
+
+[3] THƯ MỤC LƯU TRỮ DỮ LIỆU XỬ LÝ & DỰ ÁN TRÊN GOOGLE DRIVE (30 TB ULTRA)
+    • Thư mục Lưu Data Xử lý Nhận diện & YOLO : https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN
+      (Folder ID: 1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN)
+    • Thư mục Gốc Mã nguồn Dự án              : https://drive.google.com/drive/folders/1J88JdSVTjXc8WMStzV-jdqPhFkd3DeBV?hl=vi
+      (Folder ID: 1J88JdSVTjXc8WMStzV-jdqPhFkd3DeBV)
+======================================================================

@@ -1,0 +1,21 @@
+# Cursor & IDE Multi-Agent Governance Rules — UAV_GeoTIFF_WebGPU_Survey_VN2000
+
+1. INITIAL SURVEY: Spawn 5 `Gemini 4 Hydrogen` (`hydrogen`) agents concurrently to read and survey the project before modifying rules or architecture.
+2. PHASE 1 — PLANNING & ARCHITECTURE (`Model 4 Argon High`):
+   - When assigned a task, `Model 4 Argon High` (`argon_high`) must first create a concrete detailed plan and design the project architecture.
+   - ARCHITECTURE APPROVAL GATE: Do NOT assign roles to child sub-agents until the architecture is reviewed and approved (`approve_architecture`).
+3. DIFFICULTY-BASED EFFORT SCALING:
+   - Assign roles and effort levels (`low`, `medium`, `high`, `max`) dynamically based on task difficulty (`low`, `medium`, `high`, `critical`).
+4. PHASE 2 — EXECUTION & ITERATIVE TEST LOOPS (`Gemini 4 Hydrogen`):
+   - Use `Gemini 4 Hydrogen` (`hydrogen`) for concrete plans and iterative code-and-test loops.
+   - Low token footprint allows spawning up to 300 concurrent Hydrogen agents (`MAX_CONCURRENT_HYDROGEN = 300`).
+   - 2-STRIKE SELF-FIX RULE: When code/tests report an error, Hydrogen self-fixes up to 2 times (`MAX_HYDROGEN_SELF_FIX_ATTEMPTS = 2`). If it still fails after 2 self-fix attempts, immediately escalate the task to `Model 4 Carbon` (`ESCALATE_TO_CARBON`).
+5. PHASE 3 — ESCALATION & DEEP FUNCTION OPTIMIZATION (`Model 4 Carbon`):
+   - Use `Model 4 Carbon` (`carbon`) for tasks escalated after 2 failed Hydrogen self-fixes and for deep algorithmic/function optimization (`requires_deep_optimization = True`).
+   - STRICT CONCURRENCY CAP: Never spawn more than 10 concurrent `Model 4 Carbon` agents (`MAX_CONCURRENT_CARBON = 10`).
+6. FLEXIBLE ARGON USAGE (`Model 4 Argon`):
+   - Whenever a task requires `Model 4 Argon` (`argon`), it may be used flexibly on demand.
+7. ZERO-HOSTING DOMAIN & POWER-COUPLED SERVER:
+   - Bind local default port (`8765` / `8766` / `7860`) to `https://thietbibachkhoa.id.vn/` via Cloudflare Tunnel (`uav_app/infrastructure/autostart_host.py`) so the site is online when the machine boots and offline when the machine shuts down.
+8. GOOGLE TPU OFFLOADING:
+   - Offload heavy GeoTIFF tile segmentation from local GPU to remote Google TPU (`uav_app/adapters/tpu_offload_worker.py` & `scripts/run_colab_tpu_server.py`) with automatic local fallback.

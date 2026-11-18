@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+config/.env.windows
+config/.uav_key_vault.json
+config/.uav_key_registry.json
+GHI_CHU_CAIDAT_CONG_TY.txt
+*.zip
+*.dwg
+*.dxf
+graph.html
+graph.json
+callflow.html
