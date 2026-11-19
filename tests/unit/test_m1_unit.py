@@ -731,6 +731,128 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
 
+    def test_key_isolated_workspace_and_active_learning_annotations(self) -> None:
+        import tempfile
+        from pathlib import Path
+        from uav_app.adapters.webgpu_public_server import make_public_webgpu_server
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            srv = make_public_webgpu_server(host="127.0.0.1", port=0)
+            srv.workspace_store_dir = Path(tmpdir)
+            t = threading.Thread(target=srv.serve_forever, daemon=True)
+            t.start()
+            port = srv.server_address[1]
+            base = f"http://127.0.0.1:{port}"
+            try:
+                key_a = "uav_admin_master_key_vn2000"
+                guest_rec = srv.key_manager.create_key(
+                    recipient="Khach Kiem Thu B",
+                    phone="0912000999",
+                    purpose="1m",
+                    allow_tpu=True,
+                )
+                key_b = guest_rec["key"]
+
+                # 1. Invalid key must receive 403
+                req_bad = urllib.request.Request(
+                    f"{base}/api/workspace/state",
+                    headers={"X-UAV-Key": "invalid_key_xyz"},
+                    method="GET",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as ctx:
+                    urllib.request.urlopen(req_bad, timeout=3)
+                self.assertEqual(ctx.exception.code, 403)
+
+                # 2. Save workspace + active learning annotations for Key A
+                req_save_a = urllib.request.Request(
+                    f"{base}/api/workspace/state",
+                    data=json.dumps(
+                        {
+                            "workspace": {"isBlankMode": True, "selectedIndex": 42, "tileW": 512},
+                            "learning_profile": {
+                                "annotations": [
+                                    {"id": "a1", "kind": "add_plant", "tag": "lua_re_nhanh", "relX": 0.42, "relY": 0.61, "relW": 0.025, "relH": 0.05}
+                                ],
+                                "positives": [{"id": "a1", "tag": "lua_re_nhanh", "features": {"exgRel": 6.2}}],
+                                "negatives": [],
+                                "class_names": ["newly_transplanted_rice", "lua_re_nhanh"],
+                            },
+                        }
+                    ).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "X-UAV-Key": key_a},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req_save_a, timeout=3) as resp:
+                    save_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(save_res["saved"])
+                self.assertTrue(save_res["isolated_per_key"])
+
+                # 3. Key B must NOT see Key A's progress or annotations
+                req_get_b = urllib.request.Request(
+                    f"{base}/api/workspace/state",
+                    headers={"X-UAV-Key": key_b},
+                    method="GET",
+                )
+                with urllib.request.urlopen(req_get_b, timeout=3) as resp:
+                    b_state = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(b_state["isolated_per_key"])
+                self.assertFalse(b_state["has_saved_state"])
+                self.assertEqual(len(b_state["learning_profile"]["annotations"]), 0)
+
+                # 4. Key A reads back its exact isolated workspace
+                req_get_a = urllib.request.Request(
+                    f"{base}/api/workspace/state",
+                    headers={"X-UAV-Key": key_a},
+                    method="GET",
+                )
+                with urllib.request.urlopen(req_get_a, timeout=3) as resp:
+                    a_state = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(a_state["has_saved_state"])
+                self.assertTrue(a_state["workspace"]["isBlankMode"])
+                self.assertEqual(a_state["workspace"]["selectedIndex"], 42)
+                self.assertNotEqual(a_state["key_id"], b_state["key_id"])
+
+                # 5. POST /api/learning/annotations generates YOLO format labels isolated to Key B
+                req_ann_b = urllib.request.Request(
+                    f"{base}/api/learning/annotations",
+                    data=json.dumps(
+                        {
+                            "annotations": [
+                                {"id": "b1", "kind": "add_plant", "tag": "cay_dua", "relX": 0.25, "relY": 0.50, "relW": 0.04, "relH": 0.04},
+                                {"id": "b2", "kind": "remove_fp", "tag": "background_false_positive", "relX": 0.70, "relY": 0.30},
+                            ],
+                            "positives": [{"id": "b1", "tag": "cay_dua", "features": {"exgRel": 8.0}}],
+                            "negatives": [{"id": "b2", "features": {"exgRel": 0.5}}],
+                        }
+                    ).encode("utf-8"),
+                    headers={"Content-Type": "application/json", "X-UAV-Key": key_b},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req_ann_b, timeout=3) as resp:
+                    ann_res = json.loads(resp.read().decode("utf-8"))
+                self.assertTrue(ann_res["yolo_dataset_ready"])
+                self.assertEqual(ann_res["yolo_lines_count"], 1)
+                self.assertIn("cay_dua", ann_res["class_names"])
+                self.assertEqual(ann_res["positives_count"], 1)
+                self.assertEqual(ann_res["negatives_count"], 1)
+
+                # 6. Verify HTML portal symbols
+                html = (PROJECT_ROOT / "MO_WEB_NHAN_DIEN_NGAY.html").read_text(encoding="utf-8")
+                for sym in (
+                    "function startBlankWorkspace(",
+                    "function saveKeyWorkspaceState(",
+                    "function loadKeyWorkspaceState(",
+                    "function extractRealPixelPatchDescriptor(",
+                    "function computePrototypeSimilarity(",
+                    "function trainOnlineModelFromAnnotationsAndRescan(",
+                    "function exportLearnedYoloDataset(",
+                ):
+                    self.assertIn(sym, html)
+            finally:
+                srv.shutdown()
+                srv.server_close()
+
 
 if __name__ == "__main__":
     unittest.main()

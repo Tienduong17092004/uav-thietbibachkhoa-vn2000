@@ -23,10 +23,13 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import threading
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from uav_app.adapters.tpu_offload_worker import (
@@ -59,11 +62,16 @@ from uav_app.infrastructure.gdrive_key_storage import (
 _CACHED_PORTAL_HTML: Optional[str] = None
 
 
+def compute_key_scope_id(raw_key: str) -> str:
+    """Return a non-reversible filesystem-safe scope ID strictly isolating state per Key."""
+    digest = hashlib.sha256((raw_key or "").strip().encode("utf-8")).hexdigest()[:16]
+    return f"key_{digest}"
+
+
 def render_webgpu_portal_html(port: int = DEFAULT_PORT, domain: str = CUSTOM_DOMAIN) -> str:
     """Render the UAV GeoTIFF Studio VN2000 HTML portal with Single-Input Key Gate & 4-Step Studio UI."""
     global _CACHED_PORTAL_HTML
     if _CACHED_PORTAL_HTML is None:
-        from pathlib import Path
         mo_path = Path(__file__).resolve().parents[2] / "MO_WEB_NHAN_DIEN_NGAY.html"
         if mo_path.is_file():
             _CACHED_PORTAL_HTML = mo_path.read_text(encoding="utf-8")
@@ -88,6 +96,7 @@ class WebGPUPublicServer(ThreadingHTTPServer):
         key_manager: Optional[GoogleSheetKeyManager] = None,
         gdrive_storage: Optional[GoogleDrive30TBStorage] = None,
         key_vault: Optional[KeyVaultManager] = None,
+        workspace_store_dir: Optional[Path] = None,
     ) -> None:
         super().__init__(server_address, RequestHandlerClass)
         self.tpu_worker = tpu_worker or TPUOffloadWorker()
@@ -101,6 +110,74 @@ class WebGPUPublicServer(ThreadingHTTPServer):
         )
         self.autostart_manager._running = True
         self.autostart_manager.port = actual_port
+        self._workspace_lock = threading.Lock()
+        self._key_workspaces: Dict[str, Dict[str, Any]] = {}
+        self.workspace_store_dir = workspace_store_dir or (
+            Path(__file__).resolve().parents[2] / "config" / "key_workspaces"
+        )
+
+    def load_key_workspace(self, raw_key: str) -> Dict[str, Any]:
+        key_id = compute_key_scope_id(raw_key)
+        with self._workspace_lock:
+            if key_id in self._key_workspaces:
+                return dict(self._key_workspaces[key_id])
+            disk_path = self.workspace_store_dir / f"{key_id}.json"
+            if disk_path.is_file():
+                try:
+                    data = json.loads(disk_path.read_text(encoding="utf-8"))
+                    if isinstance(data, dict):
+                        self._key_workspaces[key_id] = data
+                        return dict(data)
+                except Exception:
+                    pass
+        return {
+            "key_id": key_id,
+            "has_saved_state": False,
+            "workspace": None,
+            "learning_profile": {
+                "annotations": [],
+                "positives": [],
+                "negatives": [],
+                "class_names": ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+            },
+            "updated_at_utc": None,
+        }
+
+    def save_key_workspace(
+        self,
+        raw_key: str,
+        workspace: Optional[Dict[str, Any]] = None,
+        learning_profile: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        key_id = compute_key_scope_id(raw_key)
+        now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        with self._workspace_lock:
+            existing = self._key_workspaces.get(key_id) or {}
+            record: Dict[str, Any] = {
+                "key_id": key_id,
+                "has_saved_state": True,
+                "workspace": workspace if workspace is not None else existing.get("workspace"),
+                "learning_profile": (
+                    learning_profile if learning_profile is not None else existing.get("learning_profile")
+                )
+                or {
+                    "annotations": [],
+                    "positives": [],
+                    "negatives": [],
+                    "class_names": ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+                },
+                "updated_at_utc": now_iso,
+            }
+            self._key_workspaces[key_id] = record
+            try:
+                self.workspace_store_dir.mkdir(parents=True, exist_ok=True)
+                tmp_path = self.workspace_store_dir / f"{key_id}.json.tmp"
+                final_path = self.workspace_store_dir / f"{key_id}.json"
+                tmp_path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+                tmp_path.replace(final_path)
+            except Exception:
+                pass
+            return dict(record)
 
 
 class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
@@ -158,7 +235,7 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
         prefer_admin_field: bool = False,
     ) -> Optional[str]:
         """Extract API/Admin key from headers, query string, or JSON body."""
-        for hdr in ("X-Admin-Key", "X-API-Key", "X-TPU-API-Key"):
+        for hdr in ("X-UAV-Key", "X-Admin-Key", "X-API-Key", "X-TPU-API-Key"):
             val = self.headers.get(hdr)
             if val and val.strip():
                 return val.strip()
@@ -315,6 +392,46 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/plants/blurry-tips":
             res = self.app_server.tpu_worker.get_blurry_tip_plants_status()
             self._send_json(200, res)
+            return
+
+        if path in ("/api/workspace/state", "/api/learning/annotations"):
+            caller_key = self._extract_caller_key(prefer_admin_field=False)
+            auth = self.app_server.key_manager.validate_key(caller_key, require_admin=False)
+            if not auth.get("valid"):
+                self._send_json(
+                    403,
+                    {
+                        "status": "forbidden",
+                        "http_status": 403,
+                        "error": auth.get("reason") or "Thiếu hoặc sai Key truy cập",
+                    },
+                )
+                return
+            rec = self.app_server.load_key_workspace(caller_key or "")
+            lp = rec.get("learning_profile") or {}
+            if path == "/api/learning/annotations":
+                self._send_json(
+                    200,
+                    {
+                        "status": "ok",
+                        "isolated_per_key": True,
+                        "key_id": rec["key_id"],
+                        "annotations": lp.get("annotations", []),
+                        "positives_count": len(lp.get("positives", [])),
+                        "negatives_count": len(lp.get("negatives", [])),
+                        "class_names": lp.get("class_names", []),
+                        "updated_at_utc": rec.get("updated_at_utc"),
+                    },
+                )
+                return
+            self._send_json(
+                200,
+                {
+                    "status": "ok",
+                    "isolated_per_key": True,
+                    **rec,
+                },
+            )
             return
 
         self._send_json(404, {"error": "Endpoint not found", "path": path})
@@ -620,6 +737,109 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
                 self._send_binary(200, raw_tiff, "image/tiff", filename=res.get("filename"))
                 return
             self._send_json(200, res)
+            return
+
+        if path == "/api/workspace/state":
+            caller_key = self._extract_caller_key(body=body, prefer_admin_field=False)
+            auth = self.app_server.key_manager.validate_key(caller_key, require_admin=False)
+            if not auth.get("valid"):
+                self._send_json(
+                    403,
+                    {
+                        "status": "forbidden",
+                        "http_status": 403,
+                        "error": auth.get("reason") or "Thiếu hoặc sai Key truy cập",
+                    },
+                )
+                return
+            workspace_obj = body.get("workspace") if isinstance(body.get("workspace"), dict) else None
+            learning_obj = (
+                body.get("learning_profile") if isinstance(body.get("learning_profile"), dict) else None
+            )
+            saved = self.app_server.save_key_workspace(
+                caller_key or "",
+                workspace=workspace_obj,
+                learning_profile=learning_obj,
+            )
+            self._send_json(
+                200,
+                {
+                    "status": "ok",
+                    "saved": True,
+                    "isolated_per_key": True,
+                    "key_id": saved["key_id"],
+                    "updated_at_utc": saved["updated_at_utc"],
+                },
+            )
+            return
+
+        if path in ("/api/learning/annotations", "/api/learning/train"):
+            caller_key = self._extract_caller_key(body=body, prefer_admin_field=False)
+            auth = self.app_server.key_manager.validate_key(caller_key, require_admin=False)
+            if not auth.get("valid"):
+                self._send_json(
+                    403,
+                    {
+                        "status": "forbidden",
+                        "http_status": 403,
+                        "error": auth.get("reason") or "Thiếu hoặc sai Key truy cập",
+                    },
+                )
+                return
+            annotations = body.get("annotations")
+            if not isinstance(annotations, list):
+                self._send_json(400, {"error": "Field 'annotations' must be a list"})
+                return
+            positives = body.get("positives") if isinstance(body.get("positives"), list) else []
+            negatives = body.get("negatives") if isinstance(body.get("negatives"), list) else []
+            class_names = (
+                body.get("class_names")
+                if isinstance(body.get("class_names"), list) and body.get("class_names")
+                else ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"]
+            )
+            yolo_lines: List[str] = []
+            for ann in annotations:
+                if not isinstance(ann, dict):
+                    continue
+                if ann.get("kind") == "remove_fp":
+                    continue
+                tag = str(ann.get("tag") or "newly_transplanted_rice")
+                if tag not in class_names:
+                    class_names.append(tag)
+                cls_idx = class_names.index(tag)
+                cx = max(0.0, min(1.0, float(ann.get("relX", 0.5))))
+                cy = max(0.0, min(1.0, float(ann.get("relY", 0.5))))
+                bw = max(0.01, min(0.5, float(ann.get("relW", 0.03))))
+                bh = max(0.01, min(0.5, float(ann.get("relH", 0.03))))
+                yolo_lines.append(f"{cls_idx} {cx:.6f} {cy:.6f} {bw:.6f} {bh:.6f}")
+
+            learning_profile = {
+                "annotations": annotations,
+                "positives": positives,
+                "negatives": negatives,
+                "class_names": class_names,
+                "yolo_lines_count": len(yolo_lines),
+            }
+            saved = self.app_server.save_key_workspace(
+                caller_key or "",
+                learning_profile=learning_profile,
+            )
+            self._send_json(
+                200,
+                {
+                    "status": "ok",
+                    "isolated_per_key": True,
+                    "key_id": saved["key_id"],
+                    "saved_annotations_count": len(annotations),
+                    "positives_count": len(positives),
+                    "negatives_count": len(negatives),
+                    "class_names": class_names,
+                    "yolo_dataset_ready": True,
+                    "yolo_lines_count": len(yolo_lines),
+                    "yolo_preview": yolo_lines[:10],
+                    "updated_at_utc": saved["updated_at_utc"],
+                },
+            )
             return
 
         self._send_json(404, {"error": "Endpoint not found", "path": path})

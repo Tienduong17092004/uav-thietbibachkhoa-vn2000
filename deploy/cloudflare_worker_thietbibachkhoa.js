@@ -88,6 +88,7 @@ function createSeedKeys() {
 
 const EDGE_MEMORY_STATE = {
   keys: createSeedKeys(),
+  workspacesByKey: new Map(),
   bridgeHeartbeat: {
     online: true,
     transport: "outbound_https_443",
@@ -96,6 +97,67 @@ const EDGE_MEMORY_STATE = {
   },
   pendingTasks: [],
 };
+
+function computeKeyScopeId(rawKey) {
+  const s = String(rawKey || "").trim();
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return "key_" + ((h >>> 0).toString(16).padStart(8, "0")) + "_" + s.length;
+}
+
+async function loadEdgeKeyWorkspace(env, rawKey) {
+  const keyId = computeKeyScopeId(rawKey);
+  if (env && env.UAV_BRIDGE_KV) {
+    try {
+      const kvRaw = await env.UAV_BRIDGE_KV.get("workspace::" + keyId);
+      if (kvRaw) {
+        const parsed = JSON.parse(kvRaw);
+        EDGE_MEMORY_STATE.workspacesByKey.set(keyId, parsed);
+        return parsed;
+      }
+    } catch (_e) {}
+  }
+  if (EDGE_MEMORY_STATE.workspacesByKey.has(keyId)) {
+    return EDGE_MEMORY_STATE.workspacesByKey.get(keyId);
+  }
+  return {
+    key_id: keyId,
+    has_saved_state: false,
+    workspace: null,
+    learning_profile: {
+      annotations: [],
+      positives: [],
+      negatives: [],
+      class_names: ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+    },
+    updated_at_utc: null,
+  };
+}
+
+async function saveEdgeKeyWorkspace(env, rawKey, workspace, learningProfile) {
+  const keyId = computeKeyScopeId(rawKey);
+  const existing = await loadEdgeKeyWorkspace(env, rawKey);
+  const record = {
+    key_id: keyId,
+    has_saved_state: true,
+    workspace: workspace !== undefined && workspace !== null ? workspace : existing.workspace,
+    learning_profile:
+      learningProfile !== undefined && learningProfile !== null
+        ? learningProfile
+        : existing.learning_profile,
+    updated_at_utc: new Date().toISOString(),
+  };
+  EDGE_MEMORY_STATE.workspacesByKey.set(keyId, record);
+  if (env && env.UAV_BRIDGE_KV) {
+    try {
+      await env.UAV_BRIDGE_KV.put("workspace::" + keyId, JSON.stringify(record));
+    } catch (_e) {}
+  }
+  return record;
+}
 
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload, null, 2), {
@@ -1309,6 +1371,91 @@ function renderPortalHtml() {
       display: inline-block;
     }
 
+    /* Data Source Badges & Active Learning Annotation Strip */
+    .status-tag.demo-badge {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+    .status-tag.blank-badge {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #334155;
+    }
+    .status-tag.user-badge {
+      background: #dcfce7;
+      border-color: #16a34a;
+      color: #166534;
+    }
+    .key-scope-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 999px;
+      color: #1d4ed8;
+      font-weight: 600;
+      font-size: 10.5px;
+      white-space: nowrap;
+    }
+    #center-teach-ai-toolbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      flex-wrap: wrap;
+      padding: 4px 8px;
+      background: #f5f3ff;
+      border-bottom: 1px solid #ddd6fe;
+      flex: 0 0 auto;
+    }
+    .teach-tool-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .teach-tool-btn {
+      min-height: 24px;
+      height: 24px;
+      padding: 1px 7px;
+      font-size: 10.5px;
+      font-weight: 600;
+      border-radius: 5px;
+      border: 1px solid #c4b5fd;
+      background: #ffffff;
+      color: #4c1d95;
+      white-space: nowrap;
+    }
+    .teach-tool-btn.active {
+      background: #6d28d9;
+      border-color: #5b21b6;
+      color: #ffffff;
+      box-shadow: 0 1px 4px rgba(109, 40, 217, 0.28);
+    }
+    #center-teach-ai-toolbar select {
+      width: auto;
+      min-height: 24px;
+      height: 24px;
+      padding: 1px 5px;
+      font-size: 10.5px;
+      border-color: #c4b5fd;
+      margin: 0;
+    }
+    .teach-ann-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: #ffffff;
+      font-size: 10.5px;
+    }
+
     @media (max-width: 1280px) {
       .workspace {
         grid-template-columns: 295px minmax(0, 1fr) 310px;
@@ -1316,7 +1463,10 @@ function renderPortalHtml() {
     }
     @media (max-width: 1024px) {
       html, body, #authenticated-workspace { height: auto; overflow: auto; }
-      .steps { padding: 0 8px; }
+      .app-header { height: auto; flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+      .header-meta { flex-wrap: wrap; }
+      .steps { height: auto; padding: 0 6px; }
+      .steps ol { grid-template-columns: repeat(2, 1fr); }
       .workspace {
         height: auto;
         overflow: visible;
@@ -1327,8 +1477,10 @@ function renderPortalHtml() {
         max-height: none;
         overflow: visible;
       }
-      .viewport-shell { height: 55vh; }
+      .viewport-shell { height: 55vh; min-height: 320px; }
       #realtime-hardware-table-panel { max-height: none; }
+      .map-caption { flex-wrap: wrap; gap: 4px; }
+      .map-caption > span { white-space: normal !important; }
     }
   </style>
 </head>
@@ -1368,6 +1520,8 @@ function renderPortalHtml() {
         <button id="btn-admin-toggle" type="button" class="primary" style="display:none;" onclick="toggleAdminSheetPanel()">👑 Quản lý Key</button>
         <button type="button" onclick="switchCenterStageMode('tile_1to1')">🔍 Soi ô cắt</button>
         <button type="button" onclick="switchCenterStageMode('blurry_compare')">🌱 So sánh cây nhòe</button>
+        <span class="key-scope-pill" id="key-scope-badge" title="Tiến trình và mẫu học được lưu tách biệt 100% theo từng Key">🔑 Phiên Key</span>
+        <button type="button" onclick="saveKeyWorkspaceState(true)" title="Lưu tiến trình & dữ liệu học riêng cho Key đang đăng nhập">💾 Lưu Key</button>
         <span class="local-badge" id="user-role-badge"><span aria-hidden="true"></span>Local</span>
         <span id="user-name-label" style="display:none;">Admin</span>
         <button type="button" onclick="toggleTaskMgrCard()">🖥️ Phần cứng</button>
@@ -1462,10 +1616,14 @@ function renderPortalHtml() {
 
         <!-- BƯỚC 01: ẢNH & TỌA ĐỘ BASE -->
         <div id="step-1" class="step-content">
+          <div id="key-progress-status" style="font-size:10.5px;color:#1d4ed8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:3px 7px;margin-bottom:6px;line-height:1.3;">
+            🔑 Phiên riêng theo Key · Đang mở ảnh mẫu (bấm <strong>Trống</strong> hoặc <strong>Nạp ảnh gốc</strong>).
+          </div>
           <label for="source-path">Đường dẫn ảnh</label>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
-            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('stage1_rgb')">🌾 Mẫu Stage 1 RGB</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('khu_tam_giac')">📐 Mẫu Khu Tam Giác</button>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;flex:1;" onclick="selectPresetDataset('stage1_rgb')">🌾 Mẫu Stage 1</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;flex:1;" onclick="selectPresetDataset('khu_tam_giac')">📐 Khu Tam Giác</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;border-color:#94a3b8;color:#334155;" onclick="startBlankWorkspace()" title="Tắt dữ liệu mẫu, bắt đầu không gian trống để nạp ảnh của bạn">🧹 Trống</button>
           </div>
           <div class="path-row">
             <input id="source-path" type="text" value="C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\sample\\MULTISPECTRAL\\Results_Stage 1\\Ortho_Stage 1_RGB (24-10-2026).jpg" onkeydown="if(event.key==='Enter'){event.preventDefault();inspectCurrentSource();}" />
@@ -1799,7 +1957,8 @@ grass</textarea>
           <div>
             <h2 id="map-title">Không gian ảnh trung tâm</h2>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span id="data-source-mode-badge" class="status-tag demo-badge" title="Ảnh mẫu nhúng sẵn để thử nhanh — bấm 🧹 Trống hoặc 📂 Nạp ảnh gốc để dùng ảnh của bạn">🧪 Dữ liệu mẫu</span>
             <span id="center-quality-badge" class="status-tag success">100% Gốc</span>
             <span id="map-crs" class="status-tag">EPSG:32648</span>
           </div>
@@ -1827,6 +1986,37 @@ grass</textarea>
           </div>
         </div>
 
+        <!-- THANH GẮN TAG & DẠY AI TRỰC TIẾP TRÊN ẢNH (HIỆN KHI SOI Ô CẮT 1:1 — HỖ TRỢ CHUỘT PC & CHẠM ĐIỆN THOẠI) -->
+        <div id="center-teach-ai-toolbar" role="toolbar" aria-label="Công cụ bổ sung cây thiếu, sửa vị trí lệch và dạy AI học">
+          <div class="teach-tool-group">
+            <button type="button" id="btn-tool-inspect" class="teach-tool-btn active" onclick="setAnnotationTool('inspect')" title="Chế độ xem và chọn cây">👁️ Xem</button>
+            <button type="button" id="btn-tool-add" class="teach-tool-btn" onclick="setAnnotationTool('add_plant')" title="Chạm/nhấp vị trí cây bị đếm thiếu để gắn tag bổ sung">➕ Thêm cây</button>
+            <button type="button" id="btn-tool-move" class="teach-tool-btn" onclick="setAnnotationTool('move_plant')" title="Chạm chấm lệch rồi chạm sang đúng tâm cây lúa thật">🎯 Sửa lệch</button>
+            <button type="button" id="btn-tool-remove" class="teach-tool-btn" onclick="setAnnotationTool('remove_fp')" title="Chạm chấm đếm nhầm để xóa và dạy AI bỏ qua">🗑️ Xóa nhầm</button>
+          </div>
+          <div class="teach-tool-group">
+            <select id="teach-tag-select" onchange="onTeachTagSelectChange(this.value)" title="Loại đối tượng gắn tag">
+              <option value="newly_transplanted_rice">🌾 Cây lúa</option>
+              <option value="rice_clump_large">🌾 Khóm to</option>
+              <option value="grass">🌿 Cỏ dại</option>
+              <option value="tree_crown">🌳 Ngọn cây</option>
+              <option value="__custom__">🏷️ Tag mới...</option>
+            </select>
+            <select id="teach-shape-select" onchange="gridState.activeShape=this.value;" title="Hình dạng vùng mẫu">
+              <option value="circle">⭕ Tròn</option>
+              <option value="ellipse">⬭ Bầu dục</option>
+              <option value="box">⬜ Vuông</option>
+            </select>
+            <select id="teach-radius-select" onchange="gridState.activeRadiusPx=Number(this.value)||12;" title="Kích thước bán kính vùng cây (px)">
+              <option value="9">R=9px</option>
+              <option value="12" selected>R=12px</option>
+              <option value="16">R=16px</option>
+              <option value="22">R=22px</option>
+            </select>
+            <button type="button" class="primary" style="min-height:24px;height:24px;padding:1px 8px;font-size:10.5px;background:#6d28d9;border-color:#5b21b6;" onclick="trainOnlineModelFromAnnotationsAndRescan()" title="Học đặc trưng màu + hình dạng từ các tag đã gắn và tự động quét lại tìm cây bị sót">🧠 Học &amp; Quét lại</button>
+          </div>
+        </div>
+
         <div class="viewport-shell" id="viewport-dropzone">
           <canvas id="overview-canvas" width="1600" height="1000"></canvas>
           <span class="north-indicator" aria-hidden="true">N<br>↑</span>
@@ -1843,14 +2033,16 @@ grass</textarea>
         </div>
 
         <div class="map-caption">
-          <div class="legend" style="flex-wrap:wrap;gap:9px;">
-            <span><i class="legend-grid"></i>Lưới ô cắt</span>
-            <span><i class="legend-selected"></i>Ô đang chọn</span>
+          <div class="legend" style="flex-wrap:wrap;gap:8px;">
+            <span><i class="legend-grid"></i>Lưới</span>
+            <span><i class="legend-selected"></i>Ô chọn</span>
             <span><i style="background:#10b981;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Cây nét</span>
-            <span><i style="background:#f59e0b;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Cây nhòe</span>
+            <span><i style="background:#f59e0b;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Nhòe</span>
             <span><i style="background:#06b6d4;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Đã thay</span>
+            <span><i style="background:#2563eb;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Nhãn tay</span>
+            <span><i style="background:#a855f7;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>AI học</span>
           </div>
-          <span style="white-space:nowrap;">Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô: soi ở giữa</span>
+          <span id="canvas-hint-caption" style="white-space:nowrap;">Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô: soi ở giữa</span>
         </div>
         <p class="overview-note" id="overview-quality-note" style="display:none;"></p>
 
@@ -1948,6 +2140,39 @@ grass</textarea>
           <button type="button" id="btn-export-edited-tiff-side" class="primary wide" style="background:#0b7290;border-color:#075985;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
           <div id="blurry-approval-status" class="metadata" style="margin-top:8px;font-size:11.5px;padding:8px 10px;">
             Chưa thay tự động.
+          </div>
+        </section>
+
+        <!-- 3B. DẠY AI ĐẾM ĐÚNG (BỔ SUNG CÂY THIẾU / SỬA LỆCH / GẮN TAG) & LƯU PHIÊN THEO KEY -->
+        <section id="active-learning-panel" class="tile-inspector" aria-label="Dạy AI đếm cây và lưu tiến trình theo Key">
+          <div class="inspector-heading">
+            <h2 style="color:#6d28d9;">🧠 3B. Dạy AI &amp; Lưu Theo Key</h2>
+            <span id="learned-model-badge" class="status-tag" style="background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd;">0 mẫu học</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:5px;">
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;border-color:#2563eb;color:#1d4ed8;font-weight:600;" onclick="switchCenterStageMode('tile_1to1');setAnnotationTool('add_plant');">➕ Chấm cây thiếu</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;border-color:#7c3aed;color:#6d28d9;font-weight:600;" onclick="switchCenterStageMode('tile_1to1');setAnnotationTool('move_plant');">🎯 Sửa vị trí lệch</button>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:5px;">
+            <input id="teach-custom-tag-input" type="text" placeholder="Tag mới (vd: lua_re_nhanh, cay_dua...)" style="min-height:26px;font-size:11px;flex:1;" />
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 7px;white-space:nowrap;" onclick="applyCustomTeachTag()">+ Dùng tag</button>
+          </div>
+          <div id="teach-learning-summary" class="metadata" style="margin:4px 0 6px;padding:6px 8px;font-size:10.5px;background:#faf5ff;border-color:#ddd6fe;color:#4c1d95;">
+            Chưa có nhãn tay. Bấm <strong>➕ Chấm cây thiếu</strong> rồi chạm/nhấp lên ảnh ở giữa để dạy mô hình.
+          </div>
+          <div id="teach-annotation-list" style="max-height:96px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:6px;"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;">
+            <button type="button" class="primary" style="font-size:10.5px;min-height:27px;padding:2px 6px;background:#6d28d9;border-color:#5b21b6;" onclick="trainOnlineModelFromAnnotationsAndRescan()">🧠 Học &amp; Quét lại</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:27px;padding:2px 6px;border-color:#0369a1;color:#0369a1;font-weight:600;" onclick="exportLearnedYoloDataset()">📦 Xuất YOLO</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;">
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="syncAnnotationsAndTriggerDeepTraining()">🚀 Học sâu TPU/YOLO</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:26px;padding:2px 6px;" onclick="exportKeySessionBundle()">📤 Xuất phiên Key</button>
+          </div>
+          <input id="import-key-session-input" type="file" accept=".json" style="display:none;" onchange="importKeySessionBundle(event)" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:25px;padding:2px 6px;" onclick="document.getElementById('import-key-session-input').click()">📥 Nạp phiên Key</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:25px;padding:2px 6px;color:#b42318;" onclick="clearCurrentKeyLearnedAnnotations()">🧹 Xóa nhãn Key</button>
           </div>
         </section>
 
@@ -2205,7 +2430,23 @@ grass</textarea>
       modalPanX: 0,
       modalPanY: 0,
       hwPollSeq: 0,
-      liveFps: 60
+      liveFps: 60,
+      isBlankMode: false,
+      userFileName: "",
+      annotationTool: "inspect",
+      movePendingPlantId: null,
+      activeTag: "newly_transplanted_rice",
+      activeRadiusPx: 12,
+      activeShape: "circle",
+      learningProfile: {
+        annotations: [],
+        positives: [],
+        negatives: [],
+        classNames: ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+        lastTrainedAt: null,
+        lastDeltaFound: 0,
+        lastSuppressedFp: 0
+      }
     };
     window.gridState = gridState;
 
@@ -2725,9 +2966,72 @@ grass</textarea>
       document.getElementById("base-y").value = gridState.baseY.toFixed(3);
     }
 
+    function updateDataSourceBadge() {
+      const badge = document.getElementById("data-source-mode-badge");
+      const statusEl = document.getElementById("key-progress-status");
+      const keyShort = activeKey ? (activeKey.slice(0, 6) + "…" + activeKey.slice(-4)) : "Chưa đăng nhập";
+      if (badge) {
+        badge.classList.remove("demo-badge", "blank-badge", "user-badge");
+        if (gridState.isBlankMode && !gridState.isCustomOriginalFile) {
+          badge.classList.add("blank-badge");
+          badge.textContent = "📄 Trống (Chưa nạp ảnh)";
+          badge.title = "Không gian trống — bấm 📂 Nạp ảnh gốc để tải ảnh của bạn hoặc chọn ảnh mẫu";
+        } else if (gridState.isCustomOriginalFile) {
+          badge.classList.add("user-badge");
+          badge.textContent = "✅ Ảnh của bạn";
+          badge.title = "Đang xử lý ảnh thật do bạn nạp: " + (gridState.userFileName || "Tệp ảnh gốc");
+        } else {
+          badge.classList.add("demo-badge");
+          badge.textContent = "🧪 Dữ liệu mẫu";
+          badge.title = "Ảnh mẫu nhúng sẵn để thử nhanh — bấm 🧹 Trống hoặc 📂 Nạp ảnh gốc để dùng ảnh của bạn";
+        }
+      }
+      if (statusEl) {
+        const annCount = (gridState.learningProfile && gridState.learningProfile.annotations) ? gridState.learningProfile.annotations.length : 0;
+        if (gridState.isBlankMode && !gridState.isCustomOriginalFile) {
+          statusEl.innerHTML = "🔑 Phiên riêng <code>" + keyShort + "</code> · <strong>Không gian trống</strong> (chưa nạp ảnh) · " + annCount + " nhãn học.";
+        } else if (gridState.isCustomOriginalFile) {
+          statusEl.innerHTML = "🔑 Phiên riêng <code>" + keyShort + "</code> · ✅ <strong>" + (gridState.userFileName || "Ảnh của bạn") + "</strong> · " + annCount + " nhãn học.";
+        } else {
+          statusEl.innerHTML = "🔑 Phiên riêng <code>" + keyShort + "</code> · 🧪 <strong>Ảnh mẫu có sẵn</strong> (bấm <strong>Trống</strong> hoặc <strong>Nạp ảnh</strong>) · " + annCount + " nhãn học.";
+        }
+      }
+    }
+
+    function startBlankWorkspace(skipSave) {
+      gridState.isBlankMode = true;
+      gridState.isCustomOriginalFile = false;
+      gridState.userFileName = "";
+      gridState.rawFile = null;
+      gridState.parsedTiffHeader = null;
+      gridState.cachedTileCrop = null;
+      gridState.nativeSynthesizedTileCache = {};
+      gridState.userImage = null;
+      gridState.tilePlantStats = {};
+      gridState.detections = [];
+      gridState.hasRunDetection = false;
+      gridState.hasCalculatedGrid = false;
+      const pathInput = document.getElementById("source-path");
+      if (pathInput) pathInput.value = "";
+      const revPath = document.getElementById("rev-source-path");
+      if (revPath) revPath.textContent = "(Chưa nạp ảnh — Không gian trống)";
+      const statusTag = document.getElementById("meta-status-tag");
+      if (statusTag) statusTag.textContent = "📄 Không gian trống — Chưa nạp ảnh";
+      const dimsVal = document.getElementById("meta-dims-val");
+      if (dimsVal) dimsVal.textContent = "Chưa nạp ảnh";
+      updateDataSourceBadge();
+      renderPerTileRiceCountTable();
+      renderBlurryTipApprovalPanel();
+      drawOverviewAndGrid();
+      drawSelectedTilePreview();
+      if (!skipSave && typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
+    }
+
     function selectPresetDataset(datasetKey, customPath) {
       const preset = DATASET_PRESETS[datasetKey] || DATASET_PRESETS.stage1_rgb;
+      gridState.isBlankMode = false;
       gridState.isCustomOriginalFile = false;
+      gridState.userFileName = "";
       gridState.rawFile = null;
       gridState.parsedTiffHeader = null;
       gridState.cachedTileCrop = null;
@@ -2750,7 +3054,7 @@ grass</textarea>
 
       const statusTag = document.getElementById("meta-status-tag");
       if (statusTag) {
-        statusTag.textContent = "✅ Đã nạp ảnh gốc sạch 100%: " + preset.label + " (" + preset.imgW.toLocaleString("vi-VN") + "×" + preset.imgH.toLocaleString("vi-VN") + " px)";
+        statusTag.textContent = "🧪 Dữ liệu mẫu 100% Gốc: " + preset.label + " (" + preset.imgW.toLocaleString("vi-VN") + "×" + preset.imgH.toLocaleString("vi-VN") + " px)";
       }
       const qNote = document.getElementById("overview-quality-note");
       if (qNote) {
@@ -2761,10 +3065,12 @@ grass</textarea>
 
       resetWorkflowOnSourceChange(false);
       recalculateGrid(false);
+      updateDataSourceBadge();
       fitOverview();
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
       drawFpgaParallelEdgeCanvas();
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
     }
 
     async function inspectCurrentSource() {
@@ -2949,6 +3255,8 @@ grass</textarea>
     }
 
     function finishImageLoadUpdate(fileName, fileSize) {
+      gridState.isBlankMode = false;
+      gridState.userFileName = String(fileName || "");
       gridState.qualityPreservedPct = 100;
       document.getElementById("meta-dims-val").textContent =
         gridState.imgW.toLocaleString("vi-VN") + " × " + gridState.imgH.toLocaleString("vi-VN") + " px (100% Gốc)";
@@ -2969,10 +3277,12 @@ grass</textarea>
       }
       resetWorkflowOnSourceChange(false);
       recalculateGrid(false);
+      updateDataSourceBadge();
       fitOverview();
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
       drawFpgaParallelEdgeCanvas();
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
     }
 
     function populateTileDropdown() {
@@ -3294,6 +3604,151 @@ grass</textarea>
       } catch (_e) {}
     }
 
+    // =========================================================================
+    // ONLINE ACTIVE LEARNING ENGINE: TRÍCH XUẤT VECTOR ĐẶC TRƯNG MÀU + HÌNH DẠNG 10D & PATCH 8x8 TỪ PIXEL THẬT
+    // =========================================================================
+    function extractRealPixelPatchDescriptor(rawCanvas, cx, cy, radiusPx) {
+      const rad = Math.max(6, Math.min(36, Math.round(radiusPx || 12)));
+      if (!rawCanvas || !rawCanvas.width || !rawCanvas.height) {
+        return { exgRel: 4.5, grRel: 2.0, pitDepth: 4.0, satMean: 0.25, valMean: 0.45, lapSharpness: 10.0, shapeAspect: 1.0, radiusPx: rad, patch8x8: new Array(64).fill(0) };
+      }
+      const cw = rawCanvas.width;
+      const ch = rawCanvas.height;
+      const px = Math.max(rad + 2, Math.min(cw - rad - 3, Math.round(cx)));
+      const py = Math.max(rad + 2, Math.min(ch - rad - 3, Math.round(cy)));
+      const outer = Math.min(rad + 10, Math.min(px, py, cw - 1 - px, ch - 1 - py));
+      const x0 = Math.max(0, px - outer);
+      const y0 = Math.max(0, py - outer);
+      const w = Math.max(4, Math.min(cw - x0, outer * 2 + 1));
+      const h = Math.max(4, Math.min(ch - y0, outer * 2 + 1));
+
+      try {
+        const ctx = rawCanvas.getContext("2d");
+        const data = ctx.getImageData(x0, y0, w, h).data;
+        let inExg = 0, inGr = 0, inLum = 0, inSat = 0, inVal = 0, inCnt = 0;
+        let bgExg = 0, bgGr = 0, bgLum = 0, bgCnt = 0;
+        let minInLum = 255;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const p = (y * w + x) * 4;
+            const r = data[p], g = data[p + 1], b = data[p + 2];
+            const exg = 2 * g - r - b;
+            const gr = g - r;
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const dist = Math.hypot((x0 + x) - px, (y0 + y) - py);
+            if (dist <= rad) {
+              inExg += exg;
+              inGr += gr;
+              inLum += lum;
+              const mx = Math.max(r, g, b);
+              const mn = Math.min(r, g, b);
+              inSat += mx > 0 ? (mx - mn) / mx : 0;
+              inVal += mx / 255.0;
+              if (lum < minInLum) minInLum = lum;
+              inCnt++;
+            } else if (dist >= rad + 3 && dist <= outer) {
+              bgExg += exg;
+              bgGr += gr;
+              bgLum += lum;
+              bgCnt++;
+            }
+          }
+        }
+        inCnt = Math.max(1, inCnt);
+        bgCnt = Math.max(1, bgCnt);
+        const meanBgExg = bgExg / bgCnt;
+        const meanBgGr = bgGr / bgCnt;
+        const meanBgLum = bgLum / bgCnt;
+        const exgRel = (inExg / inCnt) - meanBgExg;
+        const grRel = (inGr / inCnt) - meanBgGr;
+        const pitDepth = Math.max(0, meanBgLum - minInLum);
+
+        // Tính tỷ lệ hình dạng (aspect) & độ sắc nét Laplacian bên trong vùng mẫu
+        let lapSum = 0, lapCnt = 0, varX = 0, varY = 0, wSum = 0;
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const dx = (x0 + x) - px;
+            const dy = (y0 + y) - py;
+            if (dx * dx + dy * dy > rad * rad) continue;
+            const idx = (y * w + x) * 4;
+            const cLum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+            const lL = 0.299 * data[idx - 4] + 0.587 * data[idx - 3] + 0.114 * data[idx - 2];
+            const lR = 0.299 * data[idx + 4] + 0.587 * data[idx + 5] + 0.114 * data[idx + 6];
+            const lU = 0.299 * data[idx - w * 4] + 0.587 * data[idx - w * 4 + 1] + 0.114 * data[idx - w * 4 + 2];
+            const lD = 0.299 * data[idx + w * 4] + 0.587 * data[idx + w * 4 + 1] + 0.114 * data[idx + w * 4 + 2];
+            lapSum += Math.abs(4 * cLum - lL - lR - lU - lD);
+            lapCnt++;
+            const exgC = (2 * data[idx + 1] - data[idx] - data[idx + 2]) - meanBgExg;
+            if (exgC > 0.5) {
+              varX += exgC * dx * dx;
+              varY += exgC * dy * dy;
+              wSum += exgC;
+            }
+          }
+        }
+        const shapeAspect = wSum > 0.1 ? Number(Math.max(0.35, Math.min(2.8, Math.sqrt((varX + 1) / (varY + 1)))).toFixed(3)) : 1.0;
+
+        // Trích xuất chữ ký hình dạng không gian 8x8 chuẩn hóa (Normalized Cross-Correlation template)
+        const patch8x8 = new Array(64).fill(0);
+        let pMean = 0;
+        for (let gy = 0; gy < 8; gy++) {
+          for (let gx = 0; gx < 8; gx++) {
+            const sx = Math.max(0, Math.min(w - 1, Math.round((px - rad - x0) + ((gx + 0.5) / 8.0) * (rad * 2))));
+            const sy = Math.max(0, Math.min(h - 1, Math.round((py - rad - y0) + ((gy + 0.5) / 8.0) * (rad * 2))));
+            const p4 = (sy * w + sx) * 4;
+            const v = (2 * data[p4 + 1] - data[p4] - data[p4 + 2]) - meanBgExg;
+            patch8x8[gy * 8 + gx] = v;
+            pMean += v;
+          }
+        }
+        pMean /= 64.0;
+        let normSq = 0;
+        for (let i = 0; i < 64; i++) {
+          patch8x8[i] -= pMean;
+          normSq += patch8x8[i] * patch8x8[i];
+        }
+        const norm = Math.sqrt(normSq) || 1.0;
+        for (let i = 0; i < 64; i++) {
+          patch8x8[i] = Number((patch8x8[i] / norm).toFixed(4));
+        }
+
+        return {
+          exgRel: Number(exgRel.toFixed(3)),
+          grRel: Number(grRel.toFixed(3)),
+          pitDepth: Number(pitDepth.toFixed(3)),
+          satMean: Number((inSat / inCnt).toFixed(4)),
+          valMean: Number((inVal / inCnt).toFixed(4)),
+          lapSharpness: Number((lapSum / Math.max(1, lapCnt)).toFixed(3)),
+          shapeAspect: shapeAspect,
+          radiusPx: rad,
+          patch8x8: patch8x8
+        };
+      } catch (_e) {
+        return { exgRel: 4.5, grRel: 2.0, pitDepth: 4.0, satMean: 0.25, valMean: 0.45, lapSharpness: 10.0, shapeAspect: 1.0, radiusPx: rad, patch8x8: new Array(64).fill(0) };
+      }
+    }
+
+    function computePrototypeSimilarity(a, b) {
+      if (!a || !b) return 0;
+      const dExg = ((a.exgRel || 0) - (b.exgRel || 0)) / 9.0;
+      const dGr = ((a.grRel || 0) - (b.grRel || 0)) / 6.0;
+      const dPit = ((a.pitDepth || 0) - (b.pitDepth || 0)) / 18.0;
+      const dSat = ((a.satMean || 0) - (b.satMean || 0)) / 0.16;
+      const dVal = ((a.valMean || 0) - (b.valMean || 0)) / 0.22;
+      const dLap = ((a.lapSharpness || 0) - (b.lapSharpness || 0)) / 18.0;
+      const dAsp = ((a.shapeAspect || 1) - (b.shapeAspect || 1)) / 0.75;
+      const dist2 = dExg * dExg * 1.4 + dGr * dGr * 1.2 + dPit * dPit * 0.7 + dSat * dSat + dVal * dVal * 0.6 + dLap * dLap * 0.6 + dAsp * dAsp * 0.8;
+      const featSim = Math.exp(-0.5 * dist2);
+
+      let ncc = 0;
+      if (Array.isArray(a.patch8x8) && Array.isArray(b.patch8x8) && a.patch8x8.length === 64 && b.patch8x8.length === 64) {
+        for (let i = 0; i < 64; i++) ncc += a.patch8x8[i] * b.patch8x8[i];
+      }
+      const ncc01 = Math.max(0, (ncc + 1) * 0.5);
+      return 0.68 * featSim + 0.32 * ncc01;
+    }
+
     function ensureTileRicePlantStats(tileIndex, forceRebuild) {
       const idx = Math.max(0, Math.min((gridState.tileCount || 1) - 1, Number(tileIndex) || 0));
       if (!gridState.tilePlantStats) gridState.tilePlantStats = {};
@@ -3309,11 +3764,47 @@ grass</textarea>
       const pxRow = rowIdx * (gridState.strideY || 717);
       const idStr = "tile_" + String(idx + 1).padStart(6, "0");
 
+      // Nếu người dùng chọn "Bắt đầu trống" và chưa nạp ảnh: trả về 0 cây (không hiển thị dữ liệu mẫu giả)
+      if (gridState.isBlankMode && !gridState.userImage && !gridState.rawFile) {
+        const emptyStat = {
+          tileIndex: idx,
+          tileIdStr: idStr,
+          colIdx: colIdx,
+          rowIdx: rowIdx,
+          pxCol: pxCol,
+          pxRow: pxRow,
+          tileW: gridState.tileW || 1024,
+          tileH: gridState.tileH || 1024,
+          totalRicePlants: 0,
+          ricePlantCount: 0,
+          plant_count: 0,
+          sharpRicePlants: 0,
+          blurryTipPlants: 0,
+          approvedReplacedPlants: 0,
+          rejectedBlurryPlants: 0,
+          userAddedPlants: 0,
+          aiLearnedPlants: 0,
+          plants: [],
+          _fromUnloadedImage: false
+        };
+        gridState.tilePlantStats[idx] = emptyStat;
+        return emptyStat;
+      }
+
       const rawCanvas = getRawUncountedTileCanvas(idx);
       const cw = Math.max(64, rawCanvas.width || 1024);
       const ch = Math.max(64, rawCanvas.height || 489);
       let detectedCoords = [];
       let hasValidImagePixels = false;
+
+      const lp = gridState.learningProfile || { annotations: [], positives: [], negatives: [] };
+      const posProtos = Array.isArray(lp.positives) ? lp.positives : [];
+      const negProtos = Array.isArray(lp.negatives) ? lp.negatives : [];
+      const tileAnns = (Array.isArray(lp.annotations) ? lp.annotations : []).filter(function(a) {
+        return Number(a.tileIndex) === idx;
+      });
+      let aiLearnedAddedCount = 0;
+      let suppressedFpCount = 0;
 
       try {
         const rctx = rawCanvas.getContext("2d");
@@ -3357,7 +3848,14 @@ grass</textarea>
             score[i] = green3x3[i] * (1.8 + 0.22 * pitNear[i]);
           }
 
+          // Nếu Key hiện tại đã học mẫu dương (cây bị thiếu), hạ ngưỡng ứng viên có kiểm soát để đối chiếu Prototype hình dạng + màu
+          const hasPosLearning = posProtos.length > 0;
+          const hasNegLearning = negProtos.length > 0;
+          const learnedMinG3 = hasPosLearning ? 1.15 : 2.2;
+          const learnedMinSc = hasPosLearning ? 4.2 : 8.5;
+
           const cand = [];
+          const learnedCand = [];
           for (let y = 7; y < ch - 7; y++) {
             const rowOff = y * cw;
             for (let x = 7; x < cw - 7; x++) {
@@ -3367,7 +3865,9 @@ grass</textarea>
               const sc = score[k];
               const g3 = green3x3[k];
               const pn = pitNear[k];
-              if (!((g3 >= 2.2 && pn >= 2.5 && sc >= 8.5) || (g3 >= 4.4 && sc >= 10.5))) continue;
+              const passDefault = (g3 >= 2.2 && pn >= 2.5 && sc >= 8.5) || (g3 >= 4.4 && sc >= 10.5);
+              const passLearnedFloor = hasPosLearning && !passDefault && g3 >= learnedMinG3 && sc >= learnedMinSc;
+              if (!passDefault && !passLearnedFloor) continue;
 
               let isMax = true;
               for (let dy = -6; dy <= 6 && isMax; dy++) {
@@ -3380,7 +3880,6 @@ grass</textarea>
                 }
               }
               if (isMax) {
-                // Đo độ sắc nét Laplacian thực tế trong vùng 9x9 quanh cây lúa tại (x, y)
                 let lapSum = 0;
                 for (let dy = -3; dy <= 3; dy++) {
                   for (let dx = -3; dx <= 3; dx++) {
@@ -3389,15 +3888,68 @@ grass</textarea>
                     lapSum += lap + green3x3[cIdx] * 1.4;
                   }
                 }
-                cand.push({ sc: sc, x: x, y: y, lapScore: lapSum / 49.0, greenVal: g3 });
+                const entry = { sc: sc, x: x, y: y, lapScore: lapSum / 49.0, greenVal: g3, learnedByAI: false, tag: "newly_transplanted_rice", radiusPx: 9, shape: "circle" };
+                if (passDefault) cand.push(entry);
+                else learnedCand.push(entry);
+              }
+            }
+          }
+
+          // Nếu có mẫu học dương (Active Learning), đối chiếu từng ứng viên bổ sung với vector hình dạng + màu mà người dùng đã dạy
+          if (hasPosLearning && learnedCand.length > 0) {
+            learnedCand.sort(function(a, b) { return b.sc - a.sc; });
+            const evalLimit = Math.min(learnedCand.length, 260);
+            for (let i = 0; i < evalLimit; i++) {
+              const lc = learnedCand[i];
+              const feat = extractRealPixelPatchDescriptor(rawCanvas, lc.x, lc.y, posProtos[0].radiusPx || 12);
+              let bestPosSim = 0;
+              let bestProto = null;
+              for (let p = 0; p < posProtos.length; p++) {
+                const sim = computePrototypeSimilarity(feat, posProtos[p].features);
+                if (sim > bestPosSim) {
+                  bestPosSim = sim;
+                  bestProto = posProtos[p];
+                }
+              }
+              let bestNegSim = 0;
+              for (let n = 0; n < negProtos.length; n++) {
+                const simN = computePrototypeSimilarity(feat, negProtos[n].features);
+                if (simN > bestNegSim) bestNegSim = simN;
+              }
+              if (bestPosSim >= 0.54 && bestPosSim > bestNegSim + 0.04 && bestProto) {
+                lc.learnedByAI = true;
+                lc.learnedSim = Number(bestPosSim.toFixed(3));
+                lc.tag = bestProto.tag || "newly_transplanted_rice";
+                lc.radiusPx = bestProto.radiusPx || 11;
+                lc.shape = bestProto.shape || "circle";
+                cand.push(lc);
               }
             }
           }
 
           cand.sort(function(a, b) { return b.sc - a.sc; });
-          const minD2 = 21 * 21;
           for (let i = 0; i < cand.length; i++) {
             const c = cand[i];
+            // Hard Negative Suppression: loại bỏ điểm tương đồng mạnh với vùng người dùng đã xóa đếm nhầm
+            if (hasNegLearning && !c.learnedByAI) {
+              const cFeat = extractRealPixelPatchDescriptor(rawCanvas, c.x, c.y, 12);
+              let maxNeg = 0;
+              for (let n = 0; n < negProtos.length; n++) {
+                const sn = computePrototypeSimilarity(cFeat, negProtos[n].features);
+                if (sn > maxNeg) maxNeg = sn;
+              }
+              let maxPos = 0;
+              for (let p = 0; p < posProtos.length; p++) {
+                const sp = computePrototypeSimilarity(cFeat, posProtos[p].features);
+                if (sp > maxPos) maxPos = sp;
+              }
+              if (maxNeg >= 0.74 && maxNeg > maxPos + 0.06) {
+                suppressedFpCount++;
+                continue;
+              }
+            }
+
+            const minD2 = c.learnedByAI ? (16 * 16) : (21 * 21);
             let tooClose = false;
             for (let j = 0; j < detectedCoords.length; j++) {
               const dx = c.x - detectedCoords[j].x;
@@ -3408,6 +3960,7 @@ grass</textarea>
               }
             }
             if (!tooClose) {
+              if (c.learnedByAI) aiLearnedAddedCount++;
               detectedCoords.push(c);
             }
           }
@@ -3420,14 +3973,84 @@ grass</textarea>
           for (let c = 0; c < 12; c++) {
             const x = Math.round(((c + 0.6) / 12.2) * cw);
             const y = Math.round(((r + 0.6) / 10.2) * ch);
-            detectedCoords.push({ sc: 12.0, x: x, y: y, lapScore: ((r * 12 + c) % 19 === 3) ? 4.2 : 14.5, greenVal: 3.5 });
+            detectedCoords.push({ sc: 12.0, x: x, y: y, lapScore: ((r * 12 + c) % 19 === 3) ? 4.2 : 14.5, greenVal: 3.5, learnedByAI: false, tag: "newly_transplanted_rice", radiusPx: 9, shape: "circle" });
           }
         }
       }
 
+      // Áp dụng trực tiếp các chỉnh sửa tay của người dùng trên ô này (xóa đếm nhầm, dời vị trí lệch, bổ sung cây thiếu)
+      const removeAnns = tileAnns.filter(function(a) { return a.kind === "remove_fp"; });
+      const moveAnns = tileAnns.filter(function(a) { return a.kind === "move_plant"; });
+      const addAnns = tileAnns.filter(function(a) { return a.kind === "add_plant"; });
+
+      if (removeAnns.length > 0) {
+        detectedCoords = detectedCoords.filter(function(pt) {
+          for (let i = 0; i < removeAnns.length; i++) {
+            const rx = removeAnns[i].relX * cw;
+            const ry = removeAnns[i].relY * ch;
+            if (Math.hypot(pt.x - rx, pt.y - ry) <= Math.max(14, removeAnns[i].radiusPx || 14)) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      if (moveAnns.length > 0) {
+        moveAnns.forEach(function(ma) {
+          const oldX = (typeof ma.oldRelX === "number" ? ma.oldRelX : ma.relX) * cw;
+          const oldY = (typeof ma.oldRelY === "number" ? ma.oldRelY : ma.relY) * ch;
+          const newX = Math.round(ma.relX * cw);
+          const newY = Math.round(ma.relY * ch);
+          let bestI = -1, bestD = 26;
+          for (let i = 0; i < detectedCoords.length; i++) {
+            const d = Math.hypot(detectedCoords[i].x - oldX, detectedCoords[i].y - oldY);
+            if (d < bestD) { bestD = d; bestI = i; }
+          }
+          if (bestI >= 0) {
+            detectedCoords[bestI].x = newX;
+            detectedCoords[bestI].y = newY;
+            detectedCoords[bestI].isUserCorrected = true;
+            detectedCoords[bestI].tag = ma.tag || detectedCoords[bestI].tag;
+            detectedCoords[bestI].radiusPx = ma.radiusPx || detectedCoords[bestI].radiusPx;
+            detectedCoords[bestI].shape = ma.shape || detectedCoords[bestI].shape;
+            detectedCoords[bestI].annotationId = ma.id;
+          } else {
+            detectedCoords.push({
+              sc: 22.0, x: newX, y: newY, lapScore: 16.0, greenVal: 5.0,
+              isUserAdded: true, isUserCorrected: true, learnedByAI: false,
+              tag: ma.tag || "newly_transplanted_rice", radiusPx: ma.radiusPx || 12,
+              shape: ma.shape || "circle", annotationId: ma.id
+            });
+          }
+        });
+      }
+
+      let userAddedCount = 0;
+      if (addAnns.length > 0) {
+        addAnns.forEach(function(aa) {
+          const ax = Math.round(aa.relX * cw);
+          const ay = Math.round(aa.relY * ch);
+          // Loại bỏ chấm tự động trùng khít ngay dưới điểm người dùng tự gắn tag để tránh đếm đúp
+          detectedCoords = detectedCoords.filter(function(pt) {
+            return pt.isUserAdded || Math.hypot(pt.x - ax, pt.y - ay) > 10;
+          });
+          userAddedCount++;
+          detectedCoords.push({
+            sc: 25.0, x: ax, y: ay, lapScore: 18.0, greenVal: 5.5,
+            isUserAdded: true, learnedByAI: false,
+            tag: aa.tag || "newly_transplanted_rice",
+            radiusPx: aa.radiusPx || 12,
+            shape: aa.shape || "circle",
+            annotationId: aa.id
+          });
+        });
+      }
+
       // Xác định các cây lúa có độ nét ngọn thấp nhất (nhòe ngọn thực tế trên ảnh) để đưa vào danh sách chờ người dùng duyệt thay
-      const sortedBySharpness = detectedCoords.slice().sort(function(a, b) { return a.lapScore - b.lapScore; });
-      const targetBlurryCount = detectedCoords.length > 0 ? Math.max(4, Math.min(12, Math.round(detectedCoords.length * 0.025))) : 0;
+      const autoOnlyCoords = detectedCoords.filter(function(pt) { return !pt.isUserAdded; });
+      const sortedBySharpness = autoOnlyCoords.slice().sort(function(a, b) { return a.lapScore - b.lapScore; });
+      const targetBlurryCount = autoOnlyCoords.length > 0 ? Math.max(4, Math.min(12, Math.round(autoOnlyCoords.length * 0.025))) : 0;
       const blurrySet = new Set(sortedBySharpness.slice(0, targetBlurryCount));
 
       // Sắp xếp thứ tự cây lúa từ trên xuống dưới theo từng hàng cấy, từ trái sang phải
@@ -3445,14 +4068,14 @@ grass</textarea>
       for (let i = 0; i < detectedCoords.length; i++) {
         const pt = detectedCoords[i];
         const pNum = i + 1;
-        const plantId = idStr + "_plant_" + String(pNum).padStart(3, "0");
+        const plantId = pt.annotationId ? (idStr + "_user_" + pt.annotationId) : (idStr + "_plant_" + String(pNum).padStart(3, "0"));
         const relX = pt.x / Math.max(1, cw);
         const relY = pt.y / Math.max(1, ch);
         const globalPxX = pxCol + pt.x;
         const globalPxY = pxRow + pt.y;
         const vnX = gridState.baseX + globalPxX * gridState.gsdX;
         const vnY = gridState.baseY - globalPxY * gridState.gsdY;
-        const isBlurryTip = blurrySet.has(pt);
+        const isBlurryTip = !pt.isUserAdded && blurrySet.has(pt);
 
         const sharpBefore = isBlurryTip
           ? Number(Math.max(22.0, Math.min(46.5, 24.0 + pt.lapScore * 1.4)).toFixed(1))
@@ -3481,7 +4104,14 @@ grass</textarea>
           globalPxY: globalPxY,
           vnX: vnX,
           vnY: vnY,
-          radiusPx: 9,
+          radiusPx: pt.radiusPx || 9,
+          shape: pt.shape || "circle",
+          tag: pt.tag || "newly_transplanted_rice",
+          isUserAdded: Boolean(pt.isUserAdded),
+          isUserCorrected: Boolean(pt.isUserCorrected),
+          learnedByAI: Boolean(pt.learnedByAI),
+          learnedSim: pt.learnedSim || null,
+          annotationId: pt.annotationId || null,
           deltaZCm: deltaZCm,
           ndvi: ndviVal,
           isBlurryTip: isBlurryTip,
@@ -3491,6 +4121,11 @@ grass</textarea>
           nadirAngleDeg: nadirDeg,
           replacementStatus: isBlurryTip ? "pending" : "sharp"
         });
+      }
+
+      if (gridState.learningProfile) {
+        gridState.learningProfile.lastDeltaFound = aiLearnedAddedCount;
+        gridState.learningProfile.lastSuppressedFp = suppressedFpCount;
       }
 
       const statObj = {
@@ -3509,6 +4144,9 @@ grass</textarea>
         blurryTipPlants: blurryCount,
         approvedReplacedPlants: 0,
         rejectedBlurryPlants: 0,
+        userAddedPlants: userAddedCount,
+        aiLearnedPlants: aiLearnedAddedCount,
+        suppressedFpCount: suppressedFpCount,
         plants: plants,
         _fromUnloadedImage: !hasValidImagePixels
       };
@@ -3801,6 +4439,7 @@ grass</textarea>
       if (window.anime) {
         window.anime({ targets: "#overview-canvas", scale: [0.985, 1], opacity: [0.75, 1], duration: 240, easing: "easeOutExpo" });
       }
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
       return p;
     }
 
@@ -3841,6 +4480,7 @@ grass</textarea>
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
       drawOverviewAndGrid();
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
       return p;
     }
 
@@ -3857,6 +4497,7 @@ grass</textarea>
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
       drawOverviewAndGrid();
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
     }
 
     function resetAllBlurryPlantReplacements() {
@@ -3872,6 +4513,7 @@ grass</textarea>
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
       drawOverviewAndGrid();
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
     }
 
     // R5: CHUYỂN CHẾ ĐỘ HIỂN THỊ ẢNH NGAY Ở KHUNG GIỮA (CENTER STAGE — KHÔNG BUNG CỬA SỔ MỚI)
@@ -3891,10 +4533,17 @@ grass</textarea>
         }
       });
 
+      const teachBar = document.getElementById("center-teach-ai-toolbar");
+      if (teachBar) {
+        teachBar.style.display = (gridState.centerStageMode === "tile_1to1") ? "flex" : "none";
+      }
+      if (typeof updateAnnotationToolUI === "function") updateAnnotationToolUI();
+
       ensureTileRicePlantStats(gridState.selectedIndex, false);
       updateSelectedTileDetails();
       renderPerTileRiceCountTable();
       renderBlurryTipApprovalPanel();
+      if (typeof renderActiveLearningPanel === "function") renderActiveLearningPanel();
       drawOverviewAndGrid();
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
@@ -3908,6 +4557,7 @@ grass</textarea>
           easing: "easeOutExpo"
         });
       }
+      if (typeof scheduleSaveKeyWorkspace === "function") scheduleSaveKeyWorkspace();
     }
 
     function focusTileInCenterStage(tileIndex) {
@@ -3945,6 +4595,33 @@ grass</textarea>
       drawOverviewAndGrid();
     }
 
+    function getMode2SplitPaneLayout(W, H, srcW, srcH) {
+      const pad = 14;
+      const topY = 98;
+      const availW = Math.floor((W - pad * 3) / 2);
+      const availH = Math.max(120, H - topY - 34);
+      const sw = Math.max(1, srcW);
+      const sh = Math.max(1, srcH);
+      const fitScale = Math.min(availW / sw, availH / sh);
+      const drawW = Math.max(120, Math.floor(sw * fitScale));
+      const drawH = Math.max(80, Math.floor(sh * fitScale));
+      const leftX = Math.floor((W - (drawW * 2 + pad)) / 2);
+      const rightX = leftX + drawW + pad;
+      const paneY = topY + Math.max(0, Math.floor((availH - drawH) / 2));
+      return { pad: pad, topY: topY, drawW: drawW, drawH: drawH, leftX: leftX, rightX: rightX, paneY: paneY, srcW: sw, srcH: sh };
+    }
+
+    function drawPlantShapeOutline(ctx, px, py, rad, shape) {
+      ctx.beginPath();
+      if (shape === "box") {
+        ctx.rect(px - rad, py - rad, rad * 2, rad * 2);
+      } else if (shape === "ellipse") {
+        ctx.ellipse(px, py, rad * 1.25, rad * 0.78, 0, 0, Math.PI * 2);
+      } else {
+        ctx.arc(px, py, rad, 0, Math.PI * 2);
+      }
+    }
+
     function drawOverviewAndGrid() {
       const canvas = document.getElementById("overview-canvas");
       if (!canvas) return;
@@ -3955,6 +4632,29 @@ grass</textarea>
       ctx.fillStyle = "#0e1512";
       ctx.fillRect(0, 0, W, H);
 
+      // Chế độ Không gian trống (người dùng đã tắt dữ liệu mẫu và chưa nạp ảnh riêng)
+      if (gridState.isBlankMode && !gridState.userImage && !gridState.rawFile) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+        ctx.setLineDash([8, 6]);
+        ctx.lineWidth = 2;
+        const bx = Math.round(W * 0.14), by = Math.round(H * 0.22), bw = Math.round(W * 0.72), bh = Math.round(H * 0.56);
+        ctx.strokeRect(bx, by, bw, bh);
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 18px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("📄 KHÔNG GIAN LÀM VIỆC TRỐNG — CHƯA NẠP ẢNH", W / 2, H / 2 - 18);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "13px Inter, sans-serif";
+        ctx.fillText("Bấm nút 📂 Nạp ảnh ở góc trên hoặc kéo thả ảnh UAV (.tif, .jpg, .png) vào đây.", W / 2, H / 2 + 12);
+        ctx.fillText("Hoặc chọn 🌾 Mẫu Stage 1 / 📐 Khu Tam Giác ở Bước 01 để thử nhanh.", W / 2, H / 2 + 34);
+        ctx.restore();
+        const vs = document.getElementById("viewport-status");
+        if (vs) vs.textContent = "Không gian trống (Phiên riêng theo Key) · Chưa nạp ảnh";
+        return;
+      }
+
       // =========================================================================
       // CHẾ ĐỘ 2 Ở KHUNG GIỮA: SOI Ô CẮT 1:1 — BÊN TRÁI (CHƯA ĐẾM) vs BÊN PHẢI (ĐÃ ĐẾM TRÊN PIXEL THẬT)
       // =========================================================================
@@ -3964,25 +4664,15 @@ grass</textarea>
         const rawTile = getRawUncountedTileCanvas(gridState.selectedIndex);
         const cleanTile = getCleanNativeTileCanvas(gridState.selectedIndex);
 
-        const pad = 14;
-        const topY = 98;
-        const availW = Math.floor((W - pad * 3) / 2);
-        const availH = Math.max(120, H - topY - 34);
-        const srcW = Math.max(1, rawTile.width);
-        const srcH = Math.max(1, rawTile.height);
-        const fitScale = Math.min(availW / srcW, availH / srcH);
-        const drawW = Math.max(140, Math.floor(srcW * fitScale));
-        const drawH = Math.max(90, Math.floor(srcH * fitScale));
-        const leftX = Math.floor((W - (drawW * 2 + pad)) / 2);
-        const rightX = leftX + drawW + pad;
-        const paneY = topY + Math.max(0, Math.floor((availH - drawH) / 2));
+        const lay = getMode2SplitPaneLayout(W, H, rawTile.width, rawTile.height);
+        const drawW = lay.drawW, drawH = lay.drawH, leftX = lay.leftX, rightX = lay.rightX, paneY = lay.paneY, srcW = lay.srcW, srcH = lay.srcH;
 
         // 1. KHUNG BÊN TRÁI: BÊN CHƯA ĐẾM (Ảnh gốc 1:1 sạch 100% từ pixel thật, không vẽ bất kỳ ký hiệu nào)
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(rawTile, 0, 0, rawTile.width, rawTile.height, leftX, paneY, drawW, drawH);
-        ctx.strokeStyle = "#64748b";
+        ctx.strokeStyle = gridState.annotationTool !== "inspect" ? "#7c3aed" : "#64748b";
         ctx.lineWidth = 2.2;
         ctx.strokeRect(leftX, paneY, drawW, drawH);
 
@@ -3998,12 +4688,12 @@ grass</textarea>
         );
         ctx.restore();
 
-        // 2. KHUNG BÊN PHẢI: BÊN ĐÃ ĐẾM (Cùng ảnh gốc 1:1 + Khoanh đúng vị trí từng cây lúa thật trên ảnh)
+        // 2. KHUNG BÊN PHẢI: BÊN ĐÃ ĐẾM (Cùng ảnh gốc 1:1 + Khoanh đúng vị trí từng cây lúa thật + Nhãn tay + AI đã học)
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(cleanTile, 0, 0, cleanTile.width, cleanTile.height, rightX, paneY, drawW, drawH);
-        ctx.strokeStyle = "#10b981";
+        ctx.strokeStyle = gridState.annotationTool !== "inspect" ? "#7c3aed" : "#10b981";
         ctx.lineWidth = 2.4;
         ctx.strokeRect(rightX, paneY, drawW, drawH);
 
@@ -4011,8 +4701,9 @@ grass</textarea>
         ctx.fillRect(rightX, paneY - 26, drawW, 26);
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 11.5px Inter, sans-serif";
+        const extraTxt = (st.userAddedPlants ? (" · 🔵 " + st.userAddedPlants + " tay") : "") + (st.aiLearnedPlants ? (" · 🟣 +" + st.aiLearnedPlants + " AI học") : "");
         ctx.fillText(
-          "🎯 BÊN ĐÃ ĐẾM — " + st.totalRicePlants + " cây lúa (🟢 " + st.sharpRicePlants + " nét · 🟠 " + st.blurryTipPlants + " nhòe)",
+          "🎯 BÊN ĐÃ ĐẾM — " + st.totalRicePlants + " cây (🟢 " + st.sharpRicePlants + " · 🟠 " + st.blurryTipPlants + extraTxt + ")",
           rightX + 8,
           paneY - 9,
           drawW - 16
@@ -4024,10 +4715,65 @@ grass</textarea>
           st.plants.forEach(function(p) {
             const px = rightX + p.relX * drawW;
             const py = paneY + p.relY * drawH;
-            const rad = Math.max(4.5, (p.radiusPx / srcW) * drawW);
-            ctx.beginPath();
-            ctx.arc(px, py, rad, 0, Math.PI * 2);
-            if (p.isBlurryTip) {
+            const rad = Math.max(4.5, ((p.radiusPx || 9) / srcW) * drawW);
+            const isMoveSrc = gridState.movePendingPlantId && gridState.movePendingPlantId === p.plantId;
+
+            if (isMoveSrc) {
+              ctx.save();
+              ctx.strokeStyle = "#facc15";
+              ctx.lineWidth = 3.5;
+              ctx.setLineDash([4, 3]);
+              ctx.beginPath();
+              ctx.arc(px, py, rad + 5, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            if (p.isUserAdded || p.isUserCorrected) {
+              drawPlantShapeOutline(ctx, px, py, rad, p.shape || "circle");
+              ctx.fillStyle = "rgba(37, 99, 235, 0.24)";
+              ctx.fill();
+              ctx.strokeStyle = "#3b82f6";
+              ctx.lineWidth = 2.4;
+              ctx.stroke();
+
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+              ctx.fill();
+
+              const shortTag = String(p.tag || "cây").replace("newly_transplanted_rice", "Lúa").replace("rice_clump_large", "Khóm to").replace("grass", "Cỏ").replace("tree_crown", "Cây");
+              const lblText = (p.isUserCorrected && !p.isUserAdded ? "🎯 " : "🏷️ ") + shortTag;
+              const lblW = Math.min(72, Math.max(36, lblText.length * 6 + 8));
+              const lblH = 12;
+              const lblX = Math.max(rightX + 2, Math.min(rightX + drawW - lblW - 2, px - lblW / 2));
+              const lblY = Math.max(paneY + 2, Math.min(paneY + drawH - lblH - 2, py - rad - 14));
+              ctx.fillStyle = "rgba(29, 78, 216, 0.94)";
+              ctx.fillRect(lblX, lblY, lblW, lblH);
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "bold 8.5px Inter, sans-serif";
+              ctx.fillText(lblText, lblX + 3, lblY + 9, lblW - 6);
+            } else if (p.learnedByAI) {
+              drawPlantShapeOutline(ctx, px, py, rad, p.shape || "circle");
+              ctx.fillStyle = "rgba(168, 85, 247, 0.22)";
+              ctx.fill();
+              ctx.strokeStyle = "#a855f7";
+              ctx.lineWidth = 2.0;
+              ctx.stroke();
+              ctx.fillStyle = "#f5d0fe";
+              ctx.beginPath();
+              ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+              ctx.fill();
+              const lblX = Math.max(rightX + 2, Math.min(rightX + drawW - 28, px - 12));
+              const lblY = Math.max(paneY + 2, Math.min(paneY + drawH - 12, py - rad - 11));
+              ctx.fillStyle = "rgba(126, 34, 206, 0.9)";
+              ctx.fillRect(lblX, lblY, 26, 10);
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "bold 7.5px Inter, sans-serif";
+              ctx.fillText("+AI", lblX + 3, lblY + 8);
+            } else if (p.isBlurryTip) {
+              ctx.beginPath();
+              ctx.arc(px, py, rad, 0, Math.PI * 2);
               const isCur = selBlurry && selBlurry.plantId === p.plantId;
               if (p.replacementStatus === "approved") {
                 ctx.strokeStyle = "#06b6d4";
@@ -4045,7 +4791,6 @@ grass</textarea>
               ctx.fill();
               ctx.stroke();
 
-              // Tâm điểm cây lúa thật
               ctx.fillStyle = "#fde047";
               ctx.beginPath();
               ctx.arc(px, py, 1.9, 0, Math.PI * 2);
@@ -4066,10 +4811,11 @@ grass</textarea>
                 lblW - 4
               );
             } else {
+              ctx.beginPath();
+              ctx.arc(px, py, rad, 0, Math.PI * 2);
               ctx.strokeStyle = "#10b981";
               ctx.lineWidth = 1.5;
               ctx.stroke();
-              // Chấm vàng nhỏ ngay tâm khóm lúa thật để dễ kiểm chứng bằng mắt
               ctx.fillStyle = "#fde047";
               ctx.beginPath();
               ctx.arc(px, py, 1.6, 0, Math.PI * 2);
@@ -4086,17 +4832,30 @@ grass</textarea>
         ctx.restore();
 
         // Thanh tiêu đề ngay dưới thanh công cụ .map-tools (không bị chồng lấp nút điều khiển)
-        ctx.fillStyle = "rgba(11, 20, 16, 0.92)";
+        const modeToolHint = gridState.annotationTool === "add_plant"
+          ? " · ➕ CHẠM/NHẤP VÀO CÂY BỊ THIẾU ĐỂ GẮN TAG"
+          : (gridState.annotationTool === "move_plant"
+            ? (gridState.movePendingPlantId ? " · 🎯 CHẠM VÀO ĐÚNG TÂM CÂY MỚI ĐỂ DỜI" : " · 🎯 CHẠM VÀO CHẤM BỊ LỆCH CẦN SỬA")
+            : (gridState.annotationTool === "remove_fp" ? " · 🗑️ CHẠM CHẤM ĐẾM NHẦM ĐỂ XÓA & DẠY AI" : ""));
+        ctx.fillStyle = gridState.annotationTool !== "inspect" ? "rgba(76, 29, 149, 0.94)" : "rgba(11, 20, 16, 0.92)";
         ctx.fillRect(12, 44, W - 24, 24);
-        ctx.fillStyle = "#6ee7b7";
+        ctx.fillStyle = gridState.annotationTool !== "inspect" ? "#f5d0fe" : "#6ee7b7";
         ctx.font = "bold 11.5px Inter, sans-serif";
         ctx.fillText(
-          "🔍 SOI ĐỐI CHIẾU Ô " + st.tileIdStr + " (1:1 GỐC): TRÁI = CHƯA ĐẾM vs PHẢI = ĐÃ ĐẾM (" +
-          st.totalRicePlants + " CÂY LÚA · " + st.sharpRicePlants + " NÉT · " + st.blurryTipPlants + " NHÒE · ĐÃ THAY " + st.approvedReplacedPlants + ")",
+          "🔍 SOI Ô " + st.tileIdStr + ": " + st.totalRicePlants + " CÂY (" + st.sharpRicePlants + " NÉT · " + st.blurryTipPlants + " NHÒE" +
+          (st.userAddedPlants ? (" · +" + st.userAddedPlants + " TAY") : "") +
+          (st.aiLearnedPlants ? (" · +" + st.aiLearnedPlants + " AI HỌC") : "") + ")" + modeToolHint,
           20,
           60,
           W - 40
         );
+        const vsMode2 = document.getElementById("viewport-status");
+        if (vsMode2) {
+          const srcLabel = gridState.isCustomOriginalFile ? (gridState.userFileName || "Ảnh của bạn") : ("Mẫu: " + ((DATASET_PRESETS[gridState.datasetKey] || DATASET_PRESETS.stage1_rgb).label));
+          vsMode2.textContent = srcLabel + " · Ô " + st.tileIdStr + ": " + st.totalRicePlants + " cây (" + st.sharpRicePlants + " nét · " + st.blurryTipPlants + " nhòe" +
+            (st.userAddedPlants ? (" · +" + st.userAddedPlants + " nhãn tay") : "") +
+            (st.aiLearnedPlants ? (" · +" + st.aiLearnedPlants + " AI học") : "") + ")";
+        }
         return;
       }
 
@@ -6420,7 +7179,738 @@ grass</textarea>
       a.click();
     }
 
-    // Interactive Canvas Click, Drag, Wheel Zoom & Drag-and-Drop Original Image
+    // =========================================================================
+    // ACTIVE LEARNING UI & KEY-ISOLATED WORKSPACE PERSISTENCE (THEO TỪNG KEY RIÊNG BIỆT)
+    // =========================================================================
+    function getKeyStorageId(rawKey) {
+      const s = String(rawKey || "").trim();
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return "key_" + ((h >>> 0).toString(16).padStart(8, "0")) + "_" + s.length;
+    }
+
+    function createEmptyLearningProfile() {
+      return {
+        annotations: [],
+        positives: [],
+        negatives: [],
+        classNames: ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+        lastTrainedAt: null,
+        lastDeltaFound: 0,
+        lastSuppressedFp: 0
+      };
+    }
+
+    function resetInMemoryKeyState() {
+      gridState.isBlankMode = false;
+      gridState.isCustomOriginalFile = false;
+      gridState.userFileName = "";
+      gridState.rawFile = null;
+      gridState.parsedTiffHeader = null;
+      gridState.cachedTileCrop = null;
+      gridState.nativeSynthesizedTileCache = {};
+      gridState.tilePlantStats = {};
+      gridState.detections = [];
+      gridState.selectedBlurryPlantId = null;
+      gridState.annotationTool = "inspect";
+      gridState.movePendingPlantId = null;
+      gridState.learningProfile = createEmptyLearningProfile();
+    }
+
+    function collectBlurryDecisionsSnapshot() {
+      const map = {};
+      if (!gridState.tilePlantStats) return map;
+      Object.keys(gridState.tilePlantStats).forEach(function(k) {
+        const st = gridState.tilePlantStats[k];
+        if (!st || !Array.isArray(st.plants)) return;
+        st.plants.forEach(function(p) {
+          if (p.isBlurryTip && (p.replacementStatus === "approved" || p.replacementStatus === "rejected")) {
+            map[p.plantId] = p.replacementStatus;
+          }
+        });
+      });
+      return map;
+    }
+
+    function applyBlurryDecisionsSnapshot(decisionsMap) {
+      if (!decisionsMap || typeof decisionsMap !== "object") return;
+      const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
+      if (!st || !Array.isArray(st.plants)) return;
+      st.plants.forEach(function(p) {
+        if (decisionsMap[p.plantId]) {
+          p.replacementStatus = decisionsMap[p.plantId];
+          p.user_approved = decisionsMap[p.plantId] === "approved";
+        }
+      });
+      recalcTileBlurryCounts(st);
+    }
+
+    function serializeKeyWorkspaceSnapshot() {
+      return {
+        version: 1,
+        savedAt: Date.now(),
+        savedAtIso: new Date().toISOString(),
+        workspace: {
+          isBlankMode: Boolean(gridState.isBlankMode),
+          datasetKey: gridState.datasetKey || "stage1_rgb",
+          sourcePath: (document.getElementById("source-path") && document.getElementById("source-path").value) || "",
+          userFileName: gridState.userFileName || "",
+          currentStep: currentStep || 1,
+          centerStageMode: gridState.centerStageMode || "overview_map",
+          selectedIndex: gridState.selectedIndex || 846,
+          tileW: gridState.tileW || 1024,
+          tileH: gridState.tileH || 1024,
+          ovX: gridState.ovX || 0.30,
+          ovY: gridState.ovY || 0.30,
+          baseX: gridState.baseX || 572184.450,
+          baseY: gridState.baseY || 1181420.180,
+          activeTag: gridState.activeTag || "newly_transplanted_rice",
+          activeShape: gridState.activeShape || "circle",
+          activeRadiusPx: gridState.activeRadiusPx || 12,
+          blurryDecisions: collectBlurryDecisionsSnapshot()
+        },
+        learning_profile: gridState.learningProfile || createEmptyLearningProfile()
+      };
+    }
+
+    function applyKeyWorkspaceSnapshot(snap) {
+      if (!snap || typeof snap !== "object") return false;
+      const ws = snap.workspace || {};
+      const lp = snap.learning_profile || createEmptyLearningProfile();
+      gridState.learningProfile = {
+        annotations: Array.isArray(lp.annotations) ? lp.annotations : [],
+        positives: Array.isArray(lp.positives) ? lp.positives : [],
+        negatives: Array.isArray(lp.negatives) ? lp.negatives : [],
+        classNames: Array.isArray(lp.classNames || lp.class_names) && (lp.classNames || lp.class_names).length
+          ? (lp.classNames || lp.class_names).slice()
+          : ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"],
+        lastTrainedAt: lp.lastTrainedAt || null,
+        lastDeltaFound: Number(lp.lastDeltaFound || 0),
+        lastSuppressedFp: Number(lp.lastSuppressedFp || 0)
+      };
+
+      if (typeof ws.tileW === "number" && ws.tileW >= 128) {
+        gridState.tileW = ws.tileW;
+        const el = document.getElementById("tile-width");
+        if (el) el.value = String(ws.tileW);
+      }
+      if (typeof ws.tileH === "number" && ws.tileH >= 128) {
+        gridState.tileH = ws.tileH;
+        const el = document.getElementById("tile-height");
+        if (el) el.value = String(ws.tileH);
+      }
+      if (typeof ws.ovX === "number") {
+        gridState.ovX = ws.ovX;
+        const el = document.getElementById("overlap-x");
+        if (el) el.value = String(Math.round(ws.ovX * 100));
+      }
+      if (typeof ws.ovY === "number") {
+        gridState.ovY = ws.ovY;
+        const el = document.getElementById("overlap-y");
+        if (el) el.value = String(Math.round(ws.ovY * 100));
+      }
+      if (typeof ws.baseX === "number") {
+        gridState.baseX = ws.baseX;
+        const el = document.getElementById("base-x");
+        if (el) el.value = ws.baseX.toFixed(3);
+      }
+      if (typeof ws.baseY === "number") {
+        gridState.baseY = ws.baseY;
+        const el = document.getElementById("base-y");
+        if (el) el.value = ws.baseY.toFixed(3);
+      }
+      if (ws.activeTag) gridState.activeTag = ws.activeTag;
+      if (ws.activeShape) gridState.activeShape = ws.activeShape;
+      if (ws.activeRadiusPx) gridState.activeRadiusPx = Number(ws.activeRadiusPx) || 12;
+
+      if (ws.isBlankMode) {
+        startBlankWorkspace(true);
+      } else {
+        const dsKey = ws.datasetKey || "stage1_rgb";
+        const preset = DATASET_PRESETS[dsKey] || DATASET_PRESETS.stage1_rgb;
+        gridState.isBlankMode = false;
+        gridState.datasetKey = preset.key;
+        if (PRELOADED_DATASET_IMAGES[preset.key]) {
+          gridState.userImage = PRELOADED_DATASET_IMAGES[preset.key];
+        }
+        applyDatasetMetadataToUI(preset);
+        if (typeof ws.selectedIndex === "number" && ws.selectedIndex >= 0) {
+          gridState.selectedIndex = ws.selectedIndex;
+        }
+        recalculateGrid(false);
+        gridState.tilePlantStats = {};
+        ensureTileRicePlantStats(gridState.selectedIndex, true);
+        if (ws.blurryDecisions) applyBlurryDecisionsSnapshot(ws.blurryDecisions);
+      }
+      if (ws.currentStep) goToStep(ws.currentStep);
+      if (ws.centerStageMode) switchCenterStageMode(ws.centerStageMode);
+      syncTeachTagDropdownOptions();
+      updateDataSourceBadge();
+      renderActiveLearningPanel();
+      return true;
+    }
+
+    let _keySaveTimer = null;
+    function scheduleSaveKeyWorkspace() {
+      if (!activeKey) return;
+      if (_keySaveTimer) clearTimeout(_keySaveTimer);
+      _keySaveTimer = setTimeout(function() {
+        _keySaveTimer = null;
+        saveKeyWorkspaceState(false);
+      }, 450);
+    }
+
+    async function saveKeyWorkspaceState(showFeedback) {
+      if (!activeKey) return;
+      const keyId = getKeyStorageId(activeKey);
+      const snap = serializeKeyWorkspaceSnapshot();
+      try {
+        localStorage.setItem("UAV_KEY_WORKSPACE_V1::" + keyId, JSON.stringify(snap));
+      } catch (_e) {}
+
+      let syncedCloud = false;
+      try {
+        const res = await fetch("/api/workspace/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-UAV-Key": activeKey },
+          body: JSON.stringify({
+            key: activeKey,
+            workspace: snap.workspace,
+            learning_profile: snap.learning_profile
+          })
+        });
+        if (res.ok) syncedCloud = true;
+      } catch (_e2) {}
+
+      const pill = document.getElementById("key-scope-badge");
+      if (pill) {
+        const tStr = new Date().toLocaleTimeString("vi-VN", { hour12: false });
+        pill.textContent = "🔑 " + activeKey.slice(0, 5) + "… · Đã lưu";
+        pill.title = "Phiên độc lập theo Key (" + keyId + ") · Lưu lúc " + tStr + (syncedCloud ? " (Thiết bị + Server)" : " (Thiết bị)");
+      }
+      if (showFeedback) {
+        const sumEl = document.getElementById("teach-learning-summary");
+        if (sumEl) {
+          sumEl.innerHTML = "💾 <strong>Đã lưu tiến trình riêng cho Key hiện tại</strong> (<code>" + keyId + "</code> · " +
+            (snap.learning_profile.annotations || []).length + " nhãn học" + (syncedCloud ? " · đã đồng bộ Server" : " · lưu trên máy") + "). Key khác đăng nhập sẽ không bị ảnh hưởng.";
+        }
+      }
+      updateDataSourceBadge();
+    }
+
+    async function loadKeyWorkspaceState(rawKey) {
+      const keyId = getKeyStorageId(rawKey);
+      let localSnap = null;
+      try {
+        const raw = localStorage.getItem("UAV_KEY_WORKSPACE_V1::" + keyId);
+        if (raw) localSnap = JSON.parse(raw);
+      } catch (_e) {}
+
+      let remoteSnap = null;
+      try {
+        const res = await fetch("/api/workspace/state", {
+          headers: { "X-UAV-Key": rawKey }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.has_saved_state && (data.workspace || data.learning_profile)) {
+            remoteSnap = {
+              savedAt: data.updated_at_utc ? Date.parse(data.updated_at_utc) : 0,
+              workspace: data.workspace,
+              learning_profile: data.learning_profile
+            };
+          }
+        }
+      } catch (_e2) {}
+
+      let chosen = null;
+      if (localSnap && remoteSnap) {
+        chosen = ((remoteSnap.savedAt || 0) > (localSnap.savedAt || 0)) ? remoteSnap : localSnap;
+      } else {
+        chosen = localSnap || remoteSnap;
+      }
+
+      const pill = document.getElementById("key-scope-badge");
+      if (pill) {
+        pill.textContent = "🔑 " + rawKey.slice(0, 5) + "…";
+        pill.title = "Phiên làm việc tách biệt 100% theo Key (" + keyId + ")";
+      }
+
+      if (chosen) {
+        applyKeyWorkspaceSnapshot(chosen);
+        return true;
+      }
+      return false;
+    }
+
+    function exportKeySessionBundle() {
+      if (!activeKey) return;
+      const keyId = getKeyStorageId(activeKey);
+      const snap = serializeKeyWorkspaceSnapshot();
+      snap.key_scope_id = keyId;
+      const blob = new Blob([JSON.stringify(snap, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "UAV_Key_Session_" + keyId + ".json";
+      a.click();
+    }
+
+    function importKeySessionBundle(ev) {
+      const file = ev && ev.target && ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const r = new FileReader();
+      r.onload = function(e) {
+        try {
+          const snap = JSON.parse(String(e.target.result || "{}"));
+          applyKeyWorkspaceSnapshot(snap);
+          saveKeyWorkspaceState(true);
+        } catch (_err) {
+          const sumEl = document.getElementById("teach-learning-summary");
+          if (sumEl) sumEl.textContent = "❌ Tệp phiên Key JSON không hợp lệ.";
+        }
+      };
+      r.readAsText(file);
+      ev.target.value = "";
+    }
+
+    function syncTeachTagDropdownOptions() {
+      const sel = document.getElementById("teach-tag-select");
+      if (!sel) return;
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      const existing = new Set(Array.from(sel.options).map(function(o) { return o.value; }));
+      (lp.classNames || []).forEach(function(cls) {
+        if (!existing.has(cls)) {
+          const opt = document.createElement("option");
+          opt.value = cls;
+          opt.textContent = "🏷️ " + cls;
+          sel.insertBefore(opt, sel.options[sel.options.length - 1]);
+          existing.add(cls);
+        }
+      });
+      if (existing.has(gridState.activeTag)) {
+        sel.value = gridState.activeTag;
+      }
+    }
+
+    function onTeachTagSelectChange(val) {
+      if (val === "__custom__") {
+        const inp = document.getElementById("teach-custom-tag-input");
+        if (inp) {
+          inp.focus();
+          inp.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+        return;
+      }
+      gridState.activeTag = val || "newly_transplanted_rice";
+    }
+
+    function applyCustomTeachTag() {
+      const inp = document.getElementById("teach-custom-tag-input");
+      if (!inp) return;
+      const clean = inp.value.trim().replace(/\\s+/g, "_").replace(/[^\\w\\-\\u00C0-\\u1EF9]/g, "");
+      if (!clean) return;
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      if (!lp.classNames.includes(clean)) lp.classNames.push(clean);
+      gridState.activeTag = clean;
+      syncTeachTagDropdownOptions();
+      inp.value = "";
+      renderActiveLearningPanel();
+      scheduleSaveKeyWorkspace();
+    }
+
+    function setAnnotationTool(tool) {
+      const allowed = ["inspect", "add_plant", "move_plant", "remove_fp"];
+      gridState.annotationTool = allowed.includes(tool) ? tool : "inspect";
+      gridState.movePendingPlantId = null;
+      updateAnnotationToolUI();
+      drawOverviewAndGrid();
+    }
+
+    function updateAnnotationToolUI() {
+      const map = {
+        inspect: "btn-tool-inspect",
+        add_plant: "btn-tool-add",
+        move_plant: "btn-tool-move",
+        remove_fp: "btn-tool-remove"
+      };
+      Object.keys(map).forEach(function(k) {
+        const btn = document.getElementById(map[k]);
+        if (btn) {
+          if (k === gridState.annotationTool) btn.classList.add("active");
+          else btn.classList.remove("active");
+        }
+      });
+      const canvas = document.getElementById("overview-canvas");
+      if (canvas) {
+        const annotating = gridState.centerStageMode === "tile_1to1" && gridState.annotationTool !== "inspect";
+        canvas.style.cursor = annotating ? "crosshair" : "grab";
+        canvas.style.touchAction = annotating ? "none" : "auto";
+      }
+      const hint = document.getElementById("canvas-hint-caption");
+      if (hint) {
+        if (gridState.centerStageMode === "tile_1to1" && gridState.annotationTool === "add_plant") {
+          hint.textContent = "Chạm cây thiếu để gắn [" + gridState.activeTag + "]";
+        } else if (gridState.centerStageMode === "tile_1to1" && gridState.annotationTool === "move_plant") {
+          hint.textContent = gridState.movePendingPlantId
+            ? "Bước 2/2: Chạm đúng tâm cây mới"
+            : "Bước 1/2: Chạm chấm bị lệch";
+        } else if (gridState.centerStageMode === "tile_1to1" && gridState.annotationTool === "remove_fp") {
+          hint.textContent = "Chạm chấm đếm nhầm để xóa & dạy AI";
+        } else {
+          hint.textContent = "Kéo: di chuyển · Cuộn: phóng · Nhấp ô: soi";
+        }
+      }
+    }
+
+    function handleMode2CanvasTap(relX, relY) {
+      const idx = gridState.selectedIndex;
+      const st = ensureTileRicePlantStats(idx, false);
+      const rawTile = getRawUncountedTileCanvas(idx);
+      const cw = Math.max(1, rawTile.width);
+      const ch = Math.max(1, rawTile.height);
+      const px = Math.round(relX * cw);
+      const py = Math.round(relY * ch);
+      const lp = gridState.learningProfile || (gridState.learningProfile = createEmptyLearningProfile());
+
+      if (gridState.annotationTool === "add_plant") {
+        const rad = Number(gridState.activeRadiusPx || 12);
+        const shape = gridState.activeShape || "circle";
+        const tag = gridState.activeTag || "newly_transplanted_rice";
+        const feat = extractRealPixelPatchDescriptor(rawTile, px, py, rad);
+        const annId = "a" + Date.now().toString(36) + "_" + Math.floor(Math.random() * 999);
+        lp.annotations.push({
+          id: annId,
+          kind: "add_plant",
+          tileIndex: idx,
+          tileIdStr: st.tileIdStr,
+          relX: Number(relX.toFixed(5)),
+          relY: Number(relY.toFixed(5)),
+          relW: Number(Math.min(0.4, (rad * 2) / cw).toFixed(5)),
+          relH: Number(Math.min(0.4, (rad * 2) / ch).toFixed(5)),
+          px: px,
+          py: py,
+          radiusPx: rad,
+          shape: shape,
+          tag: tag,
+          features: feat,
+          createdAt: new Date().toISOString()
+        });
+        lp.positives.push({ id: annId, tag: tag, radiusPx: rad, shape: shape, features: feat });
+        ensureTileRicePlantStats(idx, true);
+        updateSelectedTileDetails();
+        renderPerTileRiceCountTable();
+        renderActiveLearningPanel();
+        drawOverviewAndGrid();
+        drawSelectedTilePreview();
+        scheduleSaveKeyWorkspace();
+        return;
+      }
+
+      if (gridState.annotationTool === "move_plant") {
+        if (!gridState.movePendingPlantId) {
+          let bestPlant = null, bestDist = 0.055;
+          (st.plants || []).forEach(function(p) {
+            const d = Math.hypot(p.relX - relX, p.relY - relY);
+            if (d < bestDist) { bestDist = d; bestPlant = p; }
+          });
+          if (bestPlant) {
+            gridState.movePendingPlantId = bestPlant.plantId;
+            gridState._moveSourceCoords = { relX: bestPlant.relX, relY: bestPlant.relY, tag: bestPlant.tag };
+            updateAnnotationToolUI();
+            drawOverviewAndGrid();
+          }
+          return;
+        }
+        const src = gridState._moveSourceCoords || { relX: relX, relY: relY };
+        const rad = Number(gridState.activeRadiusPx || 12);
+        const shape = gridState.activeShape || "circle";
+        const tag = gridState.activeTag || src.tag || "newly_transplanted_rice";
+        const feat = extractRealPixelPatchDescriptor(rawTile, px, py, rad);
+        const annId = "m" + Date.now().toString(36) + "_" + Math.floor(Math.random() * 999);
+        lp.annotations.push({
+          id: annId,
+          kind: "move_plant",
+          tileIndex: idx,
+          tileIdStr: st.tileIdStr,
+          oldRelX: Number(src.relX.toFixed(5)),
+          oldRelY: Number(src.relY.toFixed(5)),
+          relX: Number(relX.toFixed(5)),
+          relY: Number(relY.toFixed(5)),
+          relW: Number(Math.min(0.4, (rad * 2) / cw).toFixed(5)),
+          relH: Number(Math.min(0.4, (rad * 2) / ch).toFixed(5)),
+          px: px,
+          py: py,
+          radiusPx: rad,
+          shape: shape,
+          tag: tag,
+          features: feat,
+          createdAt: new Date().toISOString()
+        });
+        lp.positives.push({ id: annId, tag: tag, radiusPx: rad, shape: shape, features: feat });
+        gridState.movePendingPlantId = null;
+        gridState._moveSourceCoords = null;
+        ensureTileRicePlantStats(idx, true);
+        updateAnnotationToolUI();
+        updateSelectedTileDetails();
+        renderPerTileRiceCountTable();
+        renderActiveLearningPanel();
+        drawOverviewAndGrid();
+        drawSelectedTilePreview();
+        scheduleSaveKeyWorkspace();
+        return;
+      }
+
+      if (gridState.annotationTool === "remove_fp") {
+        let bestPlant = null, bestDist = 0.055;
+        (st.plants || []).forEach(function(p) {
+          const d = Math.hypot(p.relX - relX, p.relY - relY);
+          if (d < bestDist) { bestDist = d; bestPlant = p; }
+        });
+        if (!bestPlant) return;
+        if (bestPlant.annotationId) {
+          deleteUserAnnotationById(bestPlant.annotationId);
+          return;
+        }
+        const negPx = Math.round(bestPlant.relX * cw);
+        const negPy = Math.round(bestPlant.relY * ch);
+        const feat = extractRealPixelPatchDescriptor(rawTile, negPx, negPy, 12);
+        const annId = "n" + Date.now().toString(36) + "_" + Math.floor(Math.random() * 999);
+        lp.annotations.push({
+          id: annId,
+          kind: "remove_fp",
+          tileIndex: idx,
+          tileIdStr: st.tileIdStr,
+          relX: Number(bestPlant.relX.toFixed(5)),
+          relY: Number(bestPlant.relY.toFixed(5)),
+          px: negPx,
+          py: negPy,
+          radiusPx: 14,
+          tag: "background_false_positive",
+          features: feat,
+          createdAt: new Date().toISOString()
+        });
+        lp.negatives.push({ id: annId, features: feat });
+        ensureTileRicePlantStats(idx, true);
+        updateSelectedTileDetails();
+        renderPerTileRiceCountTable();
+        renderActiveLearningPanel();
+        drawOverviewAndGrid();
+        drawSelectedTilePreview();
+        scheduleSaveKeyWorkspace();
+        return;
+      }
+
+      // Chế độ mặc định 'inspect': chọn cây nhòe ngọn để đối chiếu
+      if (st && Array.isArray(st.plants)) {
+        let bestPlant = null;
+        let bestDist = 0.065;
+        st.plants.forEach(function(p) {
+          if (!p.isBlurryTip) return;
+          const d = Math.hypot(p.relX - relX, p.relY - relY);
+          if (d < bestDist) {
+            bestDist = d;
+            bestPlant = p;
+          }
+        });
+        if (bestPlant) {
+          selectBlurryPlantForComparison(bestPlant.plantId, false);
+        }
+      }
+    }
+
+    function deleteUserAnnotationById(annId) {
+      const lp = gridState.learningProfile;
+      if (!lp) return;
+      lp.annotations = (lp.annotations || []).filter(function(a) { return a.id !== annId; });
+      lp.positives = (lp.positives || []).filter(function(p) { return p.id !== annId; });
+      lp.negatives = (lp.negatives || []).filter(function(n) { return n.id !== annId; });
+      gridState.tilePlantStats = {};
+      ensureTileRicePlantStats(gridState.selectedIndex, true);
+      updateSelectedTileDetails();
+      renderPerTileRiceCountTable();
+      renderActiveLearningPanel();
+      drawOverviewAndGrid();
+      drawSelectedTilePreview();
+      scheduleSaveKeyWorkspace();
+    }
+
+    function clearCurrentKeyLearnedAnnotations() {
+      gridState.learningProfile = createEmptyLearningProfile();
+      gridState.tilePlantStats = {};
+      ensureTileRicePlantStats(gridState.selectedIndex, true);
+      updateSelectedTileDetails();
+      renderPerTileRiceCountTable();
+      renderActiveLearningPanel();
+      drawOverviewAndGrid();
+      drawSelectedTilePreview();
+      saveKeyWorkspaceState(false);
+    }
+
+    function renderActiveLearningPanel() {
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      const anns = lp.annotations || [];
+      const addCnt = anns.filter(function(a) { return a.kind === "add_plant"; }).length;
+      const moveCnt = anns.filter(function(a) { return a.kind === "move_plant"; }).length;
+      const negCnt = anns.filter(function(a) { return a.kind === "remove_fp"; }).length;
+      const badge = document.getElementById("learned-model-badge");
+      if (badge) badge.textContent = anns.length + " mẫu học";
+
+      const sumEl = document.getElementById("teach-learning-summary");
+      if (sumEl) {
+        if (anns.length === 0) {
+          sumEl.innerHTML = "Chưa có nhãn tay trên Key này. Mở <strong>2. Soi ô cắt</strong> → bấm <strong>➕ Thêm cây</strong> hoặc <strong>🎯 Sửa lệch</strong> rồi chạm/nhấp lên ảnh để dạy mô hình.";
+        } else {
+          sumEl.innerHTML = "🧠 <strong>Bộ nhớ học riêng của Key:</strong> <strong>+" + addCnt + "</strong> cây thêm · <strong>" + moveCnt + "</strong> vị trí sửa · <strong>" + negCnt + "</strong> mẫu âm" +
+            (lp.lastDeltaFound ? (" → 🟣 AI tự tìm thêm <strong>+" + lp.lastDeltaFound + " cây</strong>") : "") +
+            (lp.lastSuppressedFp ? (" · lọc <strong>-" + lp.lastSuppressedFp + " điểm nhầm</strong>") : "") + ".";
+        }
+      }
+
+      const listEl = document.getElementById("teach-annotation-list");
+      if (listEl) {
+        if (anns.length === 0) {
+          listEl.innerHTML = "";
+        } else {
+          listEl.innerHTML = anns.slice().reverse().slice(0, 20).map(function(a) {
+            const icon = a.kind === "add_plant" ? "➕" : (a.kind === "move_plant" ? "🎯" : "🗑️");
+            const label = a.kind === "remove_fp" ? "Xóa đếm nhầm" : (a.tag + " (" + (a.shape || "circle") + " R" + (a.radiusPx || 12) + ")");
+            return "<div class='teach-ann-item'>" +
+              "<span style='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" + icon + " <strong>" + (a.tileIdStr || "ô") + "</strong> · " + label + "</span>" +
+              "<button type='button' class='secondary' style='min-height:20px;height:20px;padding:0 6px;font-size:10px;color:#b42318;' onclick=\\"deleteUserAnnotationById('" + a.id + "')\\">✕</button>" +
+              "</div>";
+          }).join("");
+        }
+      }
+      updateDataSourceBadge();
+    }
+
+    async function trainOnlineModelFromAnnotationsAndRescan() {
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      const anns = lp.annotations || [];
+      if (anns.length === 0) {
+        const sumEl = document.getElementById("teach-learning-summary");
+        if (sumEl) sumEl.innerHTML = "⚠️ Hãy bấm <strong>➕ Thêm cây</strong> hoặc <strong>🎯 Sửa lệch</strong> rồi chạm ít nhất 1 vị trí trên ảnh trước khi bấm Học!";
+        return;
+      }
+
+      // Xây dựng lại toàn bộ bộ mẫu Prototype Dương & Mẫu Âm Cứng từ tất cả nhãn của Key hiện tại
+      const pos = [];
+      const neg = [];
+      anns.forEach(function(a) {
+        if (!a.features) return;
+        if (a.kind === "remove_fp") {
+          neg.push({ id: a.id, features: a.features });
+        } else {
+          pos.push({ id: a.id, tag: a.tag || "newly_transplanted_rice", radiusPx: a.radiusPx || 12, shape: a.shape || "circle", features: a.features });
+        }
+      });
+      lp.positives = pos;
+      lp.negatives = neg;
+      lp.lastTrainedAt = new Date().toISOString();
+
+      // Xóa cache tất cả ô để mô hình đã học áp dụng cho ô hiện tại VÀ toàn bộ ô/ảnh quét sau này
+      gridState.tilePlantStats = {};
+      const st = ensureTileRicePlantStats(gridState.selectedIndex, true);
+      updateSelectedTileDetails();
+      renderPerTileRiceCountTable();
+      renderBlurryTipApprovalPanel();
+      renderActiveLearningPanel();
+      drawOverviewAndGrid();
+      drawSelectedTilePreview();
+
+      // Đồng bộ bộ mẫu học lên Backend (/api/learning/annotations) theo Key
+      try {
+        await fetch("/api/learning/annotations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-UAV-Key": activeKey },
+          body: JSON.stringify({
+            key: activeKey,
+            annotations: anns,
+            positives: pos,
+            negatives: neg,
+            class_names: lp.classNames
+          })
+        });
+      } catch (_e) {}
+
+      await saveKeyWorkspaceState(false);
+
+      const sumEl = document.getElementById("teach-learning-summary");
+      if (sumEl) {
+        sumEl.innerHTML = "✅ <strong>Mô hình đã học xong (" + pos.length + " mẫu dương · " + neg.length + " mẫu âm) &amp; Quét lại " + st.tileIdStr + ":</strong> " +
+          "Tổng <strong>" + st.totalRicePlants + " cây</strong> (🟣 AI tự tìm thêm <strong>+" + (st.aiLearnedPlants || 0) + " cây</strong> · lọc <strong>-" + (st.suppressedFpCount || 0) + " điểm nhầm</strong>). Đã lưu riêng theo Key!";
+      }
+    }
+
+    function exportLearnedYoloDataset() {
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      const anns = lp.annotations || [];
+      const classNames = (lp.classNames && lp.classNames.length) ? lp.classNames.slice() : ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"];
+      const yoloLines = [];
+      anns.forEach(function(a) {
+        if (!a || a.kind === "remove_fp") return;
+        const tag = a.tag || "newly_transplanted_rice";
+        if (!classNames.includes(tag)) classNames.push(tag);
+        const clsIdx = classNames.indexOf(tag);
+        yoloLines.push(clsIdx + " " + Number(a.relX || 0.5).toFixed(6) + " " + Number(a.relY || 0.5).toFixed(6) + " " + Number(a.relW || 0.025).toFixed(6) + " " + Number(a.relH || 0.025).toFixed(6));
+      });
+      const bundle = {
+        format: "UAV_VN2000_ActiveLearning_YOLO_Dataset_v1",
+        key_scope_id: getKeyStorageId(activeKey),
+        exported_at_utc: new Date().toISOString(),
+        classes: classNames,
+        yolo_labels_txt: yoloLines.join("\\n"),
+        annotations: anns,
+        positive_prototypes_count: (lp.positives || []).length,
+        negative_prototypes_count: (lp.negatives || []).length
+      };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "UAV_YOLO_Learned_Dataset_" + getKeyStorageId(activeKey) + ".json";
+      a.click();
+    }
+
+    async function syncAnnotationsAndTriggerDeepTraining() {
+      const lp = gridState.learningProfile || createEmptyLearningProfile();
+      const anns = lp.annotations || [];
+      const sumEl = document.getElementById("teach-learning-summary");
+      if (anns.length === 0) {
+        if (sumEl) sumEl.innerHTML = "⚠️ Cần gắn ít nhất 1 nhãn trên ảnh trước khi gửi huấn luyện sâu YOLO/TPU.";
+        return;
+      }
+      await trainOnlineModelFromAnnotationsAndRescan();
+      try {
+        const res = await fetch("/api/yolo/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-UAV-Key": activeKey },
+          body: JSON.stringify({
+            key: activeKey,
+            new_classes: lp.classNames,
+            dataset_size: Math.max(anns.length, 50),
+            epochs: 25,
+            estimated_seconds: anns.length >= 20 ? 1200 : 180,
+            annotations: anns
+          })
+        });
+        const data = await res.json();
+        if (res.status === 403) {
+          if (sumEl) sumEl.innerHTML = "⏱️ <span style='color:#b42318;'>403: " + (data.error || "Tác vụ TPU >15p cần quyền TPU trên Key") + "</span> (đã lưu xong học trực tuyến tại trình duyệt).";
+          return;
+        }
+        if (sumEl) {
+          sumEl.innerHTML = "🚀 <strong>Đã đẩy " + anns.length + " mẫu gắn tag vào hàng đợi Fine-Tune YOLO/LocateAnything</strong> (" +
+            (data.offloaded_to_tpu ? "Google TPU v5e-8" : "Local WebGPU") + " · Lớp: <code>" + lp.classNames.join(", ") + "</code>).";
+        }
+      } catch (_e) {
+        if (sumEl) sumEl.innerHTML = "✅ Đã lưu " + anns.length + " mẫu học trên Key. Dùng nút <strong>📦 Xuất YOLO</strong> để nạp trực tiếp vào notebook Colab TPU.";
+      }
+    }
+
+    // Interactive Canvas Click, Touch Tap (Mobile), Drag, Wheel Zoom & Drag-and-Drop Original Image
     (function bindOverviewCanvasEvents() {
       const canvas = document.getElementById("overview-canvas");
       const dropzone = document.getElementById("viewport-dropzone");
@@ -6446,6 +7936,51 @@ grass</textarea>
         });
       }
 
+      function handleCanvasPointTap(clientX, clientY) {
+        if (gridState.isBlankMode && !gridState.userImage && !gridState.rawFile) return;
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const cx = (clientX - rect.left) * (canvas.width / rect.width);
+        const cy = (clientY - rect.top) * (canvas.height / rect.height);
+
+        if (gridState.centerStageMode === "tile_1to1") {
+          const rawTile = getRawUncountedTileCanvas(gridState.selectedIndex);
+          const lay = getMode2SplitPaneLayout(canvas.width, canvas.height, rawTile.width, rawTile.height);
+          let relX = -1, relY = -1;
+          if (cy >= lay.paneY && cy <= lay.paneY + lay.drawH) {
+            if (cx >= lay.leftX && cx <= lay.leftX + lay.drawW) {
+              relX = (cx - lay.leftX) / lay.drawW;
+              relY = (cy - lay.paneY) / lay.drawH;
+            } else if (cx >= lay.rightX && cx <= lay.rightX + lay.drawW) {
+              relX = (cx - lay.rightX) / lay.drawW;
+              relY = (cy - lay.paneY) / lay.drawH;
+            }
+          }
+          if (relX >= 0 && relY >= 0) {
+            handleMode2CanvasTap(relX, relY);
+          }
+          return;
+        }
+
+        const box = getMapRenderBox(canvas);
+        const localX = (cx - canvas.width / 2 - gridState.panX) / gridState.zoom - box.ox;
+        const localY = (cy - canvas.height / 2 - gridState.panY) / gridState.zoom - box.oy;
+        if (localX >= 0 && localX <= box.mapW && localY >= 0 && localY <= box.mapH) {
+          const c = Math.min(gridState.cols - 1, Math.max(0, Math.floor((localX / box.mapW) * gridState.cols)));
+          const r = Math.min(gridState.rows - 1, Math.max(0, Math.floor((localY / box.mapH) * gridState.rows)));
+          const clickedTile = r * gridState.cols + c;
+          if (gridState.hasRunDetection && Array.isArray(gridState.detections)) {
+            const matchObj = gridState.detections.find(function(d) { return d.tileIndex === clickedTile && d.status !== "rejected"; });
+            if (matchObj) {
+              gridState.selectedDetectionId = matchObj.id;
+              updateDetectionResultsPanelUI();
+            }
+          }
+          selectTileById(clickedTile);
+          scheduleSaveKeyWorkspace();
+        }
+      }
+
       canvas.addEventListener("mousedown", function(e) {
         dragging = true;
         moved = false;
@@ -6466,72 +8001,39 @@ grass</textarea>
         if (!dragging) return;
         dragging = false;
         if (!moved) {
-          const rect = canvas.getBoundingClientRect();
-          const cx = (e.clientX - rect.left) * (canvas.width / rect.width);
-          const cy = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-          // Neu dang o che do Soi o anh cat 1:1 (Trai: Chua dem vs Phai: Da dem), cho phep click chon cay lua bi nhoe ngon o ca 2 khung
-          if (gridState.centerStageMode === "tile_1to1") {
-            const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
-            const rawTile = getRawUncountedTileCanvas(gridState.selectedIndex);
-            const pad = 14;
-            const topY = 66;
-            const availW = Math.floor((canvas.width - pad * 3) / 2);
-            const availH = canvas.height - topY - 14;
-            const srcW = Math.max(1, rawTile.width);
-            const srcH = Math.max(1, rawTile.height);
-            const fitScale = Math.min(availW / srcW, availH / srcH);
-            const drawW = Math.max(140, Math.floor(srcW * fitScale));
-            const drawH = Math.max(90, Math.floor(srcH * fitScale));
-            const leftX = Math.floor((canvas.width - (drawW * 2 + pad)) / 2);
-            const rightX = leftX + drawW + pad;
-            const paneY = topY + Math.max(0, Math.floor((availH - drawH) / 2));
-            let relX = -1, relY = -1;
-            if (cy >= paneY && cy <= paneY + drawH) {
-              if (cx >= leftX && cx <= leftX + drawW) {
-                relX = (cx - leftX) / drawW;
-                relY = (cy - paneY) / drawH;
-              } else if (cx >= rightX && cx <= rightX + drawW) {
-                relX = (cx - rightX) / drawW;
-                relY = (cy - paneY) / drawH;
-              }
-            }
-            if (relX >= 0 && relY >= 0 && st && Array.isArray(st.plants)) {
-              let bestPlant = null;
-              let bestDist = 0.065;
-              st.plants.forEach(function(p) {
-                if (!p.isBlurryTip) return;
-                const d = Math.hypot(p.relX - relX, p.relY - relY);
-                if (d < bestDist) {
-                  bestDist = d;
-                  bestPlant = p;
-                }
-              });
-              if (bestPlant) {
-                selectBlurryPlantForComparison(bestPlant.plantId, false);
-              }
-            }
-            return;
-          }
-
-          const box = getMapRenderBox(canvas);
-          const localX = (cx - canvas.width / 2 - gridState.panX) / gridState.zoom - box.ox;
-          const localY = (cy - canvas.height / 2 - gridState.panY) / gridState.zoom - box.oy;
-          if (localX >= 0 && localX <= box.mapW && localY >= 0 && localY <= box.mapH) {
-            const c = Math.min(gridState.cols - 1, Math.max(0, Math.floor((localX / box.mapW) * gridState.cols)));
-            const r = Math.min(gridState.rows - 1, Math.max(0, Math.floor((localY / box.mapH) * gridState.rows)));
-            const clickedTile = r * gridState.cols + c;
-            if (gridState.hasRunDetection && Array.isArray(gridState.detections)) {
-              const matchObj = gridState.detections.find(function(d) { return d.tileIndex === clickedTile && d.status !== "rejected"; });
-              if (matchObj) {
-                gridState.selectedDetectionId = matchObj.id;
-                updateDetectionResultsPanelUI();
-              }
-            }
-            selectTileById(clickedTile);
-          }
+          handleCanvasPointTap(e.clientX, e.clientY);
         }
       });
+
+      // Hỗ trợ chạm cảm ứng chính xác trên điện thoại (iOS/Android) để chấm bổ sung cây thiếu & sửa vị trí lệch
+      let touchStartPt = null;
+      let touchMoved = false;
+      canvas.addEventListener("touchstart", function(e) {
+        if (!e.touches || e.touches.length !== 1) return;
+        touchStartPt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchMoved = false;
+        if (gridState.centerStageMode === "tile_1to1" && gridState.annotationTool !== "inspect") {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      canvas.addEventListener("touchmove", function(e) {
+        if (!touchStartPt || !e.touches || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - touchStartPt.x;
+        const dy = e.touches[0].clientY - touchStartPt.y;
+        if (Math.hypot(dx, dy) > 8) touchMoved = true;
+      }, { passive: true });
+      canvas.addEventListener("touchend", function(e) {
+        if (!touchStartPt) return;
+        const pt = touchStartPt;
+        touchStartPt = null;
+        if (!touchMoved) {
+          if (gridState.centerStageMode === "tile_1to1" && gridState.annotationTool !== "inspect") {
+            e.preventDefault();
+          }
+          handleCanvasPointTap(pt.x, pt.y);
+        }
+      }, { passive: false });
+
       canvas.addEventListener("wheel", function(e) {
         e.preventDefault();
         if (gridState.centerStageMode === "overview_map") {
@@ -6582,6 +8084,7 @@ grass</textarea>
         document.getElementById("login-gate-wrapper").style.display = "flex";
         return;
       }
+      resetInMemoryKeyState();
       activeKey = k;
       currentKeyRecord = data.key_record || {};
       errEl.textContent = "";
@@ -6601,12 +8104,22 @@ grass</textarea>
         adminPanel.style.display = "none";
         nameLabel.textContent = "Nhận diện & kiểm duyệt";
       }
-      goToStep(1);
-      resetWorkflowOnSourceChange(false);
-      recalculateGrid(false);
-      ensureTileRicePlantStats(gridState.selectedIndex, false);
-      renderPerTileRiceCountTable();
-      renderBlurryTipApprovalPanel();
+
+      // Nạp tiến trình & bộ nhớ học ĐỘC LẬP của đúng Key này (không dùng chung giữa các Key)
+      const restored = await loadKeyWorkspaceState(activeKey);
+      if (!restored) {
+        goToStep(1);
+        resetWorkflowOnSourceChange(false);
+        const preset = DATASET_PRESETS.stage1_rgb;
+        if (PRELOADED_DATASET_IMAGES.stage1_rgb) gridState.userImage = PRELOADED_DATASET_IMAGES.stage1_rgb;
+        applyDatasetMetadataToUI(preset);
+        recalculateGrid(false);
+        ensureTileRicePlantStats(gridState.selectedIndex, true);
+        renderPerTileRiceCountTable();
+        renderBlurryTipApprovalPanel();
+        renderActiveLearningPanel();
+        updateDataSourceBadge();
+      }
       fitOverview();
       drawSelectedTilePreview();
       drawRtkCrownComparisonCanvas();
@@ -6619,6 +8132,10 @@ grass</textarea>
     }
 
     function logoutSession() {
+      if (activeKey) {
+        saveKeyWorkspaceState(false);
+      }
+      resetInMemoryKeyState();
       activeKey = "";
       currentKeyRecord = null;
       document.getElementById("key-input").value = "";
@@ -7542,6 +9059,94 @@ export default {
         parallel_lanes: lanes,
         cad_polylines_count: 18,
         benchmark: { speedup_factor: 42.6, cpu_serial_ms: 38.4, fpga_parallel_ms: 0.9, fpga_Equivalent_throughput_mpix_per_s: 1120.5 }
+      });
+    }
+
+    if (request.method === "GET" && (path === "/api/workspace/state" || path === "/api/learning/annotations")) {
+      const callerKey = extractCallerKey(request);
+      const auth = await validateKey(env, callerKey, false);
+      if (!auth.valid) {
+        return jsonResponse({ status: "forbidden", http_status: 403, error: auth.reason || "Thiếu hoặc sai Key truy cập" }, 403);
+      }
+      const rec = await loadEdgeKeyWorkspace(env, callerKey);
+      const lp = rec.learning_profile || {};
+      if (path === "/api/learning/annotations") {
+        return jsonResponse({
+          status: "ok",
+          isolated_per_key: true,
+          key_id: rec.key_id,
+          annotations: lp.annotations || [],
+          positives_count: (lp.positives || []).length,
+          negatives_count: (lp.negatives || []).length,
+          class_names: lp.class_names || [],
+          updated_at_utc: rec.updated_at_utc,
+        });
+      }
+      return jsonResponse({ status: "ok", isolated_per_key: true, ...rec });
+    }
+
+    if (request.method === "POST" && path === "/api/workspace/state") {
+      const body = await request.json().catch(() => ({}));
+      const callerKey = extractCallerKey(request, body);
+      const auth = await validateKey(env, callerKey, false);
+      if (!auth.valid) {
+        return jsonResponse({ status: "forbidden", http_status: 403, error: auth.reason || "Thiếu hoặc sai Key truy cập" }, 403);
+      }
+      const saved = await saveEdgeKeyWorkspace(env, callerKey, body.workspace || null, body.learning_profile || null);
+      return jsonResponse({
+        status: "ok",
+        saved: true,
+        isolated_per_key: true,
+        key_id: saved.key_id,
+        updated_at_utc: saved.updated_at_utc,
+      });
+    }
+
+    if (request.method === "POST" && (path === "/api/learning/annotations" || path === "/api/learning/train")) {
+      const body = await request.json().catch(() => ({}));
+      const callerKey = extractCallerKey(request, body);
+      const auth = await validateKey(env, callerKey, false);
+      if (!auth.valid) {
+        return jsonResponse({ status: "forbidden", http_status: 403, error: auth.reason || "Thiếu hoặc sai Key truy cập" }, 403);
+      }
+      const annotations = Array.isArray(body.annotations) ? body.annotations : [];
+      const positives = Array.isArray(body.positives) ? body.positives : [];
+      const negatives = Array.isArray(body.negatives) ? body.negatives : [];
+      const classNames = Array.isArray(body.class_names) && body.class_names.length
+        ? body.class_names.slice()
+        : ["newly_transplanted_rice", "rice_clump_large", "grass", "tree_crown"];
+      const yoloLines = [];
+      for (const ann of annotations) {
+        if (!ann || ann.kind === "remove_fp") continue;
+        const tag = String(ann.tag || "newly_transplanted_rice");
+        if (!classNames.includes(tag)) classNames.push(tag);
+        const clsIdx = classNames.indexOf(tag);
+        const cx = Math.max(0, Math.min(1, Number(ann.relX || 0.5))).toFixed(6);
+        const cy = Math.max(0, Math.min(1, Number(ann.relY || 0.5))).toFixed(6);
+        const bw = Math.max(0.01, Math.min(0.5, Number(ann.relW || 0.03))).toFixed(6);
+        const bh = Math.max(0.01, Math.min(0.5, Number(ann.relH || 0.03))).toFixed(6);
+        yoloLines.push(`${clsIdx} ${cx} ${cy} ${bw} ${bh}`);
+      }
+      const learningProfile = {
+        annotations,
+        positives,
+        negatives,
+        class_names: classNames,
+        yolo_lines_count: yoloLines.length,
+      };
+      const saved = await saveEdgeKeyWorkspace(env, callerKey, null, learningProfile);
+      return jsonResponse({
+        status: "ok",
+        isolated_per_key: true,
+        key_id: saved.key_id,
+        saved_annotations_count: annotations.length,
+        positives_count: positives.length,
+        negatives_count: negatives.length,
+        class_names: classNames,
+        yolo_dataset_ready: true,
+        yolo_lines_count: yoloLines.length,
+        yolo_preview: yoloLines.slice(0, 10),
+        updated_at_utc: saved.updated_at_utc,
       });
     }
 
