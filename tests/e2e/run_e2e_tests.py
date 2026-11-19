@@ -1185,6 +1185,49 @@ class Tier3CrossFeatureIntegrationTests(unittest.TestCase):
             thread.join(timeout=2.0)
             stop_colab_tpu_server_instance(tpu_handle)
 
+    def test_t3_07_f10_f11_f12_f13_f14_round4_cross_endpoint_integration(self) -> None:
+        """F10 + F11 + F12 + F13 + F14: Real-time telemetry + per-tile rice count + blurry-tip approval + lossless .tiff export."""
+        from uav_app.adapters.webgpu_public_server import start_background_server
+
+        web_port = find_free_port()
+        srv, thread = start_background_server(host="127.0.0.1", port=web_port)
+        base = f"http://127.0.0.1:{web_port}"
+        try:
+            c_health, b_health, _ = http_request(f"{base}/api/health")
+            self.assertEqual(c_health, 200)
+            h_json = json.loads(b_health)
+            self.assertIn("hardware_realtime", h_json)
+            self.assertTrue(h_json["hardware_realtime"]["realtime"])
+
+            c_blur, b_blur, _ = http_request(f"{base}/api/plants/blurry-tips")
+            self.assertEqual(c_blur, 200)
+            blur_json = json.loads(b_blur)
+            self.assertGreater(blur_json["total_blurry_tip_plants"], 0)
+            pid = blur_json["blurry_tip_plants"][0]["plant_id"]
+
+            c_app, b_app, _ = http_request(
+                f"{base}/api/plants/approve-replacement",
+                method="POST",
+                payload=json.dumps({"approved_plant_ids": [pid]}).encode("utf-8"),
+            )
+            self.assertEqual(c_app, 200)
+            self.assertIn(pid, json.loads(b_app)["approved_plant_ids"])
+
+            c_exp, b_exp, _ = http_request(
+                f"{base}/api/tiff/export",
+                method="POST",
+                payload=json.dumps({"width": 32, "height": 32}).encode("utf-8"),
+            )
+            self.assertEqual(c_exp, 200)
+            exp_json = json.loads(b_exp)
+            self.assertEqual(exp_json["tiff_magic_hex"], "49492a00")
+            self.assertEqual(exp_json["approved_replacements_applied"], 1)
+            self.assertFalse(exp_json["dem_modified"])
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            thread.join(timeout=2.0)
+
 
 # ============================================================================
 # TIER 4: REAL-WORLD APPLICATION SCENARIOS (5 End-to-End Scenarios)
@@ -1621,9 +1664,93 @@ class Tier4RealWorldScenariosTests(unittest.TestCase):
                 thread.join(timeout=2.0)
                 stop_colab_tpu_server_instance(tpu_handle)
 
+    def test_t4_scenario_9_round4_realtime_telemetry_per_tile_rice_counting_approval_and_tiff_export(
+        self,
+    ) -> None:
+        """Scenario 9: Real-time hardware telemetry, 100% quality per-cropped-tile individual rice plant counting, side-by-side blurry-tip comparison/approval, and edited lossless GeoTIFF (.tiff) export."""
+        import base64
+        from uav_app.adapters.webgpu_public_server import start_background_server
+
+        web_port = find_free_port()
+        srv, thread = start_background_server(host="127.0.0.1", port=web_port)
+        base = f"http://127.0.0.1:{web_port}"
+        try:
+            # 1. Poll real-time hardware telemetry
+            c_hw1, b_hw1, _ = http_request(f"{base}/api/hardware/realtime")
+            c_hw2, b_hw2, _ = http_request(f"{base}/api/hardware/realtime")
+            self.assertEqual(c_hw1, 200)
+            self.assertEqual(c_hw2, 200)
+            hw1 = json.loads(b_hw1)
+            hw2 = json.loads(b_hw2)
+            self.assertTrue(hw1["realtime"])
+            self.assertGreater(hw2["poll_seq"], hw1["poll_seq"])
+            self.assertGreaterEqual(hw1["active_worker_threads"], 1)
+            self.assertIn("tpu_status", hw1)
+
+            # 2. Run per-cropped-tile individual rice plant detection at 100% quality preservation
+            c_det, b_det, _ = http_request(
+                f"{base}/api/detect/upload",
+                method="POST",
+                payload=json.dumps({"num_tiles": 4, "estimated_seconds": 60}).encode("utf-8"),
+            )
+            self.assertEqual(c_det, 200)
+            det = json.loads(b_det)
+            self.assertEqual(det["quality_preserved_pct"], 100)
+            self.assertTrue(det["native_resolution_preserved"])
+            self.assertEqual(det["counting_mode"], "per_cropped_tile_individual_rice_plants")
+            self.assertEqual(len(det["tiles"]), 4)
+            self.assertEqual(det["total_rice_plants"], sum(t["plant_count"] for t in det["tiles"]))
+            self.assertGreater(det["total_blurry_tip_plants"], 1)
+
+            blurry = det["blurry_tip_plants"]
+            pid_approve = blurry[0]["plant_id"]
+            pid_reject = blurry[1]["plant_id"]
+
+            # 3. Compare & approve 1 blurry-tip plant while rejecting another
+            c_app, b_app, _ = http_request(
+                f"{base}/api/plants/approve-replacement",
+                method="POST",
+                payload=json.dumps(
+                    {
+                        "approve_all": False,
+                        "decisions": [
+                            {"plant_id": pid_approve, "approved": True},
+                            {"plant_id": pid_reject, "approved": False},
+                        ],
+                    }
+                ).encode("utf-8"),
+            )
+            self.assertEqual(c_app, 200)
+            app_json = json.loads(b_app)
+            self.assertEqual(app_json["approved_count"], 1)
+            self.assertIn(pid_approve, app_json["approved_plant_ids"])
+            self.assertIn(pid_reject, app_json["rejected_plant_ids"])
+
+            # 4. Export edited lossless GeoTIFF (.tiff)
+            c_tiff, b_tiff, _ = http_request(
+                f"{base}/api/tiff/export",
+                method="POST",
+                payload=json.dumps({"width": 64, "height": 64}).encode("utf-8"),
+            )
+            self.assertEqual(c_tiff, 200)
+            tiff_json = json.loads(b_tiff)
+            self.assertEqual(tiff_json["tiff_magic_hex"], "49492a00")
+            self.assertEqual(tiff_json["quality_preserved_pct"], 100)
+            self.assertEqual(tiff_json["approved_replacements_applied"], 1)
+            self.assertEqual(tiff_json["applied_plant_ids"], [pid_approve])
+            self.assertIn(pid_reject, tiff_json["skipped_unapproved_plant_ids"])
+            self.assertFalse(tiff_json["dem_modified"])
+            self.assertTrue(tiff_json["dsm_checksum_preserved"])
+            raw_bytes = base64.b64decode(tiff_json["tiff_base64"])
+            self.assertTrue(raw_bytes.startswith(b"II*\x00"))
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            thread.join(timeout=2.0)
+
 
 class Tier1Feature678AutoTPUAndKeyManagementTests(unittest.TestCase):
-    """Tier 1 — Features F6 (>15m Auto-TPU & YOLO), F7 (7-Col Google Sheet Key Manager), F8 (Processed Drive Path)."""
+    """Tier 1 — Features F6 (>15m Auto-TPU & YOLO), F7 (7-Col Google Sheet Key Manager), F8 (Processed Drive Path), F10–F14 (Round 4)."""
 
     def test_t1_f6_01_execution_time_estimator_15m_threshold(self) -> None:
         from uav_app.adapters.tpu_offload_worker import estimate_execution_time
@@ -1685,6 +1812,77 @@ class Tier1Feature678AutoTPUAndKeyManagementTests(unittest.TestCase):
         info = st.get_processed_data_folder_info()
         self.assertEqual(info["processed_data_folder_id"], "1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN")
 
+    def test_t1_f10_f11_f12_f13_f14_round4_core_contracts(self) -> None:
+        from uav_app.adapters.tpu_offload_worker import (
+            TPUOffloadWorker,
+            count_rice_plants_in_tile,
+        )
+        from uav_app.infrastructure.telemetry import sample_hardware_telemetry
+
+        hw = sample_hardware_telemetry(max_age_sec=0.0)
+        self.assertTrue(hw["realtime"])
+        self.assertGreaterEqual(hw["poll_seq"], 1)
+        self.assertGreaterEqual(hw["active_worker_threads"], 1)
+
+        tile = count_rice_plants_in_tile({"tile_id": "tile_000001", "row": 0, "col": 0})
+        self.assertEqual(tile["quality_preserved_pct"], 100)
+        self.assertTrue(tile["native_resolution_preserved"])
+        self.assertGreater(tile["plant_count"], 0)
+        self.assertGreater(tile["blurry_tip_count"], 0)
+
+        worker = TPUOffloadWorker()
+        det = worker.detect_uploaded_images({"num_tiles": 2, "estimated_seconds": 30})
+        self.assertEqual(det["quality_preserved_pct"], 100)
+        self.assertEqual(det["total_rice_plants"], sum(t["plant_count"] for t in det["tiles"]))
+        pid = det["blurry_tip_plants"][0]["plant_id"]
+        app = worker.approve_blurry_plant_replacements({"approved_plant_ids": [pid]})
+        self.assertIn(pid, app["approved_plant_ids"])
+        tiff = worker.export_edited_geotiff({"width": 32, "height": 32, "approved_plant_ids": [pid]})
+        self.assertEqual(tiff["tiff_magic_hex"], "49492a00")
+        self.assertEqual(tiff["approved_replacements_applied"], 1)
+        self.assertFalse(tiff["dem_modified"])
+
+        arch_doc = (PROJECT_ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+        self.assertIn("[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #18]", arch_doc)
+
+
+class Tier2Feature9To14Round4BoundariesTests(unittest.TestCase):
+    """Tier 2 — Negative & Boundary Validation for Round 4 blurry-tip approval and GeoTIFF export."""
+
+    def test_t2_r4_01_malformed_approval_and_tiff_export_payloads_rejected(self) -> None:
+        from uav_app.adapters.tpu_offload_worker import TPUOffloadWorker
+        from uav_app.adapters.webgpu_public_server import start_background_server
+
+        worker = TPUOffloadWorker()
+        with self.assertRaises(ValueError):
+            worker.approve_blurry_plant_replacements({"approved_plant_ids": "not_a_list"})  # type: ignore[dict-item]
+        with self.assertRaises(ValueError):
+            worker.approve_blurry_plant_replacements({"decisions": [{"plant_id": ""}]})
+        with self.assertRaises(ValueError):
+            worker.export_edited_geotiff({"width": 0, "height": 64})
+        with self.assertRaises(ValueError):
+            worker.export_edited_geotiff({"width": 8192, "height": 64})
+
+        port = find_free_port()
+        srv, thread = start_background_server(host="127.0.0.1", port=port)
+        try:
+            c1, _, _ = http_request(
+                f"http://127.0.0.1:{port}/api/plants/approve-replacement",
+                method="POST",
+                payload=json.dumps({"approved_plant_ids": "bad"}).encode("utf-8"),
+            )
+            self.assertEqual(c1, 400)
+            c2, _, _ = http_request(
+                f"http://127.0.0.1:{port}/api/tiff/export",
+                method="POST",
+                payload=json.dumps({"width": -10}).encode("utf-8"),
+            )
+            self.assertEqual(c2, 400)
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            thread.join(timeout=2.0)
+
 
 # ============================================================================
 # TEST SUITE RUNNER CLI
@@ -1705,6 +1903,7 @@ TIER_CLASSES = {
         Tier2Feature3DomainAutostartBoundariesTests,
         Tier2Feature4WebGPUSurveyServerBoundariesTests,
         Tier2Feature5TPUOffloadBoundariesTests,
+        Tier2Feature9To14Round4BoundariesTests,
     ],
     3: [
         Tier3CrossFeatureIntegrationTests,

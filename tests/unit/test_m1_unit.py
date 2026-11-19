@@ -622,6 +622,117 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
         self.assertIn("function openFullRegionAnnotatedModal()", html)
         self.assertIn("function buildMinimalGeoTiffBuffer(", html)
 
+    def test_round4_realtime_hardware_per_tile_rice_counting_and_approved_tiff_export(self) -> None:
+        import base64
+        from pathlib import Path
+        from uav_app.adapters.tpu_offload_worker import count_rice_plants_in_tile
+
+        root = Path(__file__).resolve().parents[2]
+        arch_txt = (root / "ARCHITECTURE.md").read_text(encoding="utf-8")
+        self.assertIn("[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #18]", arch_txt)
+
+        tile_res = count_rice_plants_in_tile({"tile_id": "tile_000001", "row": 0, "col": 0}, tile_idx=0)
+        self.assertEqual(tile_res["quality_preserved_pct"], 100)
+        self.assertTrue(tile_res["native_resolution_preserved"])
+        self.assertGreater(tile_res["plant_count"], 0)
+        self.assertEqual(tile_res["plant_count"], len(tile_res["plants"]))
+        self.assertGreater(tile_res["blurry_tip_count"], 0)
+        self.assertEqual(tile_res["blurry_tip_count"], len(tile_res["blurry_tip_plants"]))
+
+        srv, _ = start_background_server(host="127.0.0.1", port=0)
+        port = srv.server_address[1]
+        try:
+            base = f"http://127.0.0.1:{port}"
+            # 1. GET /api/hardware/realtime
+            with urllib.request.urlopen(f"{base}/api/hardware/realtime", timeout=3) as resp:
+                hw1 = json.loads(resp.read().decode("utf-8"))
+            with urllib.request.urlopen(f"{base}/api/hardware/realtime", timeout=3) as resp:
+                hw2 = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(hw1["status"], "ok")
+            self.assertTrue(hw1["realtime"])
+            self.assertGreaterEqual(hw1["active_worker_threads"], 1)
+            self.assertGreater(hw2["poll_seq"], hw1["poll_seq"])
+            self.assertIn("tpu_status", hw1)
+            self.assertIn("cpu_percent", hw1)
+            self.assertIn("gpu_percent", hw1)
+
+            # 2. POST /api/detect/upload -> per-tile individual rice plant counts & 100% quality
+            req_det = urllib.request.Request(
+                f"{base}/api/detect/upload",
+                data=json.dumps({"num_tiles": 3, "estimated_seconds": 120}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_det, timeout=3) as resp:
+                det = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(det["quality_preserved_pct"], 100)
+            self.assertTrue(det["native_resolution_preserved"])
+            self.assertEqual(det["counting_mode"], "per_cropped_tile_individual_rice_plants")
+            self.assertEqual(len(det["tiles"]), 3)
+            self.assertEqual(det["total_rice_plants"], sum(t["plant_count"] for t in det["tiles"]))
+            self.assertGreater(det["total_blurry_tip_plants"], 0)
+
+            blurry_list = det["blurry_tip_plants"]
+            p_approve = blurry_list[0]["plant_id"]
+            p_reject = blurry_list[1]["plant_id"]
+
+            # 3. POST /api/plants/approve-replacement -> approve 1 plant, reject another
+            req_app = urllib.request.Request(
+                f"{base}/api/plants/approve-replacement",
+                data=json.dumps(
+                    {
+                        "approve_all": False,
+                        "approved_plant_ids": [p_approve],
+                        "rejected_plant_ids": [p_reject],
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_app, timeout=3) as resp:
+                app_res = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(app_res["status"], "ok")
+            self.assertEqual(app_res["approved_count"], 1)
+            self.assertGreaterEqual(app_res["rejected_count"], 1)
+            self.assertIn(p_approve, app_res["approved_plant_ids"])
+            self.assertIn(p_reject, app_res["rejected_plant_ids"])
+
+            # 4. POST /api/tiff/export (JSON & binary image/tiff)
+            req_tiff_json = urllib.request.Request(
+                f"{base}/api/tiff/export",
+                data=json.dumps({"width": 48, "height": 48}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_tiff_json, timeout=3) as resp:
+                tiff_res = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(tiff_res["status"], "ok")
+            self.assertEqual(tiff_res["tiff_magic_hex"], "49492a00")
+            self.assertEqual(tiff_res["quality_preserved_pct"], 100)
+            self.assertEqual(tiff_res["approved_replacements_applied"], 1)
+            self.assertEqual(tiff_res["applied_plant_ids"], [p_approve])
+            self.assertIn(p_reject, tiff_res["skipped_unapproved_plant_ids"])
+            self.assertFalse(tiff_res["dem_modified"])
+            self.assertTrue(tiff_res["dsm_checksum_preserved"])
+            raw_from_b64 = base64.b64decode(tiff_res["tiff_base64"])
+            self.assertTrue(raw_from_b64.startswith(b"II*\x00"))
+
+            req_tiff_bin = urllib.request.Request(
+                f"{base}/api/tiff/export",
+                data=json.dumps({"width": 32, "height": 32, "response_type": "binary"}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "Accept": "image/tiff"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req_tiff_bin, timeout=3) as resp:
+                bin_bytes = resp.read()
+                self.assertIn("image/tiff", resp.headers.get("Content-Type", ""))
+            self.assertTrue(bin_bytes.startswith(b"II*\x00"))
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

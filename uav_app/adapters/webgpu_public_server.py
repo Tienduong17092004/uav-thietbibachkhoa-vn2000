@@ -22,6 +22,7 @@ with 8766 and 7860 compatibility) for zero-hosting custom domain access via
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import threading
 import urllib.parse
@@ -134,6 +135,23 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _send_binary(
+        self,
+        status_code: int,
+        data: bytes,
+        content_type: str,
+        filename: Optional[str] = None,
+    ) -> None:
+        self.send_response(status_code)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        if filename:
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Custom-Domain", CUSTOM_DOMAIN)
+        self.end_headers()
+        self.wfile.write(data)
+
     def _extract_caller_key(
         self,
         body: Optional[Dict[str, Any]] = None,
@@ -193,6 +211,8 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/health":
+            from uav_app.infrastructure.telemetry import sample_hardware_telemetry
+
             self._send_json(
                 200,
                 {
@@ -211,6 +231,8 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
                     "main_project_folder_id": DEFAULT_GDRIVE_FOLDER_ID,
                     "auto_tpu_threshold_seconds": TPU_AUTO_OFFLOAD_THRESHOLD_SECONDS,
                     "auto_tpu_threshold_minutes": TPU_AUTO_OFFLOAD_THRESHOLD_MINUTES,
+                    "active_worker_threads": threading.active_count(),
+                    "hardware_realtime": sample_hardware_telemetry(max_age_sec=0.0),
                 },
             )
             return
@@ -280,12 +302,19 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
             self._send_json(200, res)
             return
 
-        if path in ("/api/telemetry", "/api/hardware/telemetry"):
+        if path in ("/api/telemetry", "/api/hardware/telemetry", "/api/hardware/realtime"):
             from uav_app.infrastructure.telemetry import sample_hardware_telemetry
 
-            hw = sample_hardware_telemetry(max_age_sec=0.5)
+            hw = sample_hardware_telemetry(max_age_sec=0.0)
             hw["status"] = "ok"
+            hw["tpu_status"] = self.app_server.tpu_worker.check_remote_tpu_health()
+            hw["agent_slots"] = dict(self.app_server.governance_policy.active_slots)
             self._send_json(200, hw)
+            return
+
+        if path == "/api/plants/blurry-tips":
+            res = self.app_server.tpu_worker.get_blurry_tip_plants_status()
+            self._send_json(200, res)
             return
 
         self._send_json(404, {"error": "Endpoint not found", "path": path})
@@ -558,6 +587,37 @@ class WebGPUPublicRequestHandler(BaseHTTPRequestHandler):
                 res = self.app_server.tpu_worker.detect_uploaded_images(payload=body, key_info=key_info)
             except Exception as exc:
                 self._send_json(400, {"error": str(exc)})
+                return
+            self._send_json(200, res)
+            return
+
+        if path in (
+            "/api/plants/approve-replacement",
+            "/api/plants/compare-replace",
+            "/api/rtk/approve-plants",
+        ):
+            try:
+                res = self.app_server.tpu_worker.approve_blurry_plant_replacements(payload=body)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            self._send_json(200, res)
+            return
+
+        if path in (
+            "/api/tiff/export",
+            "/api/geotiff/export",
+            "/api/orthomosaic/export-tiff",
+        ):
+            try:
+                res = self.app_server.tpu_worker.export_edited_geotiff(payload=body)
+            except ValueError as exc:
+                self._send_json(400, {"error": str(exc)})
+                return
+            accept_hdr = (self.headers.get("Accept") or "").lower()
+            if body.get("response_type") == "binary" or "image/tiff" in accept_hdr:
+                raw_tiff = base64.b64decode(res["tiff_base64"])
+                self._send_binary(200, raw_tiff, "image/tiff", filename=res.get("filename"))
                 return
             self._send_json(200, res)
             return

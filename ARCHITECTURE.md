@@ -970,6 +970,50 @@ stateDiagram-v2
 
 - **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #17]`
 
+---
 
+### Mục 27 / Bản vẽ #18 (2026-11-19): Giao Diện 3 Cột Cân Đối Toàn Màn Hình (`Generative UI` + `anime.js` Center Stage), Bảng Thông Số Phần Cứng Thời Gian Thực (`GET /api/hardware/realtime`), Giữ 100% Chất Lượng Ảnh Gốc Khi Zoom Sâu, Đếm Từng Cây Lúa Theo Ô Ảnh Đã Cắt (`count_rice_plants_in_tile`), Và So Sánh — Duyệt Thay Ngọn Cây Lúa Nhòe Kèm Xuất Ảnh GeoTIFF (`.tiff`) Đã Chỉnh Sửa
+- **Trạng thái**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #18]`
+- **Giải pháp Kiến trúc Toàn diện Đáp ứng 6 Yêu cầu Cốt lõi (`Follow-up 2026-11-19T01:15:00Z`)**:
+  1. **Bố cục 3 Cột Cân Đối Toàn Khung Nhìn (`.workspace` Full-Viewport 3-Column Grid) + `anime.js` & `/generative_ui` — Không Mở Cửa Sổ Popup Mới**:
+     - Xóa bỏ hoàn toàn khoảng trống thừa ở hai mép trái/phải (`width: 100%; max-width: 100%; grid-template-columns: clamp(310px, 22vw, 355px) minmax(0, 1fr) clamp(340px, 24vw, 400px)`).
+     - Tách phần thao tác cân đối sang **2 cột bên trái và bên phải** có chiều cao khớp với khung ảnh trung tâm:
+       - **Cột Trái (`.config-panel`)**: Cấu hình Bước 01–04 gọn gàng theo accordion.
+       - **Cột Giữa (`.map-panel` — Multi-Mode Center Stage)**: Hiển thị trực tiếp ở chính giữa màn hình với 3 chế độ chuyển mượt bằng `window.anime({...})` (`anime.js`): `overview_map` (Bản đồ tổng quan & lưới ô cắt), `tile_1to1` (Ô ảnh 1:1 Pixel gốc & đếm từng cây lúa), `blurry_compare` (So sánh song song Không thay vs Thay ngọn cây lúa nhòe). Bấm vào bất kỳ ảnh hay ô cắt nào sẽ hiển thị ngay tại khung trung tâm (`switchCenterStageMode`, `focusTileInCenterStage`) thay vì bung cửa sổ mới (`window.open("", "_blank")`).
+       - **Cột Phải (`.inspector-side-panel` / `.right-inspector-panel`)**: Chứa Bảng thông số phần cứng Real-Time (`#realtime-hardware-table-panel`), Bảng đếm cây lúa theo từng ô ảnh đã cắt (`#per-tile-rice-count-panel`), Cửa sổ kiểm tra 1:1 và Bảng so sánh/duyệt thay ngọn cây lúa nhòe (`#blurry-tip-approval-panel`).
+  2. **Kiểm Soát Chặt Chẽ Typography & Bảng Thông Số Phần Cứng Real-Time (`uav_app/infrastructure/telemetry.py`, `GET /api/hardware/realtime`, `table.hw-live-table`)**:
+     - Áp dụng `min-width: 0`, `overflow-wrap: anywhere`, `font-variant-numeric: tabular-nums` trên toàn bộ thẻ KPI, bảng dữ liệu và `.tile-body` / `.tile-image-wrap` để không bao giờ tràn hoặc đè chữ.
+     - Nâng cấp `sample_hardware_telemetry(max_age_sec=0.0)` trong `telemetry.py` và endpoint `GET /api/hardware/realtime` (cùng `/api/telemetry`, `/api/hardware/telemetry`, `/api/health`) trả về dữ liệu phần cứng thời gian thực (`realtime: True`, `poll_seq` tăng đơn điệu, `uptime_sec`, `active_worker_threads`, `load_avg`, `cpu_percent`, `ram_used_gb`, `gpu_percent`, `vram_used_gb`, `gpu_temp_c`, `tpu_status`) lấy mẫu trực tiếp mỗi chu kỳ poll và hiển thị trong bảng HTML sống `table.hw-live-table`.
+  3. **Giữ Nguyên 100% Chất Lượng Ảnh Gốc Khi Zoom Nhỏ/Sâu (`quality_preserved_pct: 100`, `native_resolution_preserved: True`, `zero_downsampling: True`)**:
+     - Loại bỏ giới hạn giảm mẫu `4096px`/`2048px`; cắt vùng pixel 1:1 trực tiếp từ tệp gốc (`createImageBitmap(rawFile, sx, sy, sw, sh)` và bộ giải mã dải băng GeoTIFF 1:1 `decodeNativeTiffRegion1To1`), nâng cấp `#tile-preview-canvas` lên `1024 × 1024` pixel gốc với `imageSmoothingEnabled = false` khi zoom cận cảnh, đảm bảo lá lúa sắc nét tuyệt đối ở tỷ lệ 1:1.
+  4. **Đếm Từng Cây Lúa Trong Từng Ô Ảnh Đã Cắt (`count_rice_plants_in_tile`, `countRicePlantsPerCroppedTile`)**:
+     - Thay vì chỉ phân vùng `"vùng có cây lúa mới cấy"`, hệ thống cắt ảnh thành từng ô lưới (`tile_000001`..`tile_NNNNNN`) và đếm chính xác từng cây lúa (`cây lúa`) bên trong mỗi ô ảnh đã cắt (`plant_count`, danh sách `plants` với tọa độ tâm `[cx, cy, radius_px]`, tọa độ thực `VN2000 (X, Y)`, chiều cao $\Delta Z\text{ (cm)}$, `blur_score`, `is_blurry_tip`), tổng hợp `total_rice_plants = sum(t["plant_count"] for t in tiles)` trên cả backend (`POST /api/detect/upload`, `POST /api/tpu/infer`) và bảng giao diện `#per-tile-rice-count-panel`.
+  5. **Phát Hiện Cây Lúa Nhòe Ngọn, So Sánh Song Song (`Không thay` vs `Thay`), Người Dùng Duyệt Mới Thay & Xuất Lại Ảnh GeoTIFF (`.tiff`) Đã Chỉnh Sửa**:
+     - Đánh dấu từng cây lúa bị nhòe ngọn (`blurry_tip_plants`, `is_blurry_tip: True`) trên ô ảnh và bảng `#blurry-tip-approval-panel`.
+     - Hiển thị khung so sánh trực quan giữa **`Không thay (Giữ nguyên ngọn nhòe)`** (`original_patch`, `sharpness_before`) và **`Thay (Khôi phục ngọn nét 100%)`** (`replacement_patch`, `sharpness_after`, `sharpness_gain_pct`).
+     - Chỉ khi người dùng bấm đồng ý duyệt thay (`POST /api/plants/approve-replacement`, `approveBlurryPlantReplacement(plantId)`, `user_approved: True`) hệ thống mới áp dụng bản vá ngọn cây nét từ ảnh thô RTK Nadir.
+     - Cho phép xuất lại tệp ảnh **GeoTIFF (`.tiff`) không nén bảo toàn 100% chất lượng** (`POST /api/tiff/export`, `export_edited_geotiff`, `build_lossless_geotiff_bytes`, `exportEditedGeoTiff`) chuẩn Little-Endian `II*\x00` (`magic = 49492a00`) gồm đầy đủ **11 thẻ IFD chuẩn GIS** (`256, 257, 258, 259=1, 262=2, 273, 277=3, 278, 279, 33550 ModelPixelScaleTag, 33922 ModelTiepointTag`), chỉ ghi các cây đã được người dùng duyệt (`user_approved=True`) và giữ bất biến 100% mô hình độ cao DEM/DSM (`dem_modified: False`, `dsm_checksum_preserved: True`).
 
+```mermaid
+flowchart TB
+    subgraph UI_3Col["1. Giao Diện 3 Cột Cân Đối Toàn Màn Hình (Generative UI + anime.js)"]
+        LEFT["Cột Trái (.config-panel)<br/>Bước 01–04 Gọn Cân Đối"]
+        CENTER["Cột Giữa (.map-panel — Center Stage)<br/>Hiển Thị Giữa Màn Hình (Không Mở Popup):<br/>1. Bản đồ Lưới Ô Cắt<br/>2. Ô Ảnh 1:1 Pixel Gốc (100% Chất Lượng)<br/>3. So Sánh Thay vs Không Thay Ngọn Nhòe"]
+        RIGHT["Cột Phải (.inspector-side-panel)<br/>1. Bảng Phần Cứng Real-Time (table.hw-live-table)<br/>2. Bảng Đếm Cây Lúa Từng Ô Ảnh Đã Cắt<br/>3. Bảng Duyệt Thay Cây Nhòe Ngọn & Xuất .TIFF"]
+        LEFT --> CENTER
+        RIGHT --> CENTER
+    end
 
+    subgraph Tile_Rice_Count["2. Giữ 100% Chất Lượng Ảnh & Đếm Cây Lúa Theo Từng Ô Đã Cắt"]
+        RAW["Ảnh Gốc 100% Native Resolution<br/>(decodeNativeTiffRegion1To1 · zero_downsampling)"] --> TILES["Cắt Thành Từng Ô Ảnh (tile_000001..tile_N)"]
+        TILES --> COUNT["count_rice_plants_in_tile() / countRicePlantsPerCroppedTile()<br/>Đếm Từng Cây Lúa (cx, cy, VN2000 X/Y, ΔZ cm)<br/>+ Phát Hiện Cây Nhòe Ngọn (is_blurry_tip)"]
+    end
+
+    subgraph Approve_Export_TIFF["3. So Sánh — Duyệt Thay Ngọn Nhòe & Xuất Ảnh GeoTIFF (.tiff)"]
+        COUNT --> COMPARE["So Sánh Song Song Trên Center Stage:<br/>'Không thay (Giữ nguyên)' vs 'Thay (Khôi phục RTK nét 100%)'"]
+        COMPARE --> GATE["POST /api/plants/approve-replacement<br/>Chỉ Thay Khi Người Dùng Đồng Ý (user_approved = True)"]
+        GATE --> EXPORT["POST /api/tiff/export (build_lossless_geotiff_bytes)<br/>Xuất GeoTIFF (.tiff) Lossless 11 Thẻ IFD (259=1, 33550, 33922)<br/>DEM/DSM Bất Biến (dem_modified = False)"]
+    end
+```
+
+- **Ký duyệt**: `[ARCHITECTURE SIGN-OFF: APPROVED FOR CODING — BẢN VẼ #18]`

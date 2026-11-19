@@ -693,6 +693,103 @@ class Tier5AdversarialStressTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(json.loads(buf.getvalue())["domain"], CUSTOM_DOMAIN)
 
+    def test_t5_09_realtime_telemetry_blurry_plant_approval_and_tiff_export_stress(self) -> None:
+        """Concurrent real-time hardware telemetry polling, malformed approval payload rejection (HTTP 400), and lossless GeoTIFF (.tiff) IFD binary verification."""
+        import base64
+        import struct
+        from concurrent.futures import ThreadPoolExecutor
+
+        srv, thread = start_background_server(host="127.0.0.1", port=0)
+        port = srv.server_address[1]
+        base = f"http://127.0.0.1:{port}"
+        try:
+            # 1. Concurrent polling of /api/hardware/realtime across 16 parallel requests
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                futs = [pool.submit(_http_request, f"{base}/api/hardware/realtime") for _ in range(16)]
+                results = [f.result() for f in futs]
+
+            poll_seqs = []
+            for code, _hdrs, raw in results:
+                self.assertEqual(code, 200)
+                data = json.loads(raw.decode("utf-8"))
+                self.assertEqual(data["status"], "ok")
+                self.assertTrue(data["realtime"])
+                self.assertGreaterEqual(data["active_worker_threads"], 1)
+                poll_seqs.append(data["poll_seq"])
+            self.assertEqual(len(set(poll_seqs)), 16)
+
+            # 2. Malformed approval & export payloads must return HTTP 400
+            bad_approval_payloads = [
+                {"approved_plant_ids": "not-a-list"},
+                {"approved_plant_ids": [""]},
+                {"rejected_plant_ids": [123]},
+                {"decisions": "not-a-list"},
+                {"decisions": [{"plant_id": "p1"}]},
+                {"decisions": [{"plant_id": "p1", "approved": "yes"}]},
+                {"approve_all": "true"},
+            ]
+            for bad in bad_approval_payloads:
+                code, _hdrs, raw = _http_request(
+                    f"{base}/api/plants/approve-replacement",
+                    method="POST",
+                    raw_body=json.dumps(bad).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                self.assertEqual(code, 400, f"Expected 400 for {bad}, got {code}: {raw!r}")
+
+            for bad_tiff in ({"width": 0}, {"height": -5}, {"width": 5000}, {"gsd_x": 0}):
+                code, _hdrs, raw = _http_request(
+                    f"{base}/api/tiff/export",
+                    method="POST",
+                    raw_body=json.dumps(bad_tiff).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                self.assertEqual(code, 400, f"Expected 400 for {bad_tiff}, got {code}: {raw!r}")
+
+            # 3. Approve 2 blurry-tip plants, reject 1, and verify both JSON base64 and binary image/tiff export
+            c_app, _hdrs, r_app = _http_request(
+                f"{base}/api/plants/approve-replacement",
+                method="POST",
+                raw_body=json.dumps(
+                    {
+                        "approve_all": False,
+                        "approved_plant_ids": ["tile_000001_plant_001", "tile_000001_plant_005"],
+                        "rejected_plant_ids": ["tile_000001_plant_012"],
+                    }
+                ).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            self.assertEqual(c_app, 200)
+            d_app = json.loads(r_app.decode("utf-8"))
+            self.assertEqual(d_app["approved_count"], 2)
+
+            c_tiff, _hdrs, r_tiff = _http_request(
+                f"{base}/api/tiff/export",
+                method="POST",
+                raw_body=json.dumps({"width": 40, "height": 30}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            self.assertEqual(c_tiff, 200)
+            d_tiff = json.loads(r_tiff.decode("utf-8"))
+            self.assertEqual(d_tiff["tiff_magic_hex"], "49492a00")
+            self.assertEqual(d_tiff["approved_replacements_applied"], 2)
+            self.assertFalse(d_tiff["dem_modified"])
+            self.assertTrue(d_tiff["dsm_checksum_preserved"])
+
+            tiff_buf = base64.b64decode(d_tiff["tiff_base64"])
+            magic, version, ifd_offset = struct.unpack_from("<2sHI", tiff_buf, 0)
+            self.assertEqual(magic, b"II")
+            self.assertEqual(version, 42)
+            self.assertEqual(ifd_offset, 8)
+            (num_tags,) = struct.unpack_from("<H", tiff_buf, ifd_offset)
+            self.assertEqual(num_tags, 11)
+        finally:
+            srv.shutdown()
+            srv.server_close()
+            thread.join(timeout=2.0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+

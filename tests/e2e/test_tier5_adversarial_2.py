@@ -381,6 +381,111 @@ class Tier5ColabNotebookSyntaxAndWhiteBoxGovernanceTests(unittest.TestCase):
         with self.assertRaises(TPUOffloadError):
             strict_worker.infer_tile_batch([{"tile_id": "t1"}])
 
+    def test_per_tile_rice_counting_100pct_quality_and_geotiff_binary_ifd_tags(self) -> None:
+        """White-box verification of per-cropped-tile individual rice plant counting, 11 GeoTIFF IFD tags, DEM/DSM SHA-256 invariance, and selective replacement of only user_approved=True plants."""
+        import base64
+        import struct
+        import numpy as np
+        from uav_app.adapters.tpu_offload_worker import (
+            TPUOffloadWorker,
+            build_lossless_geotiff_bytes,
+            count_rice_plants_in_tile,
+        )
+
+        # 1. Per-tile individual rice plant counting with explicit and synthesized plants
+        t_synth = count_rice_plants_in_tile({"tile_id": "tile_000010", "row": 2, "col": 1, "size_px": 512}, tile_idx=9)
+        self.assertEqual(t_synth["quality_preserved_pct"], 100)
+        self.assertTrue(t_synth["native_resolution_preserved"])
+        self.assertEqual(t_synth["downsampling_factor"], 1.0)
+        self.assertGreaterEqual(t_synth["plant_count"], 10)
+        self.assertEqual(len(t_synth["plants"]), t_synth["plant_count"])
+        self.assertGreater(t_synth["blurry_tip_count"], 0)
+
+        # 2. Direct binary verification of all 11 sorted GeoTIFF IFD tags
+        rgb_test = np.full((24, 36, 3), 128, dtype=np.uint8)
+        tiff_raw = build_lossless_geotiff_bytes(
+            rgb_test,
+            base_x=572184.450,
+            base_y=1181420.180,
+            gsd_x=0.015,
+            gsd_y=0.015,
+        )
+        self.assertEqual(tiff_raw[:4], b"II*\x00")
+        (num_tags,) = struct.unpack_from("<H", tiff_raw, 8)
+        self.assertEqual(num_tags, 11)
+
+        ifd_map = {}
+        tag_list = []
+        for idx in range(num_tags):
+            tag, ftype, count, val_off = struct.unpack_from("<HHII", tiff_raw, 10 + idx * 12)
+            tag_list.append(tag)
+            ifd_map[tag] = (ftype, count, val_off)
+
+        self.assertEqual(tag_list, sorted(tag_list))
+        self.assertEqual(tag_list, [256, 257, 258, 259, 262, 273, 277, 278, 279, 33550, 33922])
+        self.assertEqual(ifd_map[256][2], 36)  # ImageWidth = 36
+        self.assertEqual(ifd_map[257][2], 24)  # ImageLength = 24
+        self.assertEqual(ifd_map[259][2], 1)   # Compression = 1 (Uncompressed lossless)
+        self.assertEqual(ifd_map[262][2], 2)   # PhotometricInterpretation = 2 (RGB)
+        self.assertEqual(ifd_map[277][2], 3)   # SamplesPerPixel = 3
+
+        scale_vals = struct.unpack_from("<3d", tiff_raw, ifd_map[33550][2])
+        self.assertAlmostEqual(scale_vals[0], 0.015, places=6)
+        self.assertAlmostEqual(scale_vals[1], 0.015, places=6)
+        tie_vals = struct.unpack_from("<6d", tiff_raw, ifd_map[33922][2])
+        self.assertAlmostEqual(tie_vals[3], 572184.450, places=3)
+        self.assertAlmostEqual(tie_vals[4], 1181420.180, places=3)
+
+        # 3. Selective replacement of only user_approved=True plants & DEM/DSM SHA-256 invariance
+        worker = TPUOffloadWorker()
+        det = worker.detect_uploaded_images({"num_tiles": 2, "estimated_seconds": 45})
+        blurry_all = det["blurry_tip_plants"]
+        self.assertGreaterEqual(len(blurry_all), 2)
+        p_yes = blurry_all[0]["plant_id"]
+        p_no = blurry_all[1]["plant_id"]
+
+        # Export with 0 approved plants
+        exp_none = worker.export_edited_geotiff({"width": 32, "height": 32, "approved_plant_ids": []})
+        self.assertEqual(exp_none["approved_replacements_applied"], 0)
+        self.assertEqual(exp_none["rgb_sha256_before"], exp_none["rgb_sha256_after"])
+        self.assertFalse(exp_none["dem_modified"])
+        self.assertEqual(exp_none["dem_sha256_before"], exp_none["dem_sha256_after"])
+
+        # Export with only p_yes approved and p_no unapproved
+        worker.approve_blurry_plant_replacements(
+            {"approve_all": False, "approved_plant_ids": [p_yes], "rejected_plant_ids": [p_no]}
+        )
+        exp_one = worker.export_edited_geotiff({"width": 32, "height": 32})
+        self.assertEqual(exp_one["approved_replacements_applied"], 1)
+        self.assertEqual(exp_one["applied_plant_ids"], [p_yes])
+        self.assertIn(p_no, exp_one["skipped_unapproved_plant_ids"])
+        self.assertNotEqual(exp_one["rgb_sha256_before"], exp_one["rgb_sha256_after"])
+        self.assertFalse(exp_one["dem_modified"])
+        self.assertTrue(exp_one["dsm_checksum_preserved"])
+        self.assertEqual(exp_one["dem_sha256_before"], exp_one["dem_sha256_after"])
+
+        # Verify pixel buffer inside exported GeoTIFF changed only at p_yes patch and not at p_no patch
+        buf_none = base64.b64decode(exp_none["tiff_base64"])
+        buf_one = base64.b64decode(exp_one["tiff_base64"])
+        px_off = ifd_map[273][2]
+        arr_none = np.frombuffer(buf_none[px_off:], dtype=np.uint8).reshape((32, 32, 3))
+        arr_one = np.frombuffer(buf_one[px_off:], dtype=np.uint8).reshape((32, 32, 3))
+        box_yes = exp_one["patch_placements"][p_yes]
+        box_no = exp_one["patch_placements"][p_no]
+        self.assertFalse(
+            np.array_equal(
+                arr_none[box_yes[1] : box_yes[3], box_yes[0] : box_yes[2]],
+                arr_one[box_yes[1] : box_yes[3], box_yes[0] : box_yes[2]],
+            )
+        )
+        self.assertTrue(
+            np.array_equal(
+                arr_none[box_no[1] : box_no[3], box_no[0] : box_no[2]],
+                arr_one[box_no[1] : box_no[3], box_no[0] : box_no[2]],
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
