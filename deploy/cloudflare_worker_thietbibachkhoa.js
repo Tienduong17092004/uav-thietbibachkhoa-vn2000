@@ -305,7 +305,7 @@ function renderPortalHtml() {
     }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    html, body { width: 100%; min-height: 100vh; margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-size: 13.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    html, body { width: 100%; height: 100vh; margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.45; overflow: hidden; -webkit-font-smoothing: antialiased; }
 
     /* =========================================================================
        1. CỔNG KHÓA ĐĂNG NHẬP DUY NHẤT 1 Ô NHẬP KEY (ẨN MỌI THỨ KHÁC KHI CHƯA NHẬP KEY)
@@ -386,17 +386,17 @@ function renderPortalHtml() {
     /* =========================================================================
        2. GIAO DIỆN UAV GEOTIFF STUDIO GỐC (CHỈ HIỆN SAU KHI NHẬP ĐÚNG KEY)
        ========================================================================= */
-    #authenticated-workspace { display: none; }
+    #authenticated-workspace { display: none; height: 100vh; overflow: hidden; }
 
     button, input, select, textarea { font: inherit; }
     button {
       cursor: pointer;
       border: 1px solid var(--border);
       border-radius: 6px;
-      min-height: 36px;
-      padding: 6px 13px;
+      min-height: 31px;
+      padding: 4px 10px;
       font-weight: 500;
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--ink-pure);
       background: var(--surface);
       transition: all 120ms ease;
@@ -423,7 +423,7 @@ function renderPortalHtml() {
       color: #ffffff;
       font-weight: 600;
       width: 100%;
-      min-height: 38px;
+      min-height: 34px;
     }
     button.export-tile-btn:hover:not(:disabled) {
       background: var(--accent-emerald);
@@ -435,17 +435,17 @@ function renderPortalHtml() {
       border-color: var(--border);
       color: var(--ink);
     }
-    .wide { width: 100%; margin-top: 10px; }
+    .wide { width: 100%; margin-top: 7px; }
 
     input, select, textarea {
       background: var(--surface-input);
       border: 1px solid var(--border);
       border-radius: 6px;
       width: 100%;
-      min-height: 36px;
-      padding: 6px 10px;
+      min-height: 30px;
+      padding: 4px 8px;
       color: var(--ink);
-      font-size: 13px;
+      font-size: 12.5px;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
@@ -454,52 +454,55 @@ function renderPortalHtml() {
     }
     label {
       display: block;
-      font-size: 12.5px;
+      font-size: 11.5px;
       font-weight: 600;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
       color: var(--ink);
     }
     h1, h2, h3, p { margin: 0; }
-    h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; color: var(--ink-pure); margin-top: 3px; }
-    h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink-pure); }
+    h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.25px; color: var(--ink-pure); margin-top: 1px; }
+    h2 { font-size: 13.5px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink-pure); }
     .eyebrow {
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: 1.4px;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
       color: var(--muted);
     }
-    .muted, .field-help, .empty-note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .muted, .field-help, .empty-note { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
 
-    /* Top Header */
+    /* Top Header — Compact Single-Screen Chrome */
     .app-header {
       width: 100%;
-      min-height: 54px;
+      height: 44px;
+      min-height: 44px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 24px;
+      padding: 4px 16px;
       border-bottom: 1px solid var(--border);
       background: var(--header-bg);
       position: sticky;
       top: 0;
       z-index: 30;
     }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .brand strong { display: block; font-size: 15px; font-weight: 700; color: var(--ink-pure); }
-    .brand div > span { display: block; color: var(--muted); font-size: 11.5px; }
-    .header-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-secondary); flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand strong { display: block; font-size: 14px; font-weight: 700; color: var(--ink-pure); line-height: 1.15; }
+    .brand div > span { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.15; }
+    .header-meta { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-secondary); flex-wrap: nowrap; }
+    .header-meta button { min-height: 28px; height: 28px; padding: 2px 9px; font-size: 11.5px; white-space: nowrap; }
     .local-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
+      gap: 5px;
+      padding: 3px 9px;
       background: #ecf7f2;
       border: 1px solid rgba(0, 153, 102, 0.35);
       border-radius: 999px;
       color: var(--accent-mint);
       font-weight: 600;
-      font-size: 11.5px;
+      font-size: 11px;
+      white-space: nowrap;
     }
     .local-badge > span {
       height: 7px;
@@ -508,12 +511,13 @@ function renderPortalHtml() {
       background: var(--accent-emerald);
     }
 
-    /* 4-Step Bar — Full-Viewport Width (No Empty Side Margins) */
+    /* 4-Step Bar — Compact Single-Screen Bar */
     .steps {
       width: 100%;
+      height: 36px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 0 16px;
+      padding: 0 12px;
     }
     .steps ol {
       list-style: none;
@@ -523,20 +527,22 @@ function renderPortalHtml() {
       padding: 0;
       width: 100%;
       max-width: 100%;
+      height: 100%;
     }
     .steps li { min-width: 0; }
     .steps button {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
-      min-height: 50px;
+      min-height: 36px;
+      height: 36px;
       border: 0;
       border-radius: 0;
       background: transparent;
       text-align: left;
       position: relative;
-      padding: 8px 14px;
+      padding: 4px 12px;
       color: var(--ink-secondary);
     }
     .steps button:hover:not(:disabled) {
@@ -550,8 +556,8 @@ function renderPortalHtml() {
       content: "";
       position: absolute;
       bottom: 0;
-      left: 14px;
-      right: 14px;
+      left: 12px;
+      right: 12px;
       height: 2.5px;
       background: #2c4c3e;
     }
@@ -559,10 +565,10 @@ function renderPortalHtml() {
       flex-shrink: 0;
       display: grid;
       place-items: center;
-      font-size: 11px;
+      font-size: 10.5px;
       font-family: var(--font-mono);
-      width: 24px;
-      height: 24px;
+      width: 21px;
+      height: 21px;
       border: 1px solid var(--border);
       border-radius: 4px;
       color: var(--muted);
@@ -575,28 +581,42 @@ function renderPortalHtml() {
     }
     .steps button .step-label-wrap strong {
       display: block;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--ink-pure);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .steps button .step-label-wrap small {
       display: block;
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--muted);
       font-weight: 400;
       margin-top: 1px;
     }
 
-    /* Main Workspace Grid — Full-Viewport Balanced 3-Column Generative UI + Center Stage */
+    /* Main Workspace Grid — Strict Single-Screen (100vh, Zero Page Scroll) 3-Column Layout */
     .workspace {
       width: 100%;
       max-width: 100%;
       margin: 0;
-      padding: 12px 16px 20px;
+      padding: 8px 12px;
+      height: calc(100vh - 80px);
       display: grid;
-      grid-template-columns: clamp(310px, 22vw, 355px) minmax(0, 1fr) clamp(340px, 24vw, 405px);
-      gap: 14px;
-      align-items: start;
+      grid-template-columns: clamp(305px, 22vw, 360px) minmax(0, 1fr) clamp(310px, 22.5vw, 380px);
+      gap: 10px;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .left-dock-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      height: 100%;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
     }
     .config-panel, .map-panel, .inspector-side-panel, .right-inspector-panel {
       background: var(--surface);
@@ -606,38 +626,48 @@ function renderPortalHtml() {
       overflow: hidden;
       min-width: 0;
     }
-    .config-panel *, .map-panel *, .inspector-side-panel *, .right-inspector-panel * {
+    .config-panel *, .map-panel *, .inspector-side-panel *, .right-inspector-panel *, .left-dock-column * {
       min-width: 0;
     }
     .config-panel {
-      padding: 14px 14px;
+      padding: 9px 11px;
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 115px);
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
       scrollbar-width: thin;
+    }
+    .map-panel.center-stage-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
     .inspector-side-panel, .right-inspector-panel {
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 115px);
+      height: 100%;
+      min-height: 0;
       overflow-y: auto;
       scrollbar-width: thin;
     }
     .center-stage-mode-bar {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 6px;
-      padding: 8px 14px;
+      gap: 5px;
+      padding: 5px 10px;
       background: var(--surface-subtle);
       border-bottom: 1px solid var(--border);
+      flex: 0 0 auto;
     }
     .center-mode-btn {
-      min-height: 32px;
-      padding: 5px 10px;
+      min-height: 28px;
+      padding: 3px 8px;
       font-size: 11.5px;
       font-weight: 600;
-      border-radius: 6px;
+      border-radius: 5px;
       border: 1px solid var(--border);
       background: var(--surface);
       color: var(--ink-secondary);
@@ -653,20 +683,20 @@ function renderPortalHtml() {
       box-shadow: 0 2px 6px rgba(0, 153, 102, 0.22);
     }
     .panel-heading {
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      padding-bottom: 5px;
+      margin-bottom: 6px;
     }
     .panel-heading > p:last-child {
-      margin-top: 6px;
-      font-size: 12px;
+      margin-top: 3px;
+      font-size: 11.5px;
       color: var(--muted);
-      line-height: 1.45;
+      line-height: 1.35;
     }
 
     /* Review Summary & Metadata Box — Controlled Typography */
     .metadata, .review-summary {
-      margin: 8px 0 12px;
-      padding: 10px 12px;
+      margin: 6px 0 8px;
+      padding: 7px 9px;
       background: var(--surface-subtle);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -675,16 +705,16 @@ function renderPortalHtml() {
     }
     .metadata dl, .review-summary dl {
       display: grid;
-      grid-template-columns: 82px minmax(0, 1fr);
-      gap: 6px 10px;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 3px 8px;
       margin: 0;
-      font-size: 12px;
+      font-size: 11px;
       align-items: baseline;
     }
     .metadata dt, .review-summary dt {
       color: var(--muted);
       font-weight: 500;
-      line-height: 1.35;
+      line-height: 1.3;
     }
     .metadata dd, .review-summary dd {
       margin: 0;
@@ -695,35 +725,35 @@ function renderPortalHtml() {
       word-break: break-word;
     }
     .review-source {
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--muted);
       overflow-wrap: anywhere;
       border-top: 1px solid var(--border);
-      padding-top: 8px;
-      margin-top: 10px;
+      padding-top: 6px;
+      margin-top: 7px;
       font-family: var(--font-mono);
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     /* Linear Job Progress matching screenshot */
     .job-panel {
-      margin-top: 16px;
-      padding-top: 14px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid var(--border);
     }
     #job-status {
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--ink-pure);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .linear-progress-track {
       width: 100%;
-      height: 7px;
+      height: 6px;
       background: #dfe7e2;
       border-radius: 999px;
       overflow: hidden;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .linear-progress-fill {
       height: 100%;
@@ -733,77 +763,80 @@ function renderPortalHtml() {
     }
     .job-actions {
       display: flex;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 6px;
+      margin-top: 6px;
     }
     .output-path {
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 10px;
       color: var(--muted);
       overflow-wrap: anywhere;
-      margin-top: 10px;
-      line-height: 1.4;
+      margin-top: 6px;
+      line-height: 1.35;
     }
 
     .field-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 6px;
+      margin-bottom: 6px;
     }
-    .path-row { display: flex; gap: 6px; margin-bottom: 8px; }
-    .path-row button { white-space: nowrap; }
+    .path-row { display: flex; gap: 5px; margin-bottom: 6px; }
+    .path-row input { flex: 1 1 auto; min-width: 0; }
+    .path-row button { flex: 0 0 auto; white-space: nowrap; padding: 4px 8px; font-size: 11.5px; }
 
     .plan-stats {
-      margin-top: 12px;
-      padding: 12px;
+      margin-top: 7px;
+      padding: 8px 10px;
       background: var(--surface-subtle);
       border: 1px solid var(--border);
       border-left: 3px solid var(--accent-emerald);
       border-radius: 6px;
     }
     .plan-count {
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 700;
       color: var(--accent-emerald);
       line-height: 1.1;
     }
     .plan-count span {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 500;
       color: var(--muted);
-      margin-left: 6px;
+      margin-left: 5px;
     }
     .stat-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-      font-size: 11.5px;
+      gap: 5px 8px;
+      margin-top: 6px;
+      font-size: 11px;
     }
-    .stat-grid span { display: block; color: var(--muted); font-size: 11px; }
-    .stat-grid strong { font-family: var(--font-mono); color: var(--ink-pure); }
+    .stat-grid span { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.2; }
+    .stat-grid strong { font-family: var(--font-mono); color: var(--ink-pure); font-size: 11px; }
 
-    /* Right Column: Map Panel & Tile Inspector & Detection Results */
+    /* Center Column: Map Panel & Flex-Fit Viewport */
     .map-heading {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 18px;
+      padding: 6px 12px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
+      flex: 0 0 auto;
     }
     .status-tag {
       display: inline-flex;
       align-items: center;
-      padding: 3px 9px;
+      padding: 2px 7px;
       border: 1px solid var(--border);
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       font-family: var(--font-mono);
       color: var(--ink-secondary);
       background: var(--surface-subtle);
+      white-space: nowrap;
     }
     .status-tag.success {
       background: rgba(0, 153, 102, 0.1);
@@ -814,7 +847,9 @@ function renderPortalHtml() {
     .viewport-shell {
       position: relative;
       background: var(--surface-media);
-      height: clamp(540px, 68vh, 800px);
+      flex: 1 1 auto;
+      min-height: 220px;
+      height: auto;
       overflow: hidden;
     }
     #overview-canvas {
@@ -915,55 +950,58 @@ function renderPortalHtml() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 18px 4px;
-      font-size: 11.5px;
+      padding: 5px 12px;
+      font-size: 11px;
       color: var(--muted);
       background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex: 0 0 auto;
+      gap: 8px;
     }
-    .legend { display: flex; gap: 14px; align-items: center; }
-    .legend span { display: inline-flex; align-items: center; gap: 5px; }
-    .legend i { display: inline-block; width: 12px; height: 8px; border-radius: 1.5px; }
+    .legend { display: flex; gap: 10px; align-items: center; }
+    .legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .legend i { display: inline-block; width: 11px; height: 7px; border-radius: 1.5px; }
     .legend-grid { border: 1px solid #5a7d6c; background: rgba(0, 153, 102, 0.08); }
     .legend-overlap { border: 1px dashed #b46900; background: rgba(180, 105, 0, 0.15); }
     .legend-selected { border: 1.5px solid #d97706; background: rgba(245, 158, 11, 0.28); }
     .overview-note {
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--muted);
-      padding: 0 18px 10px;
+      padding: 0 12px 6px;
       border-bottom: 1px solid var(--border);
     }
 
     /* Tile Inspector — Controlled Typography (Zero Overlap with tile_000655 / Coordinates) */
     .tile-inspector {
-      padding: 12px 14px;
+      padding: 8px 10px;
       border-bottom: 1px solid var(--border);
     }
     .inspector-heading {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
     .tile-select-field {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       flex-wrap: wrap;
     }
-    .tile-select-field label { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; }
-    .tile-select-field select { width: 145px; min-height: 30px; height: 30px; padding: 3px 8px; font-family: var(--font-mono); font-size: 12px; }
+    .tile-select-field label { margin: 0; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+    .tile-select-field select { width: 132px; min-height: 27px; height: 27px; padding: 2px 7px; font-family: var(--font-mono); font-size: 11.5px; }
     .tile-body {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
+      gap: 7px;
       align-items: start;
     }
     .tile-image-wrap {
       width: 100%;
-      max-width: 240px;
-      height: 210px;
+      max-width: 100%;
+      height: 132px;
       margin: 0 auto;
       border: 1.5px solid var(--accent-emerald);
       border-radius: 6px;
@@ -981,33 +1019,33 @@ function renderPortalHtml() {
     }
     #tile-details strong {
       display: block;
-      font-size: 12.5px;
+      font-size: 12px;
       color: var(--ink-pure);
-      margin-bottom: 2px;
+      margin-bottom: 1px;
       font-variant-numeric: tabular-nums;
     }
     #tile-details > p {
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--muted);
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       overflow-wrap: anywhere;
       font-variant-numeric: tabular-nums;
     }
     table.coord-table, table.per-tile-count-table, table.hw-live-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11.5px;
+      font-size: 11px;
       font-variant-numeric: tabular-nums;
     }
     table.coord-table caption {
       text-align: left;
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     table.coord-table th, table.coord-table td,
     table.per-tile-count-table th, table.per-tile-count-table td {
-      padding: 5px 6px;
+      padding: 4px 5px;
       border-bottom: 1px solid var(--border);
       overflow-wrap: anywhere;
     }
@@ -1038,18 +1076,18 @@ function renderPortalHtml() {
       font-weight: 600;
     }
     .inspector-note {
-      margin-top: 8px;
-      font-size: 11.5px;
+      margin-top: 6px;
+      font-size: 11px;
       color: var(--muted);
       overflow-wrap: anywhere;
     }
 
     /* Duyệt kết quả nhận diện */
     .results-section {
-      padding: 12px 14px 16px;
+      padding: 8px 10px 12px;
     }
     .results-section h2 {
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     /* Controlled Typography Helpers */
@@ -1061,65 +1099,155 @@ function renderPortalHtml() {
       font-variant-numeric: tabular-nums;
     }
 
-    /* Docked Real-Time Live Hardware Telemetry Table (Replaces Static Floating Thumbnail Look) */
+    /* Docked Real-Time Live Hardware Telemetry Card (Left Column Below Config Panel) */
     #realtime-hardware-table-panel {
-      padding: 12px 16px 14px;
-      border-top: 1px solid var(--border);
+      flex: 0 0 auto;
+      max-height: 48%;
+      padding: 7px 9px;
       background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
     }
     .tm-float-card {
       position: static;
       width: 100%;
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-size: 11.5px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      font-size: 10.5px;
+    }
+    .hw-dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+    .hw-dock-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-pure);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hw-dock-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 9.5px;
+      color: #0369a1;
+      font-weight: 600;
+    }
+    .hw-dock-meta > span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .hw-dock-pills {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .hw-dock-pills .status-tag {
+      padding: 1px 5px;
+      font-size: 9.5px;
+    }
+    table.hw-live-table {
+      table-layout: fixed;
+      font-size: 10px;
+      line-height: 1.2;
     }
     table.hw-live-table th, table.hw-live-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border);
+      padding: 2.5px 3px;
+      border-bottom: 1px solid #e6eeea;
       text-align: left;
       vertical-align: middle;
+      overflow: hidden;
+    }
+    table.hw-live-table tbody tr:last-child td {
+      border-bottom: none;
     }
     table.hw-live-table th {
       background: #ecf7f2;
       color: var(--ink-pure);
       font-weight: 700;
-      font-size: 11px;
+      font-size: 9.5px;
       text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .hw-dev-name {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-pure);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hw-spec-sub {
+      display: block;
+      font-size: 9px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.15;
+    }
+    .hw-val-line {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .tm-mini-box {
-      width: 48px;
-      height: 28px;
+      width: 42px;
+      height: 19px;
       border: 1px solid #94a3b8;
       border-radius: 3px;
       background: #ffffff;
       position: relative;
       overflow: hidden;
-      display: inline-block;
-      vertical-align: middle;
+      display: block;
+      margin-left: auto;
+    }
+    .tm-mini-box svg {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
     .tm-meta strong {
-      font-size: 11.5px;
+      font-size: 10.5px;
       font-weight: 700;
       color: #0f172a;
     }
     .tm-meta span {
-      font-size: 11px;
+      font-size: 10px;
       color: #334155;
       font-variant-numeric: tabular-nums;
       overflow-wrap: anywhere;
     }
     .hw-bar-track {
       width: 100%;
-      max-width: 110px;
-      height: 6px;
+      max-width: 96px;
+      height: 4px;
       background: #e2e8f0;
       border-radius: 999px;
       overflow: hidden;
-      margin-top: 3px;
+      margin-top: 2px;
     }
     .hw-bar-fill {
       height: 100%;
@@ -1128,17 +1256,21 @@ function renderPortalHtml() {
       transition: width 280ms ease;
     }
 
-    /* Admin 7-Column Google Sheet Key Manager Modal/Drawer (Full Width) */
+    /* Admin 7-Column Google Sheet Key Manager Floating Overlay Drawer (Does Not Push 100vh Workspace) */
     #admin-key-management-panel {
       display: none;
-      width: calc(100% - 32px);
-      max-width: 100%;
-      margin: 12px 16px 0;
+      position: fixed;
+      top: 50px;
+      left: 16px;
+      right: 16px;
+      z-index: 900;
+      max-height: 76vh;
+      overflow-y: auto;
       padding: 14px 18px;
       background: #ffffff;
       border: 2px solid var(--accent-emerald);
       border-radius: 8px;
-      box-shadow: var(--shadow-card);
+      box-shadow: 0 18px 48px rgba(15, 23, 20, 0.26);
     }
     table.admin-sheet-table {
       width: 100%;
@@ -1179,15 +1311,24 @@ function renderPortalHtml() {
 
     @media (max-width: 1280px) {
       .workspace {
-        grid-template-columns: 300px minmax(0, 1fr) 335px;
+        grid-template-columns: 295px minmax(0, 1fr) 310px;
       }
     }
     @media (max-width: 1024px) {
-      .steps { padding: 0 12px; }
-      .workspace { grid-template-columns: 1fr; }
-      .config-panel, .inspector-side-panel, .right-inspector-panel {
-        max-height: none;
+      html, body, #authenticated-workspace { height: auto; overflow: auto; }
+      .steps { padding: 0 8px; }
+      .workspace {
+        height: auto;
+        overflow: visible;
+        grid-template-columns: 1fr;
       }
+      .left-dock-column, .map-panel.center-stage-panel, .config-panel, .inspector-side-panel, .right-inspector-panel {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+      }
+      .viewport-shell { height: 55vh; }
+      #realtime-hardware-table-panel { max-height: none; }
     }
   </style>
 </head>
@@ -1241,7 +1382,10 @@ function renderPortalHtml() {
           <h2 style="color:#007a52;">📊 Quản Lý Key (7 Cột)</h2>
           <p class="field-help"><span class="status-green">🟢 &gt; 1/3 hạn</span> · <span class="status-red">🔴 &le; 1/3 hạn</span> · Drive: <a target="_blank" href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"><code>1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN</code></a></p>
         </div>
-        <button type="button" class="primary" onclick="exportGoogleSheetCsv()">📥 Xuất CSV</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button type="button" class="primary" onclick="exportGoogleSheetCsv()">📥 Xuất CSV</button>
+          <button type="button" class="secondary" onclick="toggleAdminSheetPanel()">✕ Đóng</button>
+        </div>
       </div>
       <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr auto auto; gap:8px; align-items:center; margin-top:10px;">
         <input id="rec-name" placeholder="1. Người nhận" />
@@ -1305,9 +1449,10 @@ function renderPortalHtml() {
       </ol>
     </nav>
 
-    <!-- KHÔNG GIAN LÀM VIỆC 3 CỘT CÂN ĐỐI -->
+    <!-- KHÔNG GIAN LÀM VIỆC 3 CỘT CÂN ĐỐI (VỪA KHÍT 1 MÀN HÌNH, KHÔNG CẦN LĂN CHUỘT) -->
     <main class="workspace">
-      <!-- CỘT TRÁI: CẤU HÌNH 4 BƯỚC -->
+      <!-- CỘT TRÁI: CẤU HÌNH 4 BƯỚC + BẢNG THÔNG SỐ PHẦN CỨNG REAL-TIME -->
+      <div class="left-dock-column">
       <section class="config-panel" aria-labelledby="step-title">
         <div class="panel-heading">
           <p class="eyebrow" id="step-kicker">BƯỚC 01 / 04</p>
@@ -1553,6 +1698,101 @@ grass</textarea>
         </section>
       </section>
 
+      <!-- BẢNG THÔNG SỐ PHẦN CỨNG THỜI GIAN THỰC (DỜI SANG CỘT TRÁI NGAY DƯỚI CẤU HÌNH ĐỂ VỪA 1 MÀN HÌNH) -->
+      <section id="realtime-hardware-table-panel" aria-label="Bảng thông số phần cứng thời gian thực">
+        <aside id="tm-float-card" class="tm-float-card" aria-label="Giám sát phần cứng theo máy thực tế">
+          <div class="hw-dock-header">
+            <strong class="hw-dock-title">⚡ PHẦN CỨNG (REAL-TIME)</strong>
+            <div class="hw-dock-pills">
+              <span id="tm-fps-badge" class="status-tag success tabular-nums">● 60 FPS</span>
+            </div>
+          </div>
+          <div class="hw-dock-meta">
+            <span id="tm-source-badge">🖥️ Đang đọc thông số máy...</span>
+            <div class="hw-dock-pills">
+              <span id="hw-live-clock-badge" class="status-tag tabular-nums">LIVE</span>
+              <span id="tm-poll-seq-badge" class="status-tag tabular-nums">#1</span>
+              <span id="tm-max-tex-badge" class="status-tag tabular-nums" style="display:none;">MAX_TEX: 16384px</span>
+            </div>
+          </div>
+          <table class="hw-live-table">
+            <colgroup>
+              <col style="width:45%" />
+              <col style="width:37%" />
+              <col style="width:18%" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Thiết bị</th>
+                <th>Tải &amp; Hiệu năng</th>
+                <th style="text-align:right;">Xung</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="tm-row" style="display:table-row;">
+                <td>
+                  <strong id="tm-cpu-name" class="hw-dev-name">CPU (8 luồng)</strong>
+                  <span id="tm-cpu-spec" class="hw-spec-sub">Đa luồng · SIMD</span>
+                </td>
+                <td>
+                  <span id="tm-cpu-val" class="hw-val-line tabular-nums" style="color:#0284c7;">12% · 3.85 GHz</span>
+                  <div class="hw-bar-track"><div id="hw-cpu-bar" class="hw-bar-fill" style="width:12%;background:#0284c7;"></div></div>
+                </td>
+                <td><div class="tm-mini-box"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><polyline id="tm-cpu-poly" fill="rgba(14,165,233,0.18)" stroke="#0284c7" stroke-width="1.4" points="0,25 12,23 24,24 36,22 48,23 48,30 0,30"/></svg></div></td>
+              </tr>
+              <tr class="tm-row active" style="display:table-row;">
+                <td>
+                  <strong class="hw-dev-name">GPU 1 (WebGPU)</strong>
+                  <span class="hw-spec-sub"><span id="tm-gpu1-name">WebGPU Accelerator</span> · <span id="tm-gpu1-spec">WebGL2</span></span>
+                </td>
+                <td>
+                  <span id="gpu1-live-txt" class="hw-val-line tabular-nums" style="color:#7c3aed;">22% (48 °C)</span>
+                  <div class="hw-bar-track"><div id="hw-gpu1-bar" class="hw-bar-fill" style="width:22%;background:#7c3aed;"></div></div>
+                </td>
+                <td><div class="tm-mini-box"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><polyline id="tm-gpu1-poly" fill="rgba(139,92,246,0.28)" stroke="#7c3aed" stroke-width="1.4" points="0,14 12,12 24,15 36,11 48,13 48,30 0,30"/></svg></div></td>
+              </tr>
+              <tr class="tm-row" style="display:table-row;">
+                <td>
+                  <strong class="hw-dev-name">GPU 0 / VRAM</strong>
+                  <span class="hw-spec-sub"><span id="tm-gpu0-name">Integrated GPU</span> · <span id="tm-gpu0-spec">Shared VRAM</span></span>
+                </td>
+                <td><span id="tm-gpu0-val" class="hw-val-line tabular-nums" style="color:#0f172a;">3%</span></td>
+                <td><div class="tm-mini-box"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><polyline id="tm-gpu0-poly" fill="rgba(14,165,233,0.12)" stroke="#0284c7" stroke-width="1.2" points="0,26 24,26 48,26 48,30 0,30"/></svg></div></td>
+              </tr>
+              <tr class="tm-row" style="display:table-row;">
+                <td>
+                  <strong class="hw-dev-name">RAM &amp; Heap</strong>
+                  <span id="tm-mem-spec" class="hw-spec-sub">Bộ nhớ hệ thống</span>
+                </td>
+                <td>
+                  <span id="tm-mem-val" class="hw-val-line tabular-nums" style="color:#2563eb;">14.2/32 GB (44%)</span>
+                  <div class="hw-bar-track"><div id="hw-mem-bar" class="hw-bar-fill" style="width:44%;background:#2563eb;"></div></div>
+                </td>
+                <td><div class="tm-mini-box"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><rect id="tm-mem-rect" x="0" y="14" width="48" height="16" fill="rgba(59,130,246,0.22)"/><line id="tm-mem-line" x1="0" y1="14" x2="48" y2="14" stroke="#2563eb" stroke-width="1.4"/></svg></div></td>
+              </tr>
+              <tr class="tm-row" style="display:table-row;">
+                <td>
+                  <strong id="tm-disk0-name" class="hw-dev-name">Disk 0 (NVMe)</strong>
+                  <span class="hw-spec-sub"><span id="tm-disk0-type">SSD NVMe</span> · <span id="tm-disk1-name">Disk 1</span> (<span id="tm-disk1-type">Data</span>: <span id="tm-disk1-val">2%</span>)</span>
+                </td>
+                <td><span id="tm-disk0-val" class="hw-val-line tabular-nums" style="color:#16a34a;">36% · Ready</span></td>
+                <td><div class="tm-mini-box"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><polyline id="tm-disk0-poly" fill="none" stroke="#16a34a" stroke-width="1.3" points="0,26 24,25 48,26"/><polyline id="tm-disk1-poly" fill="none" stroke="#059669" stroke-width="1.2" points="0,27 20,27 30,23 48,26"/></svg></div></td>
+              </tr>
+              <tr class="tm-row" style="display:table-row;">
+                <td>
+                  <strong id="tm-net-name" class="hw-dev-name">Network &amp; TPU</strong>
+                  <span id="tm-net-sub" class="hw-spec-sub">WebRTC / HTTP · Auto-TPU v5e-8</span>
+                </td>
+                <td><span id="tm-net-val" class="hw-val-line tabular-nums" style="color:#d97706;">S: 24 R: 68 Kbps</span></td>
+                <td><div class="tm-mini-box" style="border-color:#b45309"><svg width="42" height="19" viewBox="0 0 48 30" preserveAspectRatio="none"><polyline id="tm-net-poly" fill="rgba(217,119,6,0.15)" stroke="#d97706" stroke-width="1.3" points="0,26 15,24 30,25 48,23 48,30 0,30"/></svg></div></td>
+              </tr>
+            </tbody>
+            <tbody id="hw-live-tbody" style="display:none;"></tbody>
+          </table>
+        </aside>
+      </section>
+      </div>
+
       <!-- CỘT GIỮA (CENTER STAGE): HIỂN THỊ ẢNH Ở GIỮA + SOI BÊN CHƯA ĐẾM VS ĐÃ ĐẾM + SO SÁNH NGỌN CÂY NHÒE NGAY Ở TRÊN -->
       <section class="map-panel center-stage-panel" aria-labelledby="map-title">
         <div class="map-heading">
@@ -1573,21 +1813,21 @@ grass</textarea>
         </div>
 
         <!-- THANH THAO TÁC SO SÁNH & DUYỆT THAY NGỌN CÂY NHÒE NGAY Ở TRÊN (HIỆN KHI SOI / SO SÁNH) -->
-        <div id="center-top-blurry-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;padding:6px 10px;background:#f8faf9;border:1px solid var(--border);border-radius:6px;">
-          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:210px;">
-            <button type="button" class="secondary" style="min-height:28px;padding:2px 8px;font-size:11.5px;" onclick="stepBlurryPlantSelection(-1)">◀</button>
-            <select id="center-top-blurry-select" style="margin:0;min-height:28px;padding:2px 8px;font-size:11.5px;font-family:var(--font-mono);flex:1;" onchange="selectBlurryPlantForComparison(this.value, gridState.centerStageMode === 'blurry_compare')"></select>
-            <button type="button" class="secondary" style="min-height:28px;padding:2px 8px;font-size:11.5px;" onclick="stepBlurryPlantSelection(1)">▶</button>
+        <div id="center-top-blurry-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap;padding:4px 8px;background:#f8faf9;border-bottom:1px solid var(--border);flex:0 0 auto;">
+          <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:190px;">
+            <button type="button" class="secondary" style="min-height:26px;padding:2px 7px;font-size:11px;" onclick="stepBlurryPlantSelection(-1)">◀</button>
+            <select id="center-top-blurry-select" style="margin:0;min-height:26px;padding:2px 7px;font-size:11px;font-family:var(--font-mono);flex:1;" onchange="selectBlurryPlantForComparison(this.value, gridState.centerStageMode === 'blurry_compare')"></select>
+            <button type="button" class="secondary" style="min-height:26px;padding:2px 7px;font-size:11px;" onclick="stepBlurryPlantSelection(1)">▶</button>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-            <button type="button" class="primary" style="font-size:11.5px;min-height:28px;padding:3px 10px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay</button>
-            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay</button>
-            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 9px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="approveAllBlurryPlantsInTile()">✅ Thay tất cả</button>
-            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#0369a1;color:#0369a1;font-weight:600;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <button type="button" class="primary" style="font-size:11px;min-height:26px;padding:2px 9px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 9px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="approveAllBlurryPlantsInTile()">✅ Thay tất cả</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 9px;border-color:#0369a1;color:#0369a1;font-weight:600;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
           </div>
         </div>
 
-        <div class="viewport-shell" id="viewport-dropzone" style="height:clamp(480px, 56vh, 680px);">
+        <div class="viewport-shell" id="viewport-dropzone">
           <canvas id="overview-canvas" width="1600" height="1000"></canvas>
           <span class="north-indicator" aria-hidden="true">N<br>↑</span>
           <div class="map-tools" role="group" aria-label="Điều khiển bản đồ trung tâm">
@@ -1603,14 +1843,14 @@ grass</textarea>
         </div>
 
         <div class="map-caption">
-          <div class="legend" style="flex-wrap:wrap;gap:10px;">
+          <div class="legend" style="flex-wrap:wrap;gap:9px;">
             <span><i class="legend-grid"></i>Lưới ô cắt</span>
             <span><i class="legend-selected"></i>Ô đang chọn</span>
-            <span><i style="background:#10b981;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây nét</span>
-            <span><i style="background:#f59e0b;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây nhòe</span>
-            <span><i style="background:#06b6d4;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Đã thay</span>
+            <span><i style="background:#10b981;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Cây nét</span>
+            <span><i style="background:#f59e0b;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Cây nhòe</span>
+            <span><i style="background:#06b6d4;border-radius:50%;width:8px;height:8px;display:inline-block;"></i>Đã thay</span>
           </div>
-          <span>Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô: soi ở giữa</span>
+          <span style="white-space:nowrap;">Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô: soi ở giữa</span>
         </div>
         <p class="overview-note" id="overview-quality-note" style="display:none;"></p>
 
@@ -1623,86 +1863,6 @@ grass</textarea>
           <canvas id="fpga-edge-canvas" width="520" height="200"></canvas>
           <p id="fpga-canvas-caption"></p>
         </section>
-
-        <!-- BẢNG THÔNG SỐ PHẦN CỨNG THỜI GIAN THỰC (REAL-TIME HARDWARE TELEMETRY TABLE) -->
-        <section id="realtime-hardware-table-panel" aria-label="Bảng thông số phần cứng thời gian thực">
-          <aside id="tm-float-card" class="tm-float-card" aria-label="Giám sát phần cứng theo máy thực tế">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border);">
-              <div>
-                <strong style="font-size:12.5px;color:#0b1410;">⚡ BẢNG THÔNG SỐ PHẦN CỨNG (REAL-TIME)</strong>
-                <span id="tm-source-badge" style="display:block;font-size:11px;color:#0369a1;font-weight:600;">🖥️ Đang đọc thông số máy...</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <span id="hw-live-clock-badge" class="status-tag tabular-nums">LIVE</span>
-                <span id="tm-poll-seq-badge" class="status-tag tabular-nums">Poll #1</span>
-                <span id="tm-max-tex-badge" class="status-tag tabular-nums">MAX_TEX: 16384px</span>
-                <span id="tm-fps-badge" class="status-tag success tabular-nums">● 60 FPS</span>
-              </div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="hw-live-table">
-                <thead>
-                  <tr>
-                    <th>Thiết bị</th>
-                    <th>Thông số phần cứng</th>
-                    <th>Tải &amp; Hiệu năng</th>
-                    <th>Xung nhịp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="tm-row" style="display:table-row;">
-                    <td><strong id="tm-cpu-name">CPU (8 luồng)</strong></td>
-                    <td><span id="tm-cpu-spec">Đa luồng</span></td>
-                    <td>
-                      <span id="tm-cpu-val" class="tabular-nums" style="font-weight:700;color:#0284c7;">12% · 3.85 GHz</span>
-                      <div class="hw-bar-track"><div id="hw-cpu-bar" class="hw-bar-fill" style="width:12%;background:#0284c7;"></div></div>
-                    </td>
-                    <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-cpu-poly" fill="rgba(14,165,233,0.18)" stroke="#0284c7" stroke-width="1.2" points="0,25 12,23 24,24 36,22 48,23 48,28 0,28"/></svg></div></td>
-                  </tr>
-                  <tr class="tm-row active" style="display:table-row;">
-                    <td><strong>GPU 1 (WebGPU)</strong></td>
-                    <td><span id="tm-gpu1-name">WebGPU Hardware Accelerator</span> · <small id="tm-gpu1-spec">WebGPU + WebGL2</small></td>
-                    <td>
-                      <span id="gpu1-live-txt" class="tabular-nums" style="font-weight:700;color:#7c3aed;">22% (48 °C)</span>
-                      <div class="hw-bar-track"><div id="hw-gpu1-bar" class="hw-bar-fill" style="width:22%;background:#7c3aed;"></div></div>
-                    </td>
-                    <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-gpu1-poly" fill="rgba(139,92,246,0.28)" stroke="#7c3aed" stroke-width="1.2" points="0,14 12,12 24,15 36,11 48,13 48,28 0,28"/></svg></div></td>
-                  </tr>
-                  <tr class="tm-row" style="display:table-row;">
-                    <td><strong>GPU 0 / VRAM</strong></td>
-                    <td><span id="tm-gpu0-name">Integrated Graphics</span> · <small id="tm-gpu0-spec">Shared VRAM</small></td>
-                    <td><span id="tm-gpu0-val" class="tabular-nums" style="font-weight:600;">3% · 1024×1024</span></td>
-                    <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-gpu0-poly" fill="rgba(14,165,233,0.12)" stroke="#0284c7" stroke-width="1" points="0,26 24,26 48,26 48,28 0,28"/></svg></div></td>
-                  </tr>
-                  <tr class="tm-row" style="display:table-row;">
-                    <td><strong>RAM &amp; Heap</strong></td>
-                    <td><span id="tm-mem-spec">Bộ nhớ hệ thống</span></td>
-                    <td>
-                      <span id="tm-mem-val" class="tabular-nums" style="font-weight:700;color:#2563eb;">14.2/32.0 GB (44%)</span>
-                      <div class="hw-bar-track"><div id="hw-mem-bar" class="hw-bar-fill" style="width:44%;background:#2563eb;"></div></div>
-                    </td>
-                    <td><div class="tm-mini-box"><svg width="48" height="28"><rect id="tm-mem-rect" x="0" y="14" width="48" height="14" fill="rgba(59,130,246,0.22)"/><line id="tm-mem-line" x1="0" y1="14" x2="48" y2="14" stroke="#2563eb" stroke-width="1.2"/></svg></div></td>
-                  </tr>
-                  <tr class="tm-row" style="display:table-row;">
-                    <td><strong id="tm-disk0-name">Disk 0 (NVMe)</strong></td>
-                    <td><span id="tm-disk0-type">SSD (NVMe)</span> · <strong id="tm-disk1-name">Disk 1</strong> (<span id="tm-disk1-type">Workspace</span>: <span id="tm-disk1-val">2%</span>)</td>
-                    <td><span id="tm-disk0-val" class="tabular-nums" style="font-weight:600;color:#16a34a;">36% · Sẵn sàng</span></td>
-                    <td>
-                      <div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-disk0-poly" fill="none" stroke="#16a34a" stroke-width="1.1" points="0,26 24,25 48,26"/><polyline id="tm-disk1-poly" fill="none" stroke="#059669" stroke-width="1" points="0,27 20,27 30,23 48,26"/></svg></div>
-                    </td>
-                  </tr>
-                  <tr class="tm-row" style="display:table-row;">
-                    <td><strong id="tm-net-name">Network &amp; TPU</strong></td>
-                    <td><span id="tm-net-sub">WebRTC / HTTP · Auto-TPU v5e-8</span></td>
-                    <td><span id="tm-net-val" class="tabular-nums" style="font-weight:600;color:#d97706;">S: 24 R: 68 Kbps</span></td>
-                    <td><div class="tm-mini-box" style="border-color:#b45309"><svg width="48" height="28"><polyline id="tm-net-poly" fill="rgba(217,119,6,0.15)" stroke="#d97706" stroke-width="1.1" points="0,26 15,24 30,25 48,23 48,28 0,28"/></svg></div></td>
-                  </tr>
-                </tbody>
-                <tbody id="hw-live-tbody"></tbody>
-              </table>
-            </div>
-          </aside>
-        </section>
       </section>
 
       <!-- CỘT PHẢI: BẢNG ĐẾM CÂY LÚA TỪNG Ô CẮT + Ô ẢNH CẮT 1:1 + DUYỆT THAY CÂY NHÒE NGỌN -->
@@ -1714,8 +1874,8 @@ grass</textarea>
             <h2 style="color:#007a52;">🌾 1. Đếm Cây Lúa Từng Ô</h2>
             <button type="button" class="primary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="countRicePlantsPerCroppedTile(true)">🔄 Đếm lại</button>
           </div>
-          <p id="per-tile-count-summary" class="field-help" style="margin-bottom:6px;color:#0b1410;font-weight:600;"></p>
-          <div style="max-height:175px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:var(--surface);">
+          <p id="per-tile-count-summary" class="field-help" style="margin-bottom:5px;color:#0b1410;font-weight:600;"></p>
+          <div style="max-height:118px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:var(--surface);">
             <table class="per-tile-count-table">
               <thead>
                 <tr>
@@ -1745,7 +1905,7 @@ grass</textarea>
           </div>
           <div class="tile-body">
             <div class="tile-image-wrap">
-              <canvas id="tile-preview-canvas" width="1024" height="1024" style="width:100%;height:100%;object-fit:contain;image-rendering:auto;border-radius:4px;cursor:pointer;" onclick="openFullResTileModal()"></canvas>
+              <canvas id="tile-preview-canvas" width="1024" height="460" style="width:100%;height:100%;object-fit:contain;image-rendering:auto;border-radius:4px;cursor:pointer;" onclick="openFullResTileModal()"></canvas>
             </div>
             <div id="tile-details">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
@@ -1775,8 +1935,8 @@ grass</textarea>
             <h2 style="color:#b45309;">🌱 3. Duyệt Cây Nhòe Ngọn</h2>
             <span id="blurry-count-badge" class="status-tag" style="background:#fef3c7;color:#b45309;border-color:#f59e0b;">0 cây nhòe</span>
           </div>
-          <select id="blurry-plant-select" style="margin-bottom:8px;font-family:var(--font-mono);font-size:12px;" onchange="selectBlurryPlantForComparison(this.value)"></select>
-          <div id="blurry-plant-list" style="max-height:165px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+          <select id="blurry-plant-select" style="margin-bottom:6px;font-family:var(--font-mono);font-size:11.5px;" onchange="selectBlurryPlantForComparison(this.value)"></select>
+          <div id="blurry-plant-list" style="max-height:110px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;margin-bottom:6px;"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
             <button type="button" id="btn-approve-blurry-plant" class="primary" style="font-size:11.5px;min-height:30px;padding:4px 8px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay</button>
             <button type="button" id="btn-reject-blurry-plant" class="secondary" style="font-size:11.5px;min-height:30px;padding:4px 8px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay</button>
@@ -2902,11 +3062,11 @@ grass</textarea>
     // Tinh toan hop hien thi (Render Box) dong bo 100% ty le khung .viewport-shell de ANH LON HON KHUNG LUON VUA KHIT KHONG BAO GIO TRAN
     function getMapRenderBox(canvas) {
       const shell = canvas.parentElement;
-      if (shell && shell.clientWidth > 160 && shell.clientHeight > 160) {
+      if (shell && shell.clientWidth > 120 && shell.clientHeight > 120) {
         const dpr = Math.min(2, (typeof window !== "undefined" && window.devicePixelRatio) ? window.devicePixelRatio : 1.5);
-        const targetW = Math.max(640, Math.round(shell.clientWidth * dpr));
-        const targetH = Math.max(420, Math.round(shell.clientHeight * dpr));
-        if (Math.abs(canvas.width - targetW) > 8 || Math.abs(canvas.height - targetH) > 8) {
+        const targetW = Math.max(320, Math.round(shell.clientWidth * dpr));
+        const targetH = Math.max(240, Math.round(shell.clientHeight * dpr));
+        if (Math.abs(canvas.width - targetW) > 6 || Math.abs(canvas.height - targetH) > 6) {
           canvas.width = targetW;
           canvas.height = targetH;
         }
@@ -3805,9 +3965,9 @@ grass</textarea>
         const cleanTile = getCleanNativeTileCanvas(gridState.selectedIndex);
 
         const pad = 14;
-        const topY = 66;
+        const topY = 98;
         const availW = Math.floor((W - pad * 3) / 2);
-        const availH = H - topY - 14;
+        const availH = Math.max(120, H - topY - 34);
         const srcW = Math.max(1, rawTile.width);
         const srcH = Math.max(1, rawTile.height);
         const fitScale = Math.min(availW / srcW, availH / srcH);
@@ -3829,11 +3989,12 @@ grass</textarea>
         ctx.fillStyle = "rgba(30, 41, 59, 0.96)";
         ctx.fillRect(leftX, paneY - 26, drawW, 26);
         ctx.fillStyle = "#f8fafc";
-        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.font = "bold 11.5px Inter, sans-serif";
         ctx.fillText(
           "📷 BÊN CHƯA ĐẾM — Ảnh gốc 1:1 sạch (" + st.tileIdStr + " · " + srcW + "×" + srcH + " px)",
-          leftX + 10,
-          paneY - 9
+          leftX + 8,
+          paneY - 9,
+          drawW - 16
         );
         ctx.restore();
 
@@ -3849,11 +4010,12 @@ grass</textarea>
         ctx.fillStyle = "rgba(0, 122, 82, 0.96)";
         ctx.fillRect(rightX, paneY - 26, drawW, 26);
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.font = "bold 11.5px Inter, sans-serif";
         ctx.fillText(
-          "🎯 BÊN ĐÃ ĐẾM — Đếm được: " + st.totalRicePlants + " cây lúa (🟢 " + st.sharpRicePlants + " nét · 🟠 " + st.blurryTipPlants + " nhòe)",
-          rightX + 10,
-          paneY - 9
+          "🎯 BÊN ĐÃ ĐẾM — " + st.totalRicePlants + " cây lúa (🟢 " + st.sharpRicePlants + " nét · 🟠 " + st.blurryTipPlants + " nhòe)",
+          rightX + 8,
+          paneY - 9,
+          drawW - 16
         );
 
         // Vẽ vòng định vị đúng vị trí từng khóm/cây lúa thật trên ảnh bên khung phải
@@ -3889,14 +4051,19 @@ grass</textarea>
               ctx.arc(px, py, 1.9, 0, Math.PI * 2);
               ctx.fill();
 
+              const lblW = 46;
+              const lblH = 12;
+              const lblX = Math.max(rightX + 2, Math.min(rightX + drawW - lblW - 2, px - 22));
+              const lblY = Math.max(paneY + 2, Math.min(paneY + drawH - lblH - 2, py - rad - 14));
               ctx.fillStyle = (p.replacementStatus === "approved") ? "rgba(8, 145, 178, 0.92)" : "rgba(217, 119, 6, 0.92)";
-              ctx.fillRect(px - 22, py - rad - 14, 46, 12);
+              ctx.fillRect(lblX, lblY, lblW, lblH);
               ctx.fillStyle = "#ffffff";
               ctx.font = "bold 8.5px Inter, sans-serif";
               ctx.fillText(
                 "#" + p.plantNum + (p.replacementStatus === "approved" ? " Thay" : " Nhòe"),
-                px - 20,
-                py - rad - 5
+                lblX + 2,
+                lblY + 9,
+                lblW - 4
               );
             } else {
               ctx.strokeStyle = "#10b981";
@@ -3908,25 +4075,27 @@ grass</textarea>
               ctx.arc(px, py, 1.6, 0, Math.PI * 2);
               ctx.fill();
               if (p.plantNum <= 10 || p.plantNum % 45 === 0) {
+                const tagX = Math.min(rightX + drawW - 22, px + rad + 1.5);
                 ctx.fillStyle = "#a7f3d0";
                 ctx.font = "bold 8px Inter, sans-serif";
-                ctx.fillText("#" + p.plantNum, px + rad + 1.5, py + 2.5);
+                ctx.fillText("#" + p.plantNum, tagX, py + 2.5);
               }
             }
           });
         }
         ctx.restore();
 
-        // Thanh tiêu đề trên cùng của Center Stage
-        ctx.fillStyle = "rgba(11, 20, 16, 0.94)";
-        ctx.fillRect(12, 6, W - 24, 30);
+        // Thanh tiêu đề ngay dưới thanh công cụ .map-tools (không bị chồng lấp nút điều khiển)
+        ctx.fillStyle = "rgba(11, 20, 16, 0.92)";
+        ctx.fillRect(12, 44, W - 24, 24);
         ctx.fillStyle = "#6ee7b7";
-        ctx.font = "bold 12.5px Inter, sans-serif";
+        ctx.font = "bold 11.5px Inter, sans-serif";
         ctx.fillText(
           "🔍 SOI ĐỐI CHIẾU Ô " + st.tileIdStr + " (1:1 GỐC): TRÁI = CHƯA ĐẾM vs PHẢI = ĐÃ ĐẾM (" +
           st.totalRicePlants + " CÂY LÚA · " + st.sharpRicePlants + " NÉT · " + st.blurryTipPlants + " NHÒE · ĐÃ THAY " + st.approvedReplacedPlants + ")",
           20,
-          25
+          60,
+          W - 40
         );
         return;
       }
@@ -5725,8 +5894,11 @@ grass</textarea>
     }
 
     function toggleTaskMgrCard() {
-      const card = document.getElementById("tm-float-card");
-      if (card) card.style.display = (card.style.display === "none") ? "block" : "none";
+      const panel = document.getElementById("realtime-hardware-table-panel");
+      if (panel) {
+        panel.style.display = (panel.style.display === "none") ? "" : "none";
+        requestAnimationFrame(function() { drawOverviewAndGrid(); });
+      }
     }
 
     function toggleAdminSheetPanel() {
@@ -5845,9 +6017,11 @@ grass</textarea>
       const cpuNameEl = document.getElementById("tm-cpu-name");
       if (cpuNameEl) cpuNameEl.textContent = "CPU (" + cores + " luồng)";
       const cpuSpecEl = document.getElementById("tm-cpu-spec");
-      if (cpuSpecEl) cpuSpecEl.textContent = cores + " Logical Cores · " + cpuGhz + " GHz";
+      if (cpuSpecEl) cpuSpecEl.textContent = cores + " Cores · " + cpuGhz + " GHz";
       const cpuValEl = document.getElementById("tm-cpu-val");
       if (cpuValEl) cpuValEl.textContent = Math.round(cpuPct) + "% · " + cpuGhz + " GHz";
+      const cpuBarEl = document.getElementById("hw-cpu-bar");
+      if (cpuBarEl) cpuBarEl.style.width = Math.min(100, Math.max(4, Math.round(cpuPct))) + "%";
       const cpuPoly = document.getElementById("tm-cpu-poly");
       if (cpuPoly) cpuPoly.setAttribute("points", buildSparklinePoints(tmHistory.cpu, true));
 
@@ -5870,8 +6044,10 @@ grass</textarea>
       }
       const memValEl = document.getElementById("tm-mem-val");
       if (memValEl) memValEl.textContent = memUsed + "/" + memTotal + " GB (" + Math.round(memPct) + "%)";
+      const memBarEl = document.getElementById("hw-mem-bar");
+      if (memBarEl) memBarEl.style.width = Math.min(100, Math.max(4, Math.round(memPct))) + "%";
       const memSpecEl = document.getElementById("tm-mem-spec");
-      if (memSpecEl) memSpecEl.textContent = "RAM " + memTotal + " GB · JS Heap " + jsHeapMb + " MB";
+      if (memSpecEl) memSpecEl.textContent = "RAM " + memTotal + " GB · Heap " + jsHeapMb + " MB";
       const memY = Math.max(2, Math.min(28, Math.round(30 - (memPct / 100.0) * 28)));
       const memRect = document.getElementById("tm-mem-rect");
       const memLine = document.getElementById("tm-mem-line");
@@ -5922,6 +6098,11 @@ grass</textarea>
         document.getElementById("tm-net-sub").textContent = netSpec;
       }
       document.getElementById("tm-net-val").textContent = "S: " + txKbps + " R: " + rxKbps + " Kbps";
+      const netLoadPct = Math.min(95, Math.max(8, Math.round(((rxKbps + txKbps) / 1800) * 100 + (Math.sin(Date.now() / 900) * 6))));
+      tmHistory.net.push(netLoadPct);
+      if (tmHistory.net.length > 10) tmHistory.net.shift();
+      const netPoly = document.getElementById("tm-net-poly");
+      if (netPoly) netPoly.setAttribute("points", buildSparklinePoints(tmHistory.net, true));
 
       // GPUs
       const gpu0NameEl = document.getElementById("tm-gpu0-name");
@@ -5932,12 +6113,12 @@ grass</textarea>
       const gpu1ValEl = document.getElementById("gpu1-live-txt");
 
       if (gpu0NameEl) gpu0NameEl.textContent = clientHwInfo.gpu0Name;
-      if (gpu0SpecEl) gpu0SpecEl.textContent = "Shared VRAM · MAX_TEX " + clientHwInfo.maxTextureSize + "px";
+      if (gpu0SpecEl) gpu0SpecEl.textContent = "VRAM · " + clientHwInfo.maxTextureSize + "px";
       const gpu0Pct = isBusy ? 6 : 2;
       if (gpu0ValEl) gpu0ValEl.textContent = gpu0Pct + "%";
 
       if (gpu1NameEl) gpu1NameEl.textContent = clientHwInfo.gpu1Name;
-      if (gpu1SpecEl) gpu1SpecEl.textContent = (clientHwInfo.webgpuSupported ? "WebGPU + WebGL2" : "WebGL2") + " · MAX_TEX " + clientHwInfo.maxTextureSize + "px";
+      if (gpu1SpecEl) gpu1SpecEl.textContent = (clientHwInfo.webgpuSupported ? "WebGPU" : "WebGL2") + " · " + clientHwInfo.maxTextureSize + "px";
 
       let gpu1Pct = isBusy ? (58 + Math.round(Math.random() * 18)) : (14 + Math.round(Math.abs(Math.sin(Date.now() / 1500)) * 9));
       let gpu1TempStr = " (43 °C)";
@@ -5949,24 +6130,31 @@ grass</textarea>
       tmHistory.gpu1.push(gpu1Pct);
       if (tmHistory.gpu1.length > 10) tmHistory.gpu1.shift();
       if (gpu1ValEl) gpu1ValEl.textContent = Math.round(gpu1Pct) + "%" + gpu1TempStr;
+      const gpu1BarEl = document.getElementById("hw-gpu1-bar");
+      if (gpu1BarEl) gpu1BarEl.style.width = Math.min(100, Math.max(4, Math.round(gpu1Pct))) + "%";
       const gpu1Poly = document.getElementById("tm-gpu1-poly");
       if (gpu1Poly) gpu1Poly.setAttribute("points", buildSparklinePoints(tmHistory.gpu1, true));
 
       const fps = Math.max(54, Math.min(60, Math.round(60 - benchMs * 0.8)));
       gridState.liveFps = fps;
       const fpsBadge = document.getElementById("tm-fps-badge");
-      if (fpsBadge) fpsBadge.textContent = fps + " FPS · 100% Native Pixel";
+      if (fpsBadge) fpsBadge.textContent = "● " + fps + " FPS";
 
       const srcBadge = document.getElementById("tm-source-badge");
       if (srcBadge) {
-        srcBadge.textContent = srv ? ("🖥️ Máy thực tế (" + cores + " Cores + WebGPU)") : ("🖥️ Máy Client (" + cores + " Cores + WebGL2)");
+        srcBadge.textContent = srv ? ("🖥️ Máy thực (" + cores + "C · WebGPU)") : ("🖥️ Client (" + cores + "C · WebGL2)");
       }
+
+      const pollBadge = document.getElementById("tm-poll-seq-badge");
+      if (pollBadge) pollBadge.textContent = "#" + gridState.hwPollSeq;
+      const maxTexBadge = document.getElementById("tm-max-tex-badge");
+      if (maxTexBadge) maxTexBadge.textContent = "MAX_TEX: " + clientHwInfo.maxTextureSize + "px";
 
       // Cap nhat BANG CAU HINH PHAN CUNG & TRANG THAI HOAT DONG THOI GIAN THUC (#hw-live-tbody)
       const clockBadge = document.getElementById("hw-live-clock-badge");
       if (clockBadge) {
         const nowStr = new Date().toLocaleTimeString("vi-VN", { hour12: false });
-        clockBadge.textContent = "LIVE · " + nowStr + " (#" + gridState.hwPollSeq + ")";
+        clockBadge.textContent = "LIVE · " + nowStr;
       }
       const hwTbody = document.getElementById("hw-live-tbody");
       if (hwTbody) {
@@ -6405,7 +6593,7 @@ grass</textarea>
       const nameLabel = document.getElementById("user-name-label");
       if (data.is_admin) {
         adminBtn.style.display = "inline-flex";
-        adminPanel.style.display = "block";
+        adminPanel.style.display = "none";
         nameLabel.textContent = "Admin · Nhận diện & kiểm duyệt";
         await refreshKeys();
       } else {
@@ -6424,6 +6612,10 @@ grass</textarea>
       drawRtkCrownComparisonCanvas();
       drawFpgaParallelEdgeCanvas();
       pollRealMachineTelemetry();
+      requestAnimationFrame(function() {
+        fitOverview();
+        drawSelectedTilePreview();
+      });
     }
 
     function logoutSession() {
@@ -6776,6 +6968,26 @@ grass</textarea>
         }
       }
     }
+
+    (function initSingleScreenViewportObserver() {
+      let resizeRaf = 0;
+      function scheduleRedraw() {
+        if (resizeRaf) return;
+        resizeRaf = requestAnimationFrame(function() {
+          resizeRaf = 0;
+          const ws = document.getElementById("authenticated-workspace");
+          if (ws && ws.style.display !== "none" && typeof drawOverviewAndGrid === "function") {
+            drawOverviewAndGrid();
+          }
+        });
+      }
+      const shell = document.getElementById("viewport-dropzone");
+      if (shell && typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(scheduleRedraw);
+        ro.observe(shell);
+      }
+      window.addEventListener("resize", scheduleRedraw);
+    })();
   </script>
 </body>
 </html>
