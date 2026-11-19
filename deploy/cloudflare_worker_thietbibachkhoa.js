@@ -1220,16 +1220,16 @@ function renderPortalHtml() {
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <div>
           <strong>UAV GeoTIFF Studio</strong>
-          <span>Chuẩn bị dữ liệu ảnh địa lý · 100% Độ Nét Gốc &amp; Đếm Cây Lúa Từng Ô Cắt</span>
+          <span>VN2000 · 100% Gốc</span>
         </div>
       </div>
       <div class="header-meta">
-        <button id="btn-admin-toggle" type="button" class="primary" style="display:none;" onclick="toggleAdminSheetPanel()">👑 Quản Lý Key Google Sheet (7 Cột)</button>
-        <button type="button" onclick="switchCenterStageMode('tile_1to1')">🔍 Soi Ô Ảnh Cắt 1:1 Ở Giữa</button>
-        <button type="button" onclick="switchCenterStageMode('blurry_compare')">🌱 Duyệt Cây Nhòe Ngọn</button>
-        <span class="local-badge" id="user-role-badge"><span aria-hidden="true"></span>Chạy trên máy này</span>
-        <span id="user-name-label">Nhận diện &amp; kiểm duyệt</span>
-        <button type="button" onclick="toggleTaskMgrCard()" title="Ẩn/Hiện bảng thông số phần cứng thời gian thực">🖥️ Phần cứng Real-Time</button>
+        <button id="btn-admin-toggle" type="button" class="primary" style="display:none;" onclick="toggleAdminSheetPanel()">👑 Quản lý Key</button>
+        <button type="button" onclick="switchCenterStageMode('tile_1to1')">🔍 Soi ô cắt</button>
+        <button type="button" onclick="switchCenterStageMode('blurry_compare')">🌱 So sánh cây nhòe</button>
+        <span class="local-badge" id="user-role-badge"><span aria-hidden="true"></span>Local</span>
+        <span id="user-name-label" style="display:none;">Admin</span>
+        <button type="button" onclick="toggleTaskMgrCard()">🖥️ Phần cứng</button>
         <button type="button" onclick="logoutSession()">🔒 Khóa Key</button>
       </div>
     </header>
@@ -1238,25 +1238,25 @@ function renderPortalHtml() {
     <section id="admin-key-management-panel" class="hidden-admin-panel" style="display:none;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
         <div>
-          <h2 style="color:#007a52;">📊 Quản Lý Key Google Sheet 7 Cột (Chỉ Key Admin Mới Hiển Thị)</h2>
-          <p class="field-help">Quy tắc: <span class="status-green">🟢 Bình thường (&gt; 1/3 thời gian)</span> · <span class="status-red">🔴 Báo đỏ (&le; 1/3 thời gian)</span> · Folder dữ liệu đã xử lý: <a target="_blank" href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"><code>1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN</code></a></p>
+          <h2 style="color:#007a52;">📊 Quản Lý Key (7 Cột)</h2>
+          <p class="field-help"><span class="status-green">🟢 &gt; 1/3 hạn</span> · <span class="status-red">🔴 &le; 1/3 hạn</span> · Drive: <a target="_blank" href="https://drive.google.com/drive/u/3/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN"><code>1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN</code></a></p>
         </div>
-        <button type="button" class="primary" onclick="exportGoogleSheetCsv()">📥 Xuất Google Sheet (.CSV 7 Cột)</button>
+        <button type="button" class="primary" onclick="exportGoogleSheetCsv()">📥 Xuất CSV</button>
       </div>
       <div style="display:grid; grid-template-columns: 1.2fr 1fr 1fr auto auto; gap:8px; align-items:center; margin-top:10px;">
-        <input id="rec-name" placeholder="1. Người nhận (VD: Kỹ sư Minh)" />
-        <input id="rec-phone" placeholder="2. SĐT người nhận (VD: 0912345678)" />
+        <input id="rec-name" placeholder="1. Người nhận" />
+        <input id="rec-phone" placeholder="2. SĐT" />
         <select id="rec-purpose">
-          <option value="1h">Test thử 1 giờ (1h)</option>
-          <option value="3h">Test thử 3 giờ (3h)</option>
-          <option value="5h">Test thử 5 giờ (5h)</option>
-          <option value="1m">Mua 1 tháng (1m)</option>
-          <option value="3m">Mua 3 tháng (3m)</option>
-          <option value="6m">Mua 6 tháng (6m)</option>
-          <option value="1y">Mua 1 năm (1y)</option>
+          <option value="1h">1 giờ (1h)</option>
+          <option value="3h">3 giờ (3h)</option>
+          <option value="5h">5 giờ (5h)</option>
+          <option value="1m">1 tháng (1m)</option>
+          <option value="3m">3 tháng (3m)</option>
+          <option value="6m">6 tháng (6m)</option>
+          <option value="1y">1 năm (1y)</option>
         </select>
-        <label style="display:flex; align-items:center; gap:5px; margin:0; white-space:nowrap;"><input type="checkbox" id="rec-tpu" checked style="width:16px;min-height:16px;" /> Cho phép TPU (&gt;15p)</label>
-        <button type="button" class="primary" onclick="createKey()">+ Tạo Key Mới</button>
+        <label style="display:flex; align-items:center; gap:5px; margin:0; white-space:nowrap;"><input type="checkbox" id="rec-tpu" checked style="width:16px;min-height:16px;" /> TPU (&gt;15p)</label>
+        <button type="button" class="primary" onclick="createKey()">+ Tạo Key</button>
       </div>
       <table class="admin-sheet-table">
         <thead>
@@ -1281,61 +1281,61 @@ function renderPortalHtml() {
         <li>
           <button type="button" data-step="1" aria-current="step" onclick="goToStep(1)">
             <span class="step-number">01</span>
-            <span class="step-label-wrap"><strong>Ảnh &amp; tọa độ Base</strong><small>100% Độ phân giải gốc</small></span>
+            <span class="step-label-wrap"><strong>Ảnh &amp; Tọa độ Base</strong></span>
           </button>
         </li>
         <li>
           <button type="button" data-step="2" onclick="goToStep(2)">
             <span class="step-number">02</span>
-            <span class="step-label-wrap"><strong>Chia lưới ảnh cắt</strong><small>Cắt ô 1:1 &amp; kiểm tra</small></span>
+            <span class="step-label-wrap"><strong>Chia lưới ảnh cắt</strong></span>
           </button>
         </li>
         <li>
           <button type="button" data-step="3" onclick="goToStep(3)">
             <span class="step-number">03</span>
-            <span class="step-label-wrap"><strong>Đếm cây lúa từng ô cắt</strong><small>Soi cây nhòe ngọn &amp; DEM</small></span>
+            <span class="step-label-wrap"><strong>Đếm cây lúa</strong></span>
           </button>
         </li>
         <li>
           <button type="button" data-step="4" onclick="goToStep(4)">
             <span class="step-number">04</span>
-            <span class="step-label-wrap"><strong>Duyệt thay &amp; Xuất TIFF</strong><small>GeoTIFF đã sửa &amp; CAD VN2000</small></span>
+            <span class="step-label-wrap"><strong>Duyệt &amp; Xuất TIFF</strong></span>
           </button>
         </li>
       </ol>
     </nav>
 
-    <!-- KHÔNG GIAN LÀM VIỆC 3 CỘT CÂN ĐỐI (TRÁI: THAO TÁC · GIỮA: CENTER STAGE + BẢNG PHẦN CỨNG REAL-TIME · PHẢI: ĐẾM TỪNG Ô + DUYỆT CÂY NHÒE NGỌN) -->
+    <!-- KHÔNG GIAN LÀM VIỆC 3 CỘT CÂN ĐỐI -->
     <main class="workspace">
-      <!-- CỘT TRÁI: CẤU HÌNH 4 BƯỚC & TIẾN ĐỘ XỬ LÝ -->
+      <!-- CỘT TRÁI: CẤU HÌNH 4 BƯỚC -->
       <section class="config-panel" aria-labelledby="step-title">
         <div class="panel-heading">
           <p class="eyebrow" id="step-kicker">BƯỚC 01 / 04</p>
-          <h1 id="step-title">Ảnh &amp; tọa độ Base</h1>
-          <p id="step-description">Kiểm tra dữ liệu ảnh đầu vào (GeoTIFF / ORTHO) giữ nguyên 100% độ phân giải gốc và thiết lập tọa độ mốc Base trắc địa.</p>
+          <h1 id="step-title">Ảnh &amp; Tọa độ Base</h1>
+          <p id="step-description" style="display:none;"></p>
         </div>
 
         <!-- BƯỚC 01: ẢNH & TỌA ĐỘ BASE -->
         <div id="step-1" class="step-content">
-          <label for="source-path">Đường dẫn ảnh có tọa độ (Chọn mẫu thực tế hoặc nạp tệp từ máy)</label>
+          <label for="source-path">Đường dẫn ảnh</label>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
-            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('stage1_rgb')">🌾 Ortho_Stage 1_RGB (24-10-2026) · 26.095×33.367 px</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('khu_tam_giac')">📐 ORTHO_KHU TAM GIAC (03-10-2025) · 25.600×19.216 px</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('stage1_rgb')">🌾 Mẫu Stage 1 RGB</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:27px;padding:3px 8px;flex:1;" onclick="selectPresetDataset('khu_tam_giac')">📐 Mẫu Khu Tam Giác</button>
           </div>
           <div class="path-row">
             <input id="source-path" type="text" value="C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\sample\\MULTISPECTRAL\\Results_Stage 1\\Ortho_Stage 1_RGB (24-10-2026).jpg" onkeydown="if(event.key==='Enter'){event.preventDefault();inspectCurrentSource();}" />
             <input id="uav-file-input" type="file" multiple accept=".tif,.tiff,.jpg,.jpeg,.png,.webp,.jgw,.tfw,.wld,.prj" style="display:none" onchange="handleLocalImageSelect(event)" />
-            <button type="button" class="primary" onclick="document.getElementById('uav-file-input').click()" title="Nạp ảnh gốc từ máy tính giữ nguyên 100% độ phân giải & chất lượng gốc">📂 Nạp ảnh gốc (100%)</button>
+            <button type="button" class="primary" onclick="document.getElementById('uav-file-input').click()">📂 Nạp ảnh gốc</button>
           </div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">
             <input id="dem-file-input" type="file" accept=".tif,.tiff,.asc,.dem" style="display:none" onchange="handleCompanionDemUpload(event)" />
-            <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 8px;flex:1;border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="document.getElementById('dem-file-input').click()" title="Nạp file DEM_Stage 1 (24-10-2026).tif đi kèm để tính ΔZ phân biệt Lúa mới cấy và Cỏ dại">⛰️ Nạp file DEM đi kèm (.tif)</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 8px;flex:1;border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="document.getElementById('dem-file-input').click()">⛰️ Nạp DEM</button>
             <input id="state-json-input" type="file" accept=".json,.py" multiple style="display:none" onchange="handleProjectStateJsonUpload(event)" />
-            <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 8px;flex:1;border-color:#7c3aed;color:#6d28d9;font-weight:600;" onclick="document.getElementById('state-json-input').click()" title="Nạp project_state.json, detections.json hoặc detect_batch.py từ thư mục DETECTION RICE_FIELD">📋 Nạp project_state / detections.json</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 8px;flex:1;border-color:#7c3aed;color:#6d28d9;font-weight:600;" onclick="document.getElementById('state-json-input').click()">📋 Nạp JSON</button>
           </div>
-          <button type="button" class="secondary wide" style="font-weight:600;border-color:#007a52;color:#007a52;" onclick="inspectCurrentSource()">🔍 Đọc thông tin ảnh &amp; Cập nhật Không gian ảnh ở giữa</button>
+          <button type="button" class="secondary wide" style="font-weight:600;border-color:#007a52;color:#007a52;" onclick="inspectCurrentSource()">🔍 Đọc thông tin ảnh</button>
           <div id="metadata" class="metadata">
-            <span id="meta-status-tag" class="status-tag success" style="margin-bottom:8px">Ảnh gốc sạch 100% · Chưa chia lưới &amp; chưa chạy nhận diện</span>
+            <span id="meta-status-tag" class="status-tag success" style="margin-bottom:8px">Ảnh gốc 100%</span>
             <dl>
               <dt>Kích thước</dt><dd id="meta-dims-val">26.095 × 33.367 px</dd>
               <dt>Chất lượng</dt><dd id="meta-quality-val" style="color:#007a52;">100% Lossless Native Pixel</dd>
@@ -1349,7 +1349,7 @@ function renderPortalHtml() {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px;">
             <h2>Tọa độ Base</h2>
-            <span class="muted">Theo CRS của ảnh</span>
+            <span class="muted">VN2000</span>
           </div>
           <div class="field-grid">
             <div>
@@ -1367,11 +1367,11 @@ function renderPortalHtml() {
         <div id="step-2" class="step-content" hidden>
           <div class="field-grid">
             <div>
-              <label for="tile-width">Chiều rộng ảnh cắt (px)</label>
+              <label for="tile-width">Rộng ô cắt (px)</label>
               <input id="tile-width" type="number" min="128" step="64" value="1024" onchange="recalculateGrid(true)" />
             </div>
             <div>
-              <label for="tile-height">Chiều cao ảnh cắt (px)</label>
+              <label for="tile-height">Cao ô cắt (px)</label>
               <input id="tile-height" type="number" min="128" step="64" value="1024" onchange="recalculateGrid(true)" />
             </div>
             <div>
@@ -1383,135 +1383,135 @@ function renderPortalHtml() {
               <input id="overlap-y" type="number" min="10" max="50" step="any" value="30" onchange="recalculateGrid(true)" />
             </div>
           </div>
-          <label for="object-diameter">Đường kính đối tượng lớn nhất (cm) <span class="muted">(Tự động kiểm tra vùng đệm Overlap)</span></label>
+          <label for="object-diameter">Đường kính đối tượng (cm)</label>
           <input id="object-diameter" type="number" min="0" step="any" value="35" onchange="recalculateGrid(true)" />
-          <button type="button" class="primary wide" onclick="recalculateGrid(true); goToStep(2);">Tính lưới &amp; Đếm cây lúa từng ô ảnh cắt</button>
+          <button type="button" class="primary wide" onclick="recalculateGrid(true); goToStep(2);">Tính lưới ảnh cắt</button>
           <div id="plan-stats" class="plan-stats">
-            <div class="plan-count"><strong id="plan-count-num">1.692</strong><span>ô ảnh đã cắt</span></div>
+            <div class="plan-count"><strong id="plan-count-num">1.692</strong><span>ô ảnh cắt</span></div>
             <div class="stat-grid">
               <div><span>Lưới</span><strong id="plan-grid-dim">36 cột × 47 hàng</strong></div>
               <div><span>Bước dịch X / Y</span><strong id="plan-stride">717 / 717 px</strong></div>
-              <div><span>Overlap thực tế X</span><strong id="plan-ovx">307 px · 460,5 cm</strong></div>
-              <div><span>Overlap thực tế Y</span><strong id="plan-ovy">307 px · 460,5 cm</strong></div>
+              <div><span>Overlap X</span><strong id="plan-ovx">307 px · 460,5 cm</strong></div>
+              <div><span>Overlap Y</span><strong id="plan-ovy">307 px · 460,5 cm</strong></div>
             </div>
           </div>
         </div>
 
         <!-- BƯỚC 03: NHẬN DIỆN & ĐẾM CÂY LÚA TỪNG Ô CẮT -->
         <div id="step-3" class="step-content" hidden>
-          <label for="detect-model-select">Mô hình AI đếm cây lúa từng ô ảnh đã cắt (LocateAnything-3B + DEM ΔZ)</label>
+          <label for="detect-model-select">Mô hình nhận diện</label>
           <select id="detect-model-select" style="margin-bottom:8px;font-weight:600;" onchange="onDetectionModelChange(this.value)">
-            <option value="locate_anything_3b_dem" selected>🧠 LocateAnything-3B (Đếm Từng Cây Lúa Trong Từng Ô Ảnh Đã Cắt + Phát Hiện Cây Nhòe Ngọn)</option>
-            <option value="rice_stage1_webgpu">🌾 RiceStage1UNetLite (6-Ch) + Đếm Cây Lúa &amp; Soi Ngọn Nhòe Từng Ô Cắt 1:1</option>
-            <option value="terrain_webgpu_9class">📐 TerrainSegUNetLite 9-Class + Mylib2 CAD (Đường · Ao hồ · Mương · Nhà · Cây cảnh)</option>
-            <option value="hybrid_all">🚀 Tổ hợp Đa Mô Hình (Đếm Cây Lúa Từng Ô Cắt + Khôi Phục Ngọn Nét RTK + Terrain VN2000)</option>
+            <option value="locate_anything_3b_dem" selected>🧠 LocateAnything-3B + DEM ΔZ</option>
+            <option value="rice_stage1_webgpu">🌾 RiceStage1UNetLite (6-Ch)</option>
+            <option value="terrain_webgpu_9class">📐 TerrainSegUNetLite 9-Class</option>
+            <option value="hybrid_all">🚀 Tổ hợp Đa Mô Hình</option>
           </select>
-          <label for="detect-categories">Danh sách đối tượng cần tìm</label>
+          <label for="detect-categories">Đối tượng cần tìm</label>
           <textarea id="detect-categories" rows="2">newly transplanted rice
 grass</textarea>
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 8px;">
             <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('newly transplanted rice')">🌾 + Cây lúa</button>
             <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('grass')">🌿 + Cỏ dại</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('landscape_tree')">🌳 + Cây cảnh Mylib2</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('asphalt_road')">🛣️ + Đường nhựa</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('house_building')">🏛️ + Nhà / Công trình</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('pond')">💧 + Ao hồ / Mương</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('landscape_tree')">🌳 + Cây cảnh</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('asphalt_road')">🛣️ + Đường</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('house_building')">🏛️ + Nhà</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 7px;" onclick="addCategoryChip('pond')">💧 + Ao hồ</button>
           </div>
-          <label for="detect-scope">Phạm vi đếm cây lúa theo ô cắt</label>
+          <label for="detect-scope">Phạm vi xử lý</label>
           <select id="detect-scope" style="margin-bottom:8px;" onchange="onDetectScopeChange(this.value)">
-            <option value="all" selected>Toàn bộ các ô ảnh đã cắt (Đếm từng cây lúa trong mỗi ô)</option>
-            <option value="selected">Chỉ ô ảnh đã cắt đang chọn ở giữa (1:1 Pixel gốc)</option>
-            <option value="multi">Vùng trung tâm cánh đồng (Tránh biên NoData)</option>
+            <option value="all" selected>Toàn bộ ô ảnh cắt</option>
+            <option value="selected">Chỉ ô đang chọn</option>
+            <option value="multi">Vùng trung tâm</option>
           </select>
           <div class="field-grid">
             <div>
-              <label for="detect-images">Số ảnh bay chụp</label>
+              <label for="detect-images">Số ảnh bay</label>
               <input id="detect-images" type="number" value="25" min="1" />
             </div>
             <div>
-              <label for="detect-tiles">Số ô ảnh cắt xử lý</label>
+              <label for="detect-tiles">Số ô xử lý</label>
               <input id="detect-tiles" type="number" value="650" min="1" />
             </div>
           </div>
           <div style="display:flex;gap:6px;">
-            <button type="button" id="btn-start-detect" class="primary wide" style="flex:2;" onclick="startLiveDetectionJob('/api/detect/upload')">🚀 Đếm cây lúa từng ô cắt &amp; Tìm cây nhòe ngọn</button>
-            <button type="button" class="secondary" style="flex:1;font-size:11.5px;" onclick="runTpuTask('/api/detect/upload')" title="Kiểm tra đẩy tác vụ >15p lên Google TPU">☁️ Test TPU &gt;15p</button>
+            <button type="button" id="btn-start-detect" class="primary wide" style="flex:2;" onclick="startLiveDetectionJob('/api/detect/upload')">🚀 Đếm cây lúa</button>
+            <button type="button" class="secondary" style="flex:1;font-size:11.5px;" onclick="runTpuTask('/api/detect/upload')">☁️ Test TPU</button>
           </div>
 
-          <!-- BẢNG ĐẾM TỪNG CÂY LÚA TRONG TỪNG Ô ẢNH ĐÃ CẮT (CONTROLLED TYPOGRAPHY — STACKED KPI) -->
+          <!-- BẢNG ĐẾM TỪNG CÂY LÚA TRONG TỪNG Ô ẢNH ĐÃ CẮT -->
           <details open id="rice-dem-analysis-panel" style="margin-top:10px;padding:10px;border:1.5px solid #e11d48;border-radius:6px;background:#fff1f2;">
-            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#9f1239;">🌾 Đếm Từng Cây Lúa Theo Ô Ảnh Đã Cắt &amp; Phát Hiện Cây Nhòe Ngọn (DEM ΔZ)</summary>
+            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#9f1239;">🌾 Thống Kê Đếm Cây Lúa &amp; DEM ΔZ</summary>
             <div style="margin-top:8px;">
               <div style="padding:8px 10px;background:#ffffff;border:1px solid #fecdd3;border-radius:6px;margin-bottom:8px;">
                 <div style="display:flex;flex-direction:column;gap:2px;">
-                  <span style="font-size:11px;font-weight:700;color:#881337;">🌾 TỔNG SỐ CÂY LÚA ĐẾM ĐƯỢC TRÊN CÁC Ô ĐÃ CẮT:</span>
-                  <strong id="rice-total-clump-count" class="tabular-nums" style="font-size:16px;color:#e11d48;font-family:var(--font-mono);display:block;">Chưa quét (Bấm Đếm cây lúa từng ô cắt)</strong>
+                  <span style="font-size:11px;font-weight:700;color:#881337;">🌾 TỔNG CÂY LÚA ĐẾM ĐƯỢC:</span>
+                  <strong id="rice-total-clump-count" class="tabular-nums" style="font-size:15px;color:#e11d48;font-family:var(--font-mono);display:block;">Chưa quét</strong>
                 </div>
-                <div id="rice-density-sub" class="controlled-text" style="font-size:11px;color:#475569;margin-top:4px;">Bấm <strong>🚀 Đếm cây lúa từng ô cắt</strong> để đếm chính xác từng cây lúa trong mỗi ô ảnh cắt 1:1 và lọc cây nhòe ngọn từ <code id="active-dem-filename">DEM_Stage 1 (24-10-2026).tif</code></div>
+                <div id="rice-density-sub" class="controlled-text" style="font-size:11px;color:#475569;margin-top:4px;">DEM: <code id="active-dem-filename">DEM_Stage 1 (24-10-2026).tif</code></div>
                 <div style="display:grid;grid-template-columns:1fr;gap:4px;margin-top:7px;font-size:11px;border-top:1px dashed #fecdd3;padding-top:6px;">
                   <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;">
-                    <span>🟢 <strong>Cây lúa ngọn nét:</strong> <span id="stat-pure-rice-boxes">0 ô (0 cây lúa)</span></span>
-                    <code id="stat-pure-rice-dz" style="color:#007a52;font-weight:700;">ΔZ ≈ +1,07 cm · Độ nét 100%</code>
+                    <span>🟢 <strong>Cây nét:</strong> <span id="stat-pure-rice-boxes">0 cây</span></span>
+                    <code id="stat-pure-rice-dz" style="color:#007a52;font-weight:700;">ΔZ +1,07 cm</code>
                   </div>
                   <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;">
-                    <span>🟠 <strong>Cây lúa nhòe ngọn (Chờ duyệt thay):</strong> <span id="stat-mixed-boxes">0 cây nhòe</span></span>
-                    <code id="stat-mixed-dz" style="color:#b45309;font-weight:700;">So sánh Thay vs Không thay</code>
+                    <span>🟠 <strong>Cây nhòe:</strong> <span id="stat-mixed-boxes">0 cây</span></span>
+                    <code id="stat-mixed-dz" style="color:#b45309;font-weight:700;">Chờ duyệt</code>
                   </div>
                   <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;">
-                    <span>🔵 <strong>Cỏ dại / Cỏ bờ tách riêng:</strong> <span id="stat-grass-boxes">0 ô (0 bụi cỏ)</span></span>
-                    <code id="stat-grass-dz" style="color:#0369a1;font-weight:700;">ΔZ ≈ +1,84 cm · NDVI 0,214</code>
+                    <span>🔵 <strong>Cỏ dại:</strong> <span id="stat-grass-boxes">0 bụi</span></span>
+                    <code id="stat-grass-dz" style="color:#0369a1;font-weight:700;">ΔZ +1,84 cm</code>
                   </div>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
-                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="repairDemNoiseInBrowser()">⛰️ Hạ / Khử nhiễu nền DEM</button>
-                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#007a52;color:#065f46;font-weight:600;" onclick="enrichDetectionsWithDemHeight()">📡 Phân tích DEM ΔZ (Lúa vs Cỏ)</button>
-                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#e11d48;color:#be123c;font-weight:600;" onclick="splitMergedRiceClumps()">🌾 Đếm lại từng cây lúa (~15cm)</button>
-                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#d97706;color:#b45309;font-weight:600;" onclick="splitMixedRiceAndGrassBox(false)">✂️ Tách Cỏ &amp; Lúa từng ô</button>
+                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="repairDemNoiseInBrowser()">⛰️ Khử nhiễu DEM</button>
+                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#007a52;color:#065f46;font-weight:600;" onclick="enrichDetectionsWithDemHeight()">📡 Phân tích DEM ΔZ</button>
+                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#e11d48;color:#be123c;font-weight:600;" onclick="splitMergedRiceClumps()">🌾 Đếm lại cây lúa</button>
+                <button type="button" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#d97706;color:#b45309;font-weight:600;" onclick="splitMixedRiceAndGrassBox(false)">✂️ Tách Cỏ &amp; Lúa</button>
               </div>
             </div>
           </details>
 
           <details style="margin-top:8px;padding:8px 10px;border:1px solid #009966;border-radius:6px;background:#f0fdf4;">
-            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#065f46;">🌳 Cấu hình Khôi phục Ngọn Cây Nhòe từ Ảnh Thô RTK (DEM/DSM Bất Biến)</summary>
+            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#065f46;">🌳 Khôi phục Ngọn Cây Nhòe RTK</summary>
             <div style="margin-top:8px;">
               <div class="field-grid">
-                <div><label for="rtk-raw-count">Số ảnh thô RTK</label><input id="rtk-raw-count" type="number" value="120" min="1" /></div>
-                <div><label for="rtk-sorties">Số ca bay chụp</label><input id="rtk-sorties" type="number" value="2" min="1" /></div>
+                <div><label for="rtk-raw-count">Ảnh thô RTK</label><input id="rtk-raw-count" type="number" value="120" min="1" /></div>
+                <div><label for="rtk-sorties">Số ca bay</label><input id="rtk-sorties" type="number" value="2" min="1" /></div>
               </div>
               <div class="field-grid">
-                <div><label for="rtk-crowns">Số ngọn cây nhòe</label><input id="rtk-crowns" type="number" value="18" min="1" /></div>
-                <div><label for="rtk-nadir-max">Góc Nadir tối đa (°)</label><input id="rtk-nadir-max" type="number" value="12" min="1" max="45" /></div>
+                <div><label for="rtk-crowns">Số cây nhòe</label><input id="rtk-crowns" type="number" value="18" min="1" /></div>
+                <div><label for="rtk-nadir-max">Góc Nadir (°)</label><input id="rtk-nadir-max" type="number" value="12" min="1" max="45" /></div>
               </div>
-              <button type="button" class="primary wide" onclick="runRtkCrownRestoration()">🌳 Quét &amp; So sánh Ngọn Cây Nhòe với Ảnh Thô RTK</button>
+              <button type="button" class="primary wide" onclick="runRtkCrownRestoration()">🌳 Quét ngọn cây nhòe RTK</button>
             </div>
           </details>
 
           <details style="margin-top:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface-subtle);">
-            <summary style="font-weight:600;cursor:pointer;font-size:12px;">🧠 Cập nhật / Huấn luyện thêm Model YOLO vật thể mới</summary>
+            <summary style="font-weight:600;cursor:pointer;font-size:12px;">🧠 Huấn luyện YOLO</summary>
             <div style="margin-top:8px;">
-              <label for="yolo-classes">Danh sách Class mới</label>
+              <label for="yolo-classes">Class mới</label>
               <input id="yolo-classes" type="text" value="culvert_gate, electric_pole, bridge_vn2000" style="margin-bottom:8px;" />
               <div class="field-grid">
-                <div><label for="yolo-epochs">Số Epochs</label><input id="yolo-epochs" type="number" value="40" min="1" /></div>
-                <div><label for="yolo-dataset">Số mẫu ảnh</label><input id="yolo-dataset" type="number" value="500" min="10" /></div>
+                <div><label for="yolo-epochs">Epochs</label><input id="yolo-epochs" type="number" value="40" min="1" /></div>
+                <div><label for="yolo-dataset">Số mẫu</label><input id="yolo-dataset" type="number" value="500" min="10" /></div>
               </div>
-              <button type="button" class="secondary wide" onclick="runTpuTask('/api/yolo/update')">⚡ Huấn luyện &amp; Cập nhật Model YOLO</button>
+              <button type="button" class="secondary wide" onclick="runTpuTask('/api/yolo/update')">⚡ Huấn luyện YOLO</button>
             </div>
           </details>
 
           <details style="margin-top:8px;padding:8px 10px;border:1px solid #0284c7;border-radius:6px;background:#f0f9ff;">
-            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#075985;">⚡ Tìm Cạnh Song Song FPGA (Many Pixels at Once vs CPU 1 Pixel)</summary>
+            <summary style="font-weight:700;cursor:pointer;font-size:12px;color:#075985;">⚡ Tìm Cạnh Song Song FPGA</summary>
             <div style="margin-top:8px;">
               <div class="field-grid">
-                <div><label for="fpga-lanes">Số luồng FPGA Parallel</label><input id="fpga-lanes" type="number" value="64" min="8" max="256" /></div>
-                <div><label for="fpga-tile-dim">Kích thước ma trận (px)</label><input id="fpga-tile-dim" type="number" value="512" min="64" max="2048" /></div>
+                <div><label for="fpga-lanes">Số luồng FPGA</label><input id="fpga-lanes" type="number" value="64" min="8" max="256" /></div>
+                <div><label for="fpga-tile-dim">Ma trận (px)</label><input id="fpga-tile-dim" type="number" value="512" min="64" max="2048" /></div>
               </div>
-              <button type="button" class="secondary wide" style="border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="runFpgaParallelEdgeBenchmark()">⚡ Chạy FPGA Many-Pixels-at-Once &amp; Tách Cạnh CAD</button>
+              <button type="button" class="secondary wide" style="border-color:#0284c7;color:#0369a1;font-weight:600;" onclick="runFpgaParallelEdgeBenchmark()">⚡ Chạy FPGA</button>
             </div>
           </details>
 
-          <div id="detect-res" class="metadata" style="margin-top:10px;font-size:11.5px;">Sẵn sàng đếm cây lúa từng ô ảnh đã cắt. Bấm <strong>🚀 Đếm cây lúa từng ô cắt</strong> để quét.</div>
+          <div id="detect-res" class="metadata" style="margin-top:10px;font-size:11.5px;">Sẵn sàng đếm cây lúa.</div>
           <div id="yolo-res" class="metadata" style="margin-top:6px;font-size:11.5px;" hidden></div>
           <div id="rtk-res" class="metadata" style="margin-top:6px;font-size:11.5px;" hidden></div>
           <div id="fpga-res" class="metadata" style="margin-top:6px;font-size:11.5px;" hidden></div>
@@ -1526,16 +1526,15 @@ grass</textarea>
               <dt>Overlap X / Y</dt><dd id="rev-overlap">30,00% / 30,00%</dd>
               <dt>Base X</dt><dd id="rev-base-x">572184,450</dd>
               <dt>Base Y</dt><dd id="rev-base-y">1181420,180</dd>
-              <dt>Cây nhòe đã duyệt thay</dt><dd id="rev-detect-status">Chỉ thay các cây người dùng bấm Đồng ý</dd>
+              <dt>Trạng thái duyệt</dt><dd id="rev-detect-status">Chờ duyệt thay</dd>
             </dl>
             <p class="review-source" id="rev-source-path">C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\sample\\MULTISPECTRAL\\Results_Stage 1\\Ortho_Stage 1_RGB (24-10-2026).jpg</p>
           </div>
-          <p class="field-help" style="margin-bottom:10px;">Xuất lại tệp ảnh GeoTIFF (<code>.tiff</code> / <code>.tif</code>) giữ nguyên 100% độ phân giải gốc, chỉ áp dụng các cây nhòe ngọn mà người dùng đã đồng ý thay thế, kèm bản vẽ AutoCAD .DXF VN2000.</p>
-          <button id="btn-export-edited-tiff" type="button" class="primary wide" style="margin-bottom:8px;min-height:40px;" onclick="exportEditedGeoTiff()">📥 Xuất lại ảnh GeoTIFF (.tiff) đã chỉnh sửa (Đã duyệt thay ngọn)</button>
-          <button id="export" type="button" class="export-tile-btn" onclick="exportGeoTiffManifest()">📥 Xuất ảnh GeoTIFF (.tif) &amp; Manifest VN2000</button>
+          <button id="btn-export-edited-tiff" type="button" class="primary wide" style="margin-bottom:8px;min-height:38px;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
+          <button id="export" type="button" class="export-tile-btn" onclick="exportGeoTiffManifest()">📥 Xuất GeoTIFF &amp; Manifest</button>
           <div style="display:flex;gap:6px;margin-top:8px;">
-            <button type="button" class="secondary" style="flex:1;font-size:11.5px;" onclick="downloadVn2000Dxf()">📐 Xuất DXF (VN2000)</button>
-            <a href="https://drive.google.com/drive/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN" target="_blank" rel="noopener" style="flex:1;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface-subtle);color:var(--ink);text-decoration:none;font-size:11.5px;font-weight:500;">📁 Drive Data Đã Xử Lý</a>
+            <button type="button" class="secondary" style="flex:1;font-size:11.5px;" onclick="downloadVn2000Dxf()">📐 Xuất DXF</button>
+            <a href="https://drive.google.com/drive/folders/1Q9P-T98xdXxd-4NIijdI_AomEaHiTSDN" target="_blank" rel="noopener" style="flex:1;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface-subtle);color:var(--ink);text-decoration:none;font-size:11.5px;font-weight:500;">📁 Drive Data</a>
           </div>
         </div>
 
@@ -1548,105 +1547,96 @@ grass</textarea>
           <p id="job-message" class="field-help">Chưa có tác vụ đang chạy.</p>
           <div class="job-actions" style="display:flex;gap:6px;">
             <button id="pause-resume-btn" type="button" class="secondary" onclick="pauseOrResumeDetectionJob()">⏸ Tạm dừng</button>
-            <button id="cancel" type="button" class="secondary" style="color:#b42318;border-color:#fca5a5;" onclick="cancelDetectionJob()">⏹ Hủy tác vụ</button>
+            <button id="cancel" type="button" class="secondary" style="color:#b42318;border-color:#fca5a5;" onclick="cancelDetectionJob()">⏹ Hủy</button>
           </div>
           <p id="output-path" class="output-path">C:\\Users\\HL\\Desktop\\DETECTION RICE_FIELD\\outputs\\detection_runs\\locate_anything_3b_dem</p>
         </section>
       </section>
 
-      <!-- CỘT GIỮA (CENTER STAGE): HIỂN THỊ ẢNH Ở GIỮA (KHÔNG BUNG CỬA SỔ MỚI) + SO SÁNH THAY/KHÔNG THAY + BẢNG THÔNG SỐ PHẦN CỨNG REAL-TIME -->
+      <!-- CỘT GIỮA (CENTER STAGE): HIỂN THỊ ẢNH Ở GIỮA + SOI BÊN CHƯA ĐẾM VS ĐÃ ĐẾM + SO SÁNH NGỌN CÂY NHÒE NGAY Ở TRÊN -->
       <section class="map-panel center-stage-panel" aria-labelledby="map-title">
         <div class="map-heading">
           <div>
-            <p class="eyebrow">KHÔNG GIAN ẢNH TRUNG TÂM · CENTER STAGE (100% LOSSLESS PIXEL)</p>
-            <h2 id="map-title">Tổng quan, Soi Ô Ảnh Đã Cắt 1:1 &amp; So Sánh Cây Nhòe Ngọn Ở Giữa</h2>
+            <h2 id="map-title">Không gian ảnh trung tâm</h2>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span id="center-quality-badge" class="status-tag success">100% Độ Nét Gốc</span>
+            <span id="center-quality-badge" class="status-tag success">100% Gốc</span>
             <span id="map-crs" class="status-tag">EPSG:32648</span>
           </div>
         </div>
 
-        <!-- THANH CHUYỂN CHẾ ĐỘ HIỂN THỊ Ở GIỮA (ANIME.JS TRANSITIONS — KHÔNG MỞ POPUP MỚI) -->
+        <!-- THANH CHẾ ĐỘ & THANH DUYỆT SO SÁNH NGỌN CÂY NHÒE ĐƯA LÊN TRÊN CÙNG -->
         <div id="center-stage-mode-bar" class="center-stage-mode-bar" role="tablist" aria-label="Chế độ hiển thị ảnh ở giữa">
-          <button type="button" id="btn-mode-overview" class="center-mode-btn active" onclick="switchCenterStageMode('overview_map')">🗺️ 1. Bản đồ tổng quan &amp; Lưới ô cắt</button>
-          <button type="button" id="btn-mode-tile1to1" class="center-mode-btn" onclick="switchCenterStageMode('tile_1to1')">🔍 2. Soi ô ảnh cắt 1:1 &amp; Đếm cây lúa</button>
-          <button type="button" id="btn-mode-blurry" class="center-mode-btn" onclick="switchCenterStageMode('blurry_compare')">🌱 3. So sánh &amp; Duyệt thay cây nhòe ngọn</button>
+          <button type="button" id="btn-mode-overview" class="center-mode-btn active" onclick="switchCenterStageMode('overview_map')">🗺️ 1. Bản đồ tổng quan</button>
+          <button type="button" id="btn-mode-tile1to1" class="center-mode-btn" onclick="switchCenterStageMode('tile_1to1')">🔍 2. Soi ô cắt (Chưa đếm vs Đã đếm)</button>
+          <button type="button" id="btn-mode-blurry" class="center-mode-btn" onclick="switchCenterStageMode('blurry_compare')">🌱 3. So sánh cây nhòe ngọn</button>
         </div>
 
-        <div class="viewport-shell" id="viewport-dropzone" style="height:clamp(460px, 54vh, 660px);" title="Kéo-thả trực tiếp tệp ảnh gốc (.JPG / .TIF / .PNG) vào đây để nạp 100% độ phân giải gốc">
+        <!-- THANH THAO TÁC SO SÁNH & DUYỆT THAY NGỌN CÂY NHÒE NGAY Ở TRÊN (HIỆN KHI SOI / SO SÁNH) -->
+        <div id="center-top-blurry-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;padding:6px 10px;background:#f8faf9;border:1px solid var(--border);border-radius:6px;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:210px;">
+            <button type="button" class="secondary" style="min-height:28px;padding:2px 8px;font-size:11.5px;" onclick="stepBlurryPlantSelection(-1)">◀</button>
+            <select id="center-top-blurry-select" style="margin:0;min-height:28px;padding:2px 8px;font-size:11.5px;font-family:var(--font-mono);flex:1;" onchange="selectBlurryPlantForComparison(this.value, gridState.centerStageMode === 'blurry_compare')"></select>
+            <button type="button" class="secondary" style="min-height:28px;padding:2px 8px;font-size:11.5px;" onclick="stepBlurryPlantSelection(1)">▶</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <button type="button" class="primary" style="font-size:11.5px;min-height:28px;padding:3px 10px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay</button>
+            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay</button>
+            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 9px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="approveAllBlurryPlantsInTile()">✅ Thay tất cả</button>
+            <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#0369a1;color:#0369a1;font-weight:600;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
+          </div>
+        </div>
+
+        <div class="viewport-shell" id="viewport-dropzone" style="height:clamp(480px, 56vh, 680px);">
           <canvas id="overview-canvas" width="1600" height="1000"></canvas>
           <span class="north-indicator" aria-hidden="true">N<br>↑</span>
           <div class="map-tools" role="group" aria-label="Điều khiển bản đồ trung tâm">
-            <button type="button" onclick="document.getElementById('uav-file-input').click()" title="Chọn tệp ảnh gốc từ máy tính (giữ 100% chất lượng)">📂 Nạp ảnh gốc 100%</button>
-            <button type="button" id="btn-zoom-1to1" onclick="zoomToNative1To1()" title="Phóng tới đúng tỷ lệ 1:1 Pixel gốc ngay tại khung giữa">🎯 Tỷ lệ 1:1 (Pixel gốc)</button>
-            <button type="button" id="btn-fit-all" onclick="fitOverview()" title="Thu phóng vừa khung để xem toàn bộ ảnh">🖼️ Toàn bộ ảnh</button>
-            <button type="button" onclick="focusTileInCenterStage(gridState.selectedIndex)" title="Hiển thị ô ảnh cắt đang chọn ngay ở giữa màn hình">🌾 Soi ô cắt ở giữa</button>
-            <button type="button" onclick="zoomOverview(1.35)" title="Phóng to">+</button>
-            <button type="button" onclick="zoomOverview(0.74)" title="Thu nhỏ">−</button>
-            <button type="button" onclick="openFullRegionAnnotatedModal()" title="Chế độ xem mở rộng">🔍 Toàn màn hình</button>
+            <button type="button" onclick="document.getElementById('uav-file-input').click()">📂 Nạp ảnh</button>
+            <button type="button" id="btn-zoom-1to1" onclick="zoomToNative1To1()">🎯 Tỷ lệ 1:1</button>
+            <button type="button" id="btn-fit-all" onclick="fitOverview()">🖼️ Toàn bộ ảnh</button>
+            <button type="button" onclick="focusTileInCenterStage(gridState.selectedIndex)">🔍 Soi ô cắt</button>
+            <button type="button" onclick="zoomOverview(1.35)">+</button>
+            <button type="button" onclick="zoomOverview(0.74)">−</button>
+            <button type="button" onclick="openFullRegionAnnotatedModal()">⛶ Toàn màn hình</button>
           </div>
-          <div id="viewport-status" class="viewport-status">Ảnh gốc UAV 100% độ nét · Nhấp vào bất kỳ ô ảnh cắt nào để soi 1:1 và đếm từng cây lúa ngay ở khung giữa</div>
+          <div id="viewport-status" class="viewport-status">Ảnh gốc UAV 100%</div>
         </div>
 
         <div class="map-caption">
           <div class="legend" style="flex-wrap:wrap;gap:10px;">
-            <span><i class="legend-grid"></i>Ô ảnh đã cắt (Bước 02)</span>
-            <span><i class="legend-selected"></i>Ô đang soi ở giữa</span>
-            <span><i style="background:#10b981;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây lúa ngọn nét</span>
-            <span><i style="background:#f59e0b;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây lúa nhòe ngọn (Chờ duyệt)</span>
-            <span><i style="background:#06b6d4;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây đã đồng ý thay ngọn nét</span>
+            <span><i class="legend-grid"></i>Lưới ô cắt</span>
+            <span><i class="legend-selected"></i>Ô đang chọn</span>
+            <span><i style="background:#10b981;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây nét</span>
+            <span><i style="background:#f59e0b;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Cây nhòe</span>
+            <span><i style="background:#06b6d4;border-radius:50%;width:9px;height:9px;display:inline-block;"></i>Đã thay</span>
           </div>
-          <span>Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô ảnh: hiển thị ngay ở giữa</span>
+          <span>Kéo: di chuyển · Cuộn: thu/phóng · Nhấp ô: soi ở giữa</span>
         </div>
-        <p class="overview-note" id="overview-quality-note" style="color:#065f46;font-weight:500;">✅ Ảnh gốc giữ nguyên 100% chất lượng. Nhấp vào ô ảnh bất kỳ để đếm số cây lúa trong ô đó và duyệt thay thế các cây bị nhòe ngọn.</p>
+        <p class="overview-note" id="overview-quality-note" style="display:none;"></p>
 
-        <!-- KHUNG SO SÁNH TRỰC TIẾP Ở GIỮA: CÂY NHÒE NGỌN (KHÔNG THAY vs THAY NGỌN NÉT RTK) & TÌM CẠNH FPGA -->
-        <section id="center-docked-inspection-stage" class="tile-inspector" aria-label="So sánh Thay và Không Thay cây nhòe ngọn ngay tại khung giữa">
-          <div class="inspector-heading">
-            <div>
-              <h2 id="center-stage-sub-title">🌱 So Sánh Trực Tiếp Cây Nhòe Ngọn: KHÔNG THAY (Giữ Nguyên) vs THAY (Khôi Phục Ngọn Nét 100%)</h2>
-              <p id="center-tile-plant-banner" class="field-help" style="color:#065f46;font-weight:600;margin-top:2px;">Ô ảnh đang chọn: tile_000847 (1024×1024 px · 100% Độ nét gốc) — Nhấn "🚀 Đếm cây lúa từng ô cắt" để đếm từng cây lúa và lọc cây nhòe ngọn.</p>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button type="button" class="primary" style="font-size:11.5px;min-height:28px;padding:3px 10px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay cây đang chọn</button>
-              <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#d92d20;color:#b42318;" onclick="rejectBlurryPlantReplacement()">❎ Không thay (Giữ nguyên)</button>
-              <button type="button" class="secondary" style="font-size:11.5px;min-height:28px;padding:3px 10px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="exportEditedGeoTiff()">📥 Xuất lại ảnh TIFF (.tiff) đã sửa</button>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:12px;margin-top:6px;">
-            <div style="border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface-subtle);">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-                <strong style="font-size:11.5px;color:#b42318;">❌ Trái: KHÔNG THAY (Ngọn nhòe gốc)</strong>
-                <strong style="font-size:11.5px;color:#007a52;">✅ Phải: THAY (Ngọn nét RTK Nadir)</strong>
-              </div>
-              <canvas id="rtk-crown-canvas" width="520" height="200" style="width:100%;height:auto;border-radius:4px;border:1px solid var(--border);background:#141917;cursor:pointer;" onclick="switchCenterStageMode('blurry_compare')" title="Nhấp để phóng to so sánh Không Thay vs Thay ở ngay khung giữa"></canvas>
-              <p id="rtk-canvas-caption" class="field-help" style="margin-top:4px;font-size:11px;">So sánh trực tiếp từng cây lúa bị nhòe ngọn: bên trái là giữ nguyên không thay, bên phải là khôi phục ngọn nét từ ảnh thô RTK góc Nadir (chỉ thay khi người dùng bấm Đồng ý · DEM/DSM bất biến).</p>
-            </div>
-            <div style="border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface-subtle);">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">
-                <strong style="font-size:11.5px;color:#075985;">⚡ So sánh CPU (1 Pixel) vs FPGA Stencil (64 Luồng Song Song)</strong>
-                <button type="button" class="secondary" style="font-size:10.5px;min-height:22px;padding:1px 7px;" onclick="runFpgaParallelEdgeBenchmark()">Chạy FPGA</button>
-              </div>
-              <canvas id="fpga-edge-canvas" width="520" height="200" style="width:100%;height:auto;border-radius:4px;border:1px solid var(--border);background:#141917;"></canvas>
-              <p id="fpga-canvas-caption" class="field-help" style="margin-top:4px;font-size:11px;">FPGA Line-Buffer 64 luồng xử lý đồng thời toàn bộ ma trận Sobel 8 hướng + Log-Otsu Canny trên ô ảnh cắt 1:1 để đo độ sắc nét lá lúa và trích xuất biên CAD VN2000.</p>
-            </div>
-          </div>
+        <!-- ĐÃ BỎ PHẦN SO SÁNH LẶP LẠI Ở DƯỚI THEO YÊU CẦU NGƯỜI DÙNG (GIỮ NODE ẨN ĐỂ TƯƠNG THÍCH SCRIPT) -->
+        <section id="center-docked-inspection-stage" class="tile-inspector" style="display:none !important;" hidden aria-hidden="true">
+          <h2 id="center-stage-sub-title">So sánh cây nhòe</h2>
+          <p id="center-tile-plant-banner"></p>
+          <canvas id="rtk-crown-canvas" width="520" height="200"></canvas>
+          <p id="rtk-canvas-caption"></p>
+          <canvas id="fpga-edge-canvas" width="520" height="200"></canvas>
+          <p id="fpga-canvas-caption"></p>
         </section>
 
-        <!-- BẢNG THÔNG SỐ PHẦN CỨNG THỜI GIAN THỰC (REAL-TIME HARDWARE TELEMETRY TABLE — KHÔNG PHẢI ẢNH TĨNH) -->
+        <!-- BẢNG THÔNG SỐ PHẦN CỨNG THỜI GIAN THỰC (REAL-TIME HARDWARE TELEMETRY TABLE) -->
         <section id="realtime-hardware-table-panel" aria-label="Bảng thông số phần cứng thời gian thực">
           <aside id="tm-float-card" class="tm-float-card" aria-label="Giám sát phần cứng theo máy thực tế">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--border);">
               <div>
-                <strong style="font-size:12.5px;color:#0b1410;">⚡ BẢNG THÔNG SỐ PHẦN CỨNG THỜI GIAN THỰC (REAL-TIME HARDWARE TELEMETRY)</strong>
-                <span id="tm-source-badge" style="display:block;font-size:11px;color:#0369a1;font-weight:600;">🖥️ Đang đọc thông số máy thời gian thực...</span>
+                <strong style="font-size:12.5px;color:#0b1410;">⚡ BẢNG THÔNG SỐ PHẦN CỨNG (REAL-TIME)</strong>
+                <span id="tm-source-badge" style="display:block;font-size:11px;color:#0369a1;font-weight:600;">🖥️ Đang đọc thông số máy...</span>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <span id="hw-live-clock-badge" class="status-tag tabular-nums">LIVE · Real-Time</span>
-                <span id="tm-poll-seq-badge" class="status-tag tabular-nums">Poll #1 · Real-Time</span>
+                <span id="hw-live-clock-badge" class="status-tag tabular-nums">LIVE</span>
+                <span id="tm-poll-seq-badge" class="status-tag tabular-nums">Poll #1</span>
                 <span id="tm-max-tex-badge" class="status-tag tabular-nums">MAX_TEX: 16384px</span>
-                <span id="tm-fps-badge" class="status-tag success tabular-nums">● LIVE · 60 FPS</span>
+                <span id="tm-fps-badge" class="status-tag success tabular-nums">● 60 FPS</span>
               </div>
             </div>
             <div style="overflow-x:auto;">
@@ -1654,15 +1644,15 @@ grass</textarea>
                 <thead>
                   <tr>
                     <th>Thiết bị</th>
-                    <th>Thông số phần cứng thực tế</th>
-                    <th>Tải &amp; Hiệu năng (Real-Time)</th>
-                    <th>Biểu đồ xung nhịp</th>
+                    <th>Thông số phần cứng</th>
+                    <th>Tải &amp; Hiệu năng</th>
+                    <th>Xung nhịp</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr class="tm-row" style="display:table-row;">
                     <td><strong id="tm-cpu-name">CPU (8 luồng)</strong></td>
-                    <td><span id="tm-cpu-spec">Xử lý đa luồng &amp; đếm cây từng ô cắt</span></td>
+                    <td><span id="tm-cpu-spec">Đa luồng</span></td>
                     <td>
                       <span id="tm-cpu-val" class="tabular-nums" style="font-weight:700;color:#0284c7;">12% · 3.85 GHz</span>
                       <div class="hw-bar-track"><div id="hw-cpu-bar" class="hw-bar-fill" style="width:12%;background:#0284c7;"></div></div>
@@ -1670,7 +1660,7 @@ grass</textarea>
                     <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-cpu-poly" fill="rgba(14,165,233,0.18)" stroke="#0284c7" stroke-width="1.2" points="0,25 12,23 24,24 36,22 48,23 48,28 0,28"/></svg></div></td>
                   </tr>
                   <tr class="tm-row active" style="display:table-row;">
-                    <td><strong>GPU 1 (WebGPU / 1:1)</strong></td>
+                    <td><strong>GPU 1 (WebGPU)</strong></td>
                     <td><span id="tm-gpu1-name">WebGPU Hardware Accelerator</span> · <small id="tm-gpu1-spec">WebGPU + WebGL2</small></td>
                     <td>
                       <span id="gpu1-live-txt" class="tabular-nums" style="font-weight:700;color:#7c3aed;">22% (48 °C)</span>
@@ -1679,14 +1669,14 @@ grass</textarea>
                     <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-gpu1-poly" fill="rgba(139,92,246,0.28)" stroke="#7c3aed" stroke-width="1.2" points="0,14 12,12 24,15 36,11 48,13 48,28 0,28"/></svg></div></td>
                   </tr>
                   <tr class="tm-row" style="display:table-row;">
-                    <td><strong>GPU 0 / VRAM Buffer</strong></td>
-                    <td><span id="tm-gpu0-name">Integrated Graphics · 100% Native Buffer</span> · <small id="tm-gpu0-spec">Shared VRAM</small></td>
-                    <td><span id="tm-gpu0-val" class="tabular-nums" style="font-weight:600;">3% · Buffer 1024×1024 Lossless</span></td>
+                    <td><strong>GPU 0 / VRAM</strong></td>
+                    <td><span id="tm-gpu0-name">Integrated Graphics</span> · <small id="tm-gpu0-spec">Shared VRAM</small></td>
+                    <td><span id="tm-gpu0-val" class="tabular-nums" style="font-weight:600;">3% · 1024×1024</span></td>
                     <td><div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-gpu0-poly" fill="rgba(14,165,233,0.12)" stroke="#0284c7" stroke-width="1" points="0,26 24,26 48,26 48,28 0,28"/></svg></div></td>
                   </tr>
                   <tr class="tm-row" style="display:table-row;">
-                    <td><strong>RAM &amp; JS Heap</strong></td>
-                    <td><span id="tm-mem-spec">Bộ nhớ hệ thống &amp; bộ đệm ảnh 1:1</span></td>
+                    <td><strong>RAM &amp; Heap</strong></td>
+                    <td><span id="tm-mem-spec">Bộ nhớ hệ thống</span></td>
                     <td>
                       <span id="tm-mem-val" class="tabular-nums" style="font-weight:700;color:#2563eb;">14.2/32.0 GB (44%)</span>
                       <div class="hw-bar-track"><div id="hw-mem-bar" class="hw-bar-fill" style="width:44%;background:#2563eb;"></div></div>
@@ -1696,15 +1686,15 @@ grass</textarea>
                   <tr class="tm-row" style="display:table-row;">
                     <td><strong id="tm-disk0-name">Disk 0 (NVMe)</strong></td>
                     <td><span id="tm-disk0-type">SSD (NVMe)</span> · <strong id="tm-disk1-name">Disk 1</strong> (<span id="tm-disk1-type">Workspace</span>: <span id="tm-disk1-val">2%</span>)</td>
-                    <td><span id="tm-disk0-val" class="tabular-nums" style="font-weight:600;color:#16a34a;">36% · I/O Sẵn sàng</span></td>
+                    <td><span id="tm-disk0-val" class="tabular-nums" style="font-weight:600;color:#16a34a;">36% · Sẵn sàng</span></td>
                     <td>
                       <div class="tm-mini-box"><svg width="48" height="28"><polyline id="tm-disk0-poly" fill="none" stroke="#16a34a" stroke-width="1.1" points="0,26 24,25 48,26"/><polyline id="tm-disk1-poly" fill="none" stroke="#059669" stroke-width="1" points="0,27 20,27 30,23 48,26"/></svg></div>
                     </td>
                   </tr>
                   <tr class="tm-row" style="display:table-row;">
-                    <td><strong id="tm-net-name">Network &amp; Google TPU</strong></td>
-                    <td><span id="tm-net-sub">WebRTC / HTTP · Auto-TPU v5e-8 (&gt;15p)</span></td>
-                    <td><span id="tm-net-val" class="tabular-nums" style="font-weight:600;color:#d97706;">S: 24 R: 68 Kbps · RTT 1.2ms</span></td>
+                    <td><strong id="tm-net-name">Network &amp; TPU</strong></td>
+                    <td><span id="tm-net-sub">WebRTC / HTTP · Auto-TPU v5e-8</span></td>
+                    <td><span id="tm-net-val" class="tabular-nums" style="font-weight:600;color:#d97706;">S: 24 R: 68 Kbps</span></td>
                     <td><div class="tm-mini-box" style="border-color:#b45309"><svg width="48" height="28"><polyline id="tm-net-poly" fill="rgba(217,119,6,0.15)" stroke="#d97706" stroke-width="1.1" points="0,26 15,24 30,25 48,23 48,28 0,28"/></svg></div></td>
                   </tr>
                 </tbody>
@@ -1715,56 +1705,54 @@ grass</textarea>
         </section>
       </section>
 
-      <!-- CỘT PHẢI: BẢNG ĐẾM CÂY LÚA TỪNG Ô CẮT + SOI CỬA SỔ 1:1 (1024x1024) + DUYỆT THAY CÂY NHÒE NGỌN & XUẤT TIFF -->
+      <!-- CỘT PHẢI: BẢNG ĐẾM CÂY LÚA TỪNG Ô CẮT + Ô ẢNH CẮT 1:1 + DUYỆT THAY CÂY NHÒE NGỌN -->
       <aside class="inspector-side-panel right-inspector-panel" aria-label="Bảng đếm cây lúa từng ô ảnh đã cắt và phê duyệt cây nhòe ngọn">
 
         <!-- 1. BẢNG ĐẾM CÂY LÚA THEO TỪNG Ô ẢNH ĐÃ CẮT -->
         <section id="per-tile-rice-count-panel" class="tile-inspector" aria-label="Bảng đếm cây lúa theo từng ô ảnh đã cắt">
           <div class="inspector-heading">
-            <h2 style="color:#007a52;">🌾 1. Đếm Cây Lúa Từng Ô Ảnh Đã Cắt</h2>
-            <button type="button" class="primary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="countRicePlantsPerCroppedTile(true)">🔄 Đếm lại từng ô</button>
+            <h2 style="color:#007a52;">🌾 1. Đếm Cây Lúa Từng Ô</h2>
+            <button type="button" class="primary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="countRicePlantsPerCroppedTile(true)">🔄 Đếm lại</button>
           </div>
-          <p id="per-tile-count-summary" class="field-help" style="margin-bottom:6px;color:#0b1410;font-weight:600;">
-            Đếm trực tiếp từng cây lúa bên trong mỗi ô ảnh đã cắt (không gom thành vùng chung). Nhấp vào ô bất kỳ để hiển thị 1:1 ở khung giữa.
-          </p>
+          <p id="per-tile-count-summary" class="field-help" style="margin-bottom:6px;color:#0b1410;font-weight:600;"></p>
           <div style="max-height:175px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:var(--surface);">
             <table class="per-tile-count-table">
               <thead>
                 <tr>
-                  <th>Ô ảnh đã cắt</th>
+                  <th>Ô ảnh cắt</th>
                   <th>Số cây lúa</th>
                   <th>Nét / Nhòe</th>
-                  <th>Hiển thị ở giữa</th>
+                  <th>Soi</th>
                 </tr>
               </thead>
               <tbody id="per-tile-count-tbody">
                 <tr>
-                  <td colspan="4" class="muted" style="text-align:center;padding:10px;">Đang khởi tạo danh sách đếm cây lúa từng ô ảnh cắt...</td>
+                  <td colspan="4" class="muted" style="text-align:center;padding:10px;">Đang tải...</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- 2. KIỂM TRA CỬA SỔ ẢNH CẮT 1:1 (100% ĐỘ PHÂN GIẢI GỐC — KHÔNG CHÈN CHỮ) -->
+        <!-- 2. KIỂM TRA CỬA SỔ ẢNH CẮT 1:1 -->
         <section class="tile-inspector" aria-labelledby="tile-title">
           <div class="inspector-heading">
-            <h2 id="tile-title">🔍 2. Kiểm tra ô ảnh cắt 1:1 (100% Gốc)</h2>
+            <h2 id="tile-title">🔍 2. Ô ảnh cắt 1:1</h2>
             <div class="tile-select-field">
-              <label for="tile-select">Ô đang xem</label>
+              <label for="tile-select">Chọn ô</label>
               <select id="tile-select" onchange="selectTileById(this.value)"></select>
             </div>
           </div>
           <div class="tile-body">
             <div class="tile-image-wrap">
-              <canvas id="tile-preview-canvas" width="1024" height="1024" style="width:100%;height:100%;object-fit:contain;image-rendering:auto;border-radius:4px;cursor:pointer;" onclick="openFullResTileModal()" title="Nhấn để hiển thị ô ảnh cắt 1:1 (1024×1024 px) và đếm từng cây lúa ngay ở khung giữa (không bung cửa sổ mới)"></canvas>
+              <canvas id="tile-preview-canvas" width="1024" height="1024" style="width:100%;height:100%;object-fit:contain;image-rendering:auto;border-radius:4px;cursor:pointer;" onclick="openFullResTileModal()"></canvas>
             </div>
             <div id="tile-details">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
                 <strong id="detail-tile-id">tile_000847</strong>
-                <button type="button" class="secondary" style="font-size:11px;min-height:24px;padding:2px 8px;border-color:#009966;color:#007a52;font-weight:600;" onclick="focusTileInCenterStage(gridState.selectedIndex)">🎯 Đưa ra khung giữa</button>
+                <button type="button" class="secondary" style="font-size:11px;min-height:24px;padding:2px 8px;border-color:#009966;color:#007a52;font-weight:600;" onclick="focusTileInCenterStage(gridState.selectedIndex)">🎯 Soi</button>
               </div>
-              <p id="detail-tile-window">Cửa sổ nguồn: col 0, row 0 · 1024 × 1024 px (1:1 Pixel Gốc · 100% Chất lượng)</p>
+              <p id="detail-tile-window">col 0, row 0 · 1024 × 1024 px</p>
               <table class="coord-table">
                 <caption>Tọa độ tương đối · metre (VN2000)</caption>
                 <thead>
@@ -1779,72 +1767,65 @@ grass</textarea>
               </table>
             </div>
           </div>
-          <p class="inspector-note" style="color:#065f46;">✅ Nhấp vào hình ô ảnh để phóng lên khung giữa (không bung cửa sổ mới), giữ nguyên thao tác ở 2 bên.</p>
         </section>
 
-        <!-- 3. DUYỆT & SO SÁNH CÂY LÚA NHÒE NGỌN (CHỈ THAY KHI NGƯỜI DÙNG ĐỒNG Ý + XUẤT LẠI ẢNH TIFF) -->
+        <!-- 3. DUYỆT & SO SÁNH CÂY LÚA NHÒE NGỌN -->
         <section id="blurry-tip-approval-panel" class="tile-inspector" aria-label="Duyệt và so sánh cây lúa nhòe ngọn">
           <div class="inspector-heading">
-            <h2 style="color:#b45309;">🌱 3. Cây Nhòe Ngọn: So Sánh &amp; Duyệt Thay</h2>
+            <h2 style="color:#b45309;">🌱 3. Duyệt Cây Nhòe Ngọn</h2>
             <span id="blurry-count-badge" class="status-tag" style="background:#fef3c7;color:#b45309;border-color:#f59e0b;">0 cây nhòe</span>
           </div>
-          <p class="field-help" style="margin-bottom:6px;">
-            Hiển thị từng cây lúa bị nhòe ngọn trong ô ảnh. So sánh giữa <strong>Không thay (Giữ nguyên)</strong> và <strong>Thay (Ngọn nét RTK)</strong> — <strong>bạn đồng ý thì hệ thống mới thay</strong> và xuất lại ảnh <code>.tiff</code> đã chỉnh sửa.
-          </p>
-          <label for="blurry-plant-select">Chọn cây lúa nhòe ngọn để soi &amp; so sánh</label>
           <select id="blurry-plant-select" style="margin-bottom:8px;font-family:var(--font-mono);font-size:12px;" onchange="selectBlurryPlantForComparison(this.value)"></select>
           <div id="blurry-plant-list" style="max-height:165px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-            <button type="button" id="btn-approve-blurry-plant" class="primary" style="font-size:11.5px;min-height:32px;padding:4px 8px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay cây này</button>
-            <button type="button" id="btn-reject-blurry-plant" class="secondary" style="font-size:11.5px;min-height:32px;padding:4px 8px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay (Giữ nguyên)</button>
+            <button type="button" id="btn-approve-blurry-plant" class="primary" style="font-size:11.5px;min-height:30px;padding:4px 8px;" onclick="approveBlurryPlantReplacement()">✅ Đồng ý thay</button>
+            <button type="button" id="btn-reject-blurry-plant" class="secondary" style="font-size:11.5px;min-height:30px;padding:4px 8px;border-color:#d92d20;color:#b42318;font-weight:600;" onclick="rejectBlurryPlantReplacement()">❎ Không thay</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-            <button type="button" id="btn-approve-all-blurry" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="approveAllBlurryPlantsInTile()">✅ Đồng ý thay tất cả trong ô</button>
-            <button type="button" id="btn-reset-all-blurry" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;" onclick="resetAllBlurryPlantReplacements()">↩️ Hoàn tác về ảnh gốc</button>
+            <button type="button" id="btn-approve-all-blurry" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;border-color:#007a52;color:#007a52;font-weight:600;" onclick="approveAllBlurryPlantsInTile()">✅ Thay tất cả</button>
+            <button type="button" id="btn-reset-all-blurry" class="secondary" style="font-size:11px;min-height:28px;padding:3px 6px;" onclick="resetAllBlurryPlantReplacements()">↩️ Hoàn tác</button>
           </div>
-          <button type="button" id="btn-export-edited-tiff-side" class="primary wide" style="background:#0b7290;border-color:#075985;" onclick="exportEditedGeoTiff()">📥 Xuất lại ảnh GeoTIFF (.tiff) đã chỉnh sửa</button>
+          <button type="button" id="btn-export-edited-tiff-side" class="primary wide" style="background:#0b7290;border-color:#075985;" onclick="exportEditedGeoTiff()">📥 Xuất TIFF đã sửa</button>
           <div id="blurry-approval-status" class="metadata" style="margin-top:8px;font-size:11.5px;padding:8px 10px;">
-            Trạng thái: <strong>Chưa thay tự động</strong>. Hãy chọn cây nhòe ngọn, xem so sánh Thay vs Không thay và bấm <strong>✅ Đồng ý thay</strong> trước khi xuất ảnh <code>.tiff</code>.
+            Chưa thay tự động.
           </div>
         </section>
 
         <!-- 4. DUYỆT KẾT QUẢ NHẬN DIỆN & XUẤT CAD -->
         <section id="results-panel" class="results-section">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-            <h2>4. Duyệt kết quả &amp; Khung đối tượng</h2>
+            <h2>4. Duyệt kết quả</h2>
             <label style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#065f46;margin:0;cursor:pointer;">
               <input id="toggle-show-boxes" type="checkbox" checked onchange="gridState.showDetectionsOnMap=this.checked;drawOverviewAndGrid();drawSelectedTilePreview();" style="width:auto;min-height:auto;margin:0;" />
-              Hiện điểm đếm cây lúa
+              Hiện điểm đếm
             </label>
           </div>
-          <p id="results-summary" class="field-help">Chưa chạy nhận diện. Hãy bấm <strong>"🚀 Đếm cây lúa từng ô cắt"</strong> tại Bước 03.</p>
+          <p id="results-summary" class="field-help" style="display:none;"></p>
           <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:8px 0;">
-            <button type="button" id="btn-open-full-annotated" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;border-color:#007a52;color:#007a52;font-weight:700;" onclick="focusTileInCenterStage(gridState.selectedIndex)">🎯 Soi ở khung giữa</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="approveSelectedDetection()">✅ Duyệt ô này</button>
-            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="approveAllDetections()">✅ Duyệt tất cả</button>
+            <button type="button" id="btn-open-full-annotated" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;border-color:#007a52;color:#007a52;font-weight:700;" onclick="focusTileInCenterStage(gridState.selectedIndex)">🎯 Soi</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="approveSelectedDetection()">✅ Duyệt</button>
+            <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;" onclick="approveAllDetections()">✅ Duyệt hết</button>
             <button type="button" class="secondary" style="font-size:11px;min-height:26px;padding:2px 8px;color:#b42318;" onclick="rejectSelectedDetection()">❌ Loại bỏ</button>
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:6px 0;padding:6px 8px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;">
-            <span style="font-size:11px;font-weight:700;color:#9f1239;">🌾 Phân loại DEM ΔZ:</span>
-            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#e11d48;color:#be123c;" onclick="setSelectedDetectionSubClass('newly_transplanted_rice')">🌾 Lúa mới cấy</button>
-            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#0284c7;color:#0369a1;" onclick="setSelectedDetectionSubClass('grass')">🌱 Cỏ dại</button>
-            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#d97706;color:#b45309;" onclick="setSelectedDetectionSubClass('rice_partial_grass')">🌾+🌱 Lúa lẫn cỏ</button>
+            <span style="font-size:11px;font-weight:700;color:#9f1239;">🌾 DEM ΔZ:</span>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#e11d48;color:#be123c;" onclick="setSelectedDetectionSubClass('newly_transplanted_rice')">🌾 Lúa</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#0284c7;color:#0369a1;" onclick="setSelectedDetectionSubClass('grass')">🌱 Cỏ</button>
+            <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;border-color:#d97706;color:#b45309;" onclick="setSelectedDetectionSubClass('rice_partial_grass')">🌾+🌱 Lẫn</button>
             <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;font-weight:600;" onclick="splitMixedRiceAndGrassBox(true)">✂️ Tách Cỏ</button>
             <button type="button" class="secondary" style="font-size:10.5px;min-height:24px;padding:2px 6px;font-weight:600;" onclick="splitMergedRiceClumps()">🌾 Đếm cây</button>
           </div>
-          <label for="object-select" style="margin-top:6px;">Ô ảnh / Cụm cây đang xem</label>
           <select id="object-select" onchange="selectDetectionObject(this.value)"></select>
-          <div id="object-detail-card" class="metadata" style="margin-top:8px;font-size:11.5px;padding:8px 10px;">Chưa có dữ liệu đếm cây lúa (Bấm <strong>🚀 Đếm cây lúa từng ô cắt</strong> ở Bước 03).</div>
+          <div id="object-detail-card" class="metadata" style="margin-top:8px;font-size:11.5px;padding:8px 10px;">Chưa có dữ liệu.</div>
         </section>
       </aside>
     </main>
 
-    <!-- HỘP THOẠI TOÀN MÀN HÌNH (GIỮ LẠI CHO TƯƠNG THÍCH NGƯỢC KHI BẤM NÚT TOÀN MÀN HÌNH) -->
+    <!-- HỘP THOẠI TOÀN MÀN HÌNH -->
     <div id="annotated-fullmap-modal" class="fullmap-modal-backdrop" hidden>
       <div class="fullmap-modal-header">
         <div>
-          <strong id="fullmap-modal-title" style="font-size:14px;color:#10b981;">🔍 Ảnh Toàn Vùng Có Vẽ Khung AI (Độ Phân Giải Gốc 1:1)</strong>
-          <span id="fullmap-modal-sub" style="display:block;font-size:11.5px;color:#94a3b8;">Kéo chuột để di chuyển · Cuộn chuột để thu/phóng · Nhấp vào khung AI để xem chi tiết</span>
+          <strong id="fullmap-modal-title" style="font-size:14px;color:#10b981;">🔍 Toàn màn hình (1:1)</strong>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#e2e8f0;margin:0;cursor:pointer;">
@@ -1855,12 +1836,12 @@ grass</textarea>
             <input id="modal-toggle-grid" type="checkbox" onchange="modalState.showGrid=this.checked;drawFullMapModalCanvas();" style="width:auto;min-height:auto;margin:0;" />
             Lưới ảnh
           </label>
-          <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#065f46;color:#fff;border-color:#10b981;" onclick="zoomFullMapModal1To1()">🎯 Tỷ lệ 1:1 (Pixel gốc)</button>
-          <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#1e293b;color:#fff;border-color:#475569;" onclick="fitFullMapModal()">🖼️ Toàn bộ ảnh</button>
+          <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#065f46;color:#fff;border-color:#10b981;" onclick="zoomFullMapModal1To1()">🎯 Tỷ lệ 1:1</button>
+          <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#1e293b;color:#fff;border-color:#475569;" onclick="fitFullMapModal()">🖼️ Toàn bộ</button>
           <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#1e293b;color:#fff;border-color:#475569;" onclick="zoomFullMapModal(1.35)">+</button>
           <button type="button" class="secondary" style="min-height:28px;padding:3px 9px;font-size:11.5px;background:#1e293b;color:#fff;border-color:#475569;" onclick="zoomFullMapModal(0.74)">−</button>
-          <button type="button" class="primary" style="min-height:28px;padding:3px 10px;font-size:11.5px;" onclick="downloadFullAnnotatedPng()">📥 Tải ảnh có khung AI (.PNG)</button>
-          <button type="button" class="secondary" style="min-height:28px;padding:3px 10px;font-size:11.5px;background:#991b1b;color:#fff;border-color:#ef4444;" onclick="closeFullRegionAnnotatedModal()">✕ Đóng (ESC)</button>
+          <button type="button" class="primary" style="min-height:28px;padding:3px 10px;font-size:11.5px;" onclick="downloadFullAnnotatedPng()">📥 Tải PNG</button>
+          <button type="button" class="secondary" style="min-height:28px;padding:3px 10px;font-size:11.5px;background:#991b1b;color:#fff;border-color:#ef4444;" onclick="closeFullRegionAnnotatedModal()">✕ Đóng</button>
         </div>
       </div>
       <div class="fullmap-modal-stage" id="fullmap-modal-stage">
@@ -3317,7 +3298,7 @@ grass</textarea>
           "<td><code>" + st.tileIdStr + "</code></td>" +
           "<td><strong class='tabular-nums' style='color:#0b1410;'>" + st.totalRicePlants + " cây</strong></td>" +
           "<td class='tabular-nums'>" + blurryTag + "</td>" +
-          "<td><button type='button' class='secondary' style='font-size:10.5px;min-height:22px;padding:1px 7px;border-color:#009966;color:#007a52;font-weight:600;' onclick='focusTileInCenterStage(" + idx + ")'>🎯 Soi ở giữa</button></td>" +
+          "<td><button type='button' class='secondary' style='font-size:10.5px;min-height:22px;padding:1px 7px;border-color:#009966;color:#007a52;font-weight:600;' onclick='focusTileInCenterStage(" + idx + ")'>🎯 Soi</button></td>" +
           "</tr>";
       }).join("");
     }
@@ -3339,6 +3320,16 @@ grass</textarea>
       return found;
     }
 
+    function stepBlurryPlantSelection(delta) {
+      const blurryList = getActiveTileBlurryPlants();
+      if (!blurryList.length) return;
+      const curObj = getSelectedBlurryPlantObj();
+      let idx = blurryList.findIndex(function(p) { return curObj && p.plantId === curObj.plantId; });
+      if (idx < 0) idx = 0;
+      idx = (idx + (Number(delta) || 1) + blurryList.length) % blurryList.length;
+      selectBlurryPlantForComparison(blurryList[idx].plantId, true);
+    }
+
     function renderBlurryTipApprovalPanel() {
       const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
       recalcTileBlurryCounts(st);
@@ -3347,22 +3338,22 @@ grass</textarea>
 
       const badgeEl = document.getElementById("blurry-count-badge");
       if (badgeEl) {
-        badgeEl.textContent = st.blurryTipPlants + " cây nhòe · Đã thay " + st.approvedReplacedPlants + "/" + st.blurryTipPlants;
+        badgeEl.textContent = st.blurryTipPlants + " nhòe · Thay " + st.approvedReplacedPlants + "/" + st.blurryTipPlants;
       }
 
-      const selEl = document.getElementById("blurry-plant-select");
-      if (selEl) {
-        if (!blurryList.length) {
-          selEl.innerHTML = "<option value=''>Không có cây nhòe ngọn trong ô này</option>";
-        } else {
-          selEl.innerHTML = blurryList.map(function(p) {
-            const stIcon = p.replacementStatus === "approved" ? "✅ [Đã đồng ý thay] " : (p.replacementStatus === "rejected" ? "❎ [Giữ nguyên] " : "⏳ [Chờ duyệt] ");
+      const optionsHtml = !blurryList.length
+        ? "<option value=''>Không có cây nhòe ngọn</option>"
+        : blurryList.map(function(p) {
+            const stIcon = p.replacementStatus === "approved" ? "✅ [Đã thay] " : (p.replacementStatus === "rejected" ? "❎ [Giữ] " : "⏳ [Chờ] ");
             const selAttr = (selObj && selObj.plantId === p.plantId) ? " selected" : "";
             return "<option value=\\"" + p.plantId + "\\"" + selAttr + ">" +
-              stIcon + "Cây #" + p.plantNum + " (" + p.tileIdStr + " · px " + p.pxInTileX + "," + p.pxInTileY + " · Độ nét " + p.sharpnessBefore + "→" + p.sharpnessAfter + "%)</option>";
+              stIcon + "Cây #" + p.plantNum + " (" + p.tileIdStr + " · " + p.sharpnessBefore + "→" + p.sharpnessAfter + "%)</option>";
           }).join("");
-        }
-      }
+
+      const selEl = document.getElementById("blurry-plant-select");
+      if (selEl) selEl.innerHTML = optionsHtml;
+      const topSelEl = document.getElementById("center-top-blurry-select");
+      if (topSelEl) topSelEl.innerHTML = optionsHtml;
 
       const listEl = document.getElementById("blurry-plant-list");
       if (listEl) {
@@ -3371,19 +3362,19 @@ grass</textarea>
           const borderCol = isCur ? "#009966" : "var(--border)";
           const bgCol = p.replacementStatus === "approved" ? "#ecfdf5" : (p.replacementStatus === "rejected" ? "#fef2f2" : "#fffbeb");
           const statusTxt = p.replacementStatus === "approved"
-            ? "<span class='status-green'>✅ Đã đồng ý thay ngọn nét</span>"
+            ? "<span class='status-green'>✅ Đã thay</span>"
             : (p.replacementStatus === "rejected"
-              ? "<span class='status-red'>❎ Không thay (Giữ nguyên)</span>"
-              : "<span class='status-tag' style='background:#fef3c7;color:#b45309;font-size:10.5px;min-height:20px;padding:1px 7px;'>⏳ Chờ bạn đồng ý</span>");
+              ? "<span class='status-red'>❎ Không thay</span>"
+              : "<span class='status-tag' style='background:#fef3c7;color:#b45309;font-size:10.5px;min-height:20px;padding:1px 7px;'>⏳ Chờ duyệt</span>");
 
-          return "<div style='padding:7px 9px;border:1.5px solid " + borderCol + ";border-radius:6px;background:" + bgCol + ";font-size:11.5px;cursor:pointer;' onclick=\\"selectBlurryPlantForComparison('" + p.plantId + "', true)\\">" +
+          return "<div style='padding:6px 8px;border:1.5px solid " + borderCol + ";border-radius:6px;background:" + bgCol + ";font-size:11.5px;cursor:pointer;' onclick=\\"selectBlurryPlantForComparison('" + p.plantId + "', true)\\">" +
             "<div style='display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;'>" +
-            "<strong>🌱 Cây lúa #" + p.plantNum + " (<code>" + p.tileIdStr + "</code>)</strong>" +
+            "<strong>🌱 Cây #" + p.plantNum + " (<code>" + p.tileIdStr + "</code>)</strong>" +
             statusTxt +
             "</div>" +
-            "<div style='display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:#334155;'>" +
-            "<span>Tọa độ ô: <code>(" + p.pxInTileX + ", " + p.pxInTileY + " px)</code> · ΔZ <code>+" + p.deltaZCm + "cm</code></span>" +
-            "<span>Độ nét: <strong style='color:#b42318;'>" + p.sharpnessBefore + "%</strong> → <strong style='color:#007a52;'>" + p.sharpnessAfter + "%</strong> (<code>" + p.rtkBestFrame + "</code>)</span>" +
+            "<div style='display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;font-size:11px;color:#334155;'>" +
+            "<span><code>(" + p.pxInTileX + "," + p.pxInTileY + "px)</code> · ΔZ <code>+" + p.deltaZCm + "cm</code></span>" +
+            "<span>Nét: <strong style='color:#b42318;'>" + p.sharpnessBefore + "%</strong> → <strong style='color:#007a52;'>" + p.sharpnessAfter + "%</strong> (<code>" + p.rtkBestFrame + "</code>)</span>" +
             "</div>" +
             "</div>";
         }).join("");
@@ -3392,18 +3383,18 @@ grass</textarea>
       const statusBox = document.getElementById("blurry-approval-status");
       if (statusBox && selObj) {
         const decisionText = selObj.replacementStatus === "approved"
-          ? "<strong style='color:#007a52;'>✅ ĐÃ ĐỒNG Ý THAY NGỌN NÉT RTK</strong> (Sẽ ghi patch ngọn nét vào file <code>.tiff</code> khi xuất)"
+          ? "<strong style='color:#007a52;'>✅ ĐÃ THAY NGỌN NÉT RTK</strong>"
           : (selObj.replacementStatus === "rejected"
-            ? "<strong style='color:#b42318;'>❎ ĐÃ CHỌN KHÔNG THAY (GIỮ NGUYÊN ẢNH GỐC)</strong>"
-            : "<strong style='color:#b45309;'>⏳ CHỜ QUYẾT ĐỊNH CỦA BẠN (CHƯA THAY TỰ ĐỘNG)</strong>");
+            ? "<strong style='color:#b42318;'>❎ KHÔNG THAY</strong>"
+            : "<strong style='color:#b45309;'>⏳ CHỜ DUYỆT</strong>");
         statusBox.innerHTML =
-          "Đang soi: <strong>Cây lúa #" + selObj.plantNum + "</strong> trong ô <code>" + selObj.tileIdStr + "</code> tại <code>(" + selObj.pxInTileX + ", " + selObj.pxInTileY + " px)</code> · " +
-          "Quyết định: " + decisionText + " · Tổng số cây đã đồng ý thay trong ô: <strong>" + st.approvedReplacedPlants + "/" + st.blurryTipPlants + " cây</strong>.";
+          "Đang chọn: <strong>Cây #" + selObj.plantNum + "</strong> (<code>" + selObj.tileIdStr + "</code>) · " +
+          decisionText + " · Đã thay: <strong>" + st.approvedReplacedPlants + "/" + st.blurryTipPlants + "</strong>.";
       }
 
       const revStatus = document.getElementById("rev-detect-status");
       if (revStatus) {
-        revStatus.textContent = "Ô " + st.tileIdStr + ": " + st.totalRicePlants + " cây lúa · Đã đồng ý thay " + st.approvedReplacedPlants + "/" + st.blurryTipPlants + " cây nhòe ngọn";
+        revStatus.textContent = "Ô " + st.tileIdStr + ": " + st.totalRicePlants + " cây · Thay " + st.approvedReplacedPlants + "/" + st.blurryTipPlants + " cây nhòe";
       }
     }
 
@@ -3457,7 +3448,7 @@ grass</textarea>
       drawRtkCrownComparisonCanvas();
       drawOverviewAndGrid();
       if (window.anime) {
-        window.anime({ targets: "#rtk-crown-canvas", scale: [0.97, 1], opacity: [0.65, 1], duration: 280, easing: "easeOutExpo" });
+        window.anime({ targets: "#overview-canvas", scale: [0.985, 1], opacity: [0.75, 1], duration: 240, easing: "easeOutExpo" });
       }
       return p;
     }
@@ -3614,29 +3605,64 @@ grass</textarea>
       ctx.fillRect(0, 0, W, H);
 
       // =========================================================================
-      // CHẾ ĐỘ 2 Ở KHUNG GIỮA: SOI Ô ẢNH ĐÃ CẮT 1:1 & ĐẾM TỪNG CÂY LÚA (100% ĐỘ NÉT GỐC)
+      // CHẾ ĐỘ 2 Ở KHUNG GIỮA: SOI Ô CẮT 1:1 — BÊN TRÁI (CHƯA ĐẾM) vs BÊN PHẢI (ĐÃ ĐẾM)
       // =========================================================================
       if (gridState.centerStageMode === "tile_1to1") {
         const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
         recalcTileBlurryCounts(st);
         const cleanTile = getCleanNativeTileCanvas(gridState.selectedIndex);
-        const side = Math.min(W - 36, H - 76);
-        const dx = Math.round((W - side) / 2);
-        const dy = 44;
 
+        const pad = 16;
+        const topY = 70;
+        const availW = Math.floor((W - pad * 3) / 2);
+        const availH = H - topY - 14;
+        const side = Math.max(140, Math.min(availW, availH));
+        const leftX = Math.floor((W - (side * 2 + pad)) / 2);
+        const rightX = leftX + side + pad;
+
+        // 1. KHUNG BÊN TRÁI: BÊN CHƯA ĐẾM (Ảnh ô cắt gốc 1:1 sạch 100%, không vẽ vòng đếm)
         ctx.save();
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(cleanTile, 0, 0, cleanTile.width, cleanTile.height, dx, dy, side, side);
-        ctx.strokeStyle = "#10b981";
+        ctx.drawImage(cleanTile, 0, 0, cleanTile.width, cleanTile.height, leftX, topY, side, side);
+        ctx.strokeStyle = "#64748b";
         ctx.lineWidth = 2.2;
-        ctx.strokeRect(dx, dy, side, side);
+        ctx.strokeRect(leftX, topY, side, side);
 
-        // Ve diem dem TỪNG CÂY LÚA ben trong o anh da cat
-        if (gridState.showDetectionsOnMap !== false && st && Array.isArray(st.plants)) {
+        ctx.fillStyle = "rgba(30, 41, 59, 0.96)";
+        ctx.fillRect(leftX, topY - 26, side, 26);
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.fillText(
+          "📷 BÊN CHƯA ĐẾM — Ô ảnh gốc 1:1 (" + st.tileIdStr + " · " + gridState.tileW + "×" + gridState.tileH + " px)",
+          leftX + 10,
+          topY - 9
+        );
+        ctx.restore();
+
+        // 2. KHUNG BÊN PHẢI: BÊN ĐÃ ĐẾM (Cùng ô ảnh 1:1 + Khoanh & đánh số từng cây lúa #1..#N)
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cleanTile, 0, 0, cleanTile.width, cleanTile.height, rightX, topY, side, side);
+        ctx.strokeStyle = "#10b981";
+        ctx.lineWidth = 2.4;
+        ctx.strokeRect(rightX, topY, side, side);
+
+        ctx.fillStyle = "rgba(0, 122, 82, 0.96)";
+        ctx.fillRect(rightX, topY - 26, side, 26);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.fillText(
+          "🎯 BÊN ĐÃ ĐẾM — Đếm được: " + st.totalRicePlants + " cây lúa (🟢 " + st.sharpRicePlants + " nét · 🟠 " + st.blurryTipPlants + " nhòe)",
+          rightX + 10,
+          topY - 9
+        );
+
+        // Vẽ điểm đếm & số thứ tự TỪNG CÂY LÚA bên khung phải
+        if (st && Array.isArray(st.plants)) {
           const selBlurry = getSelectedBlurryPlantObj();
           st.plants.forEach(function(p) {
-            const px = dx + p.relX * side;
-            const py = dy + p.relY * side;
+            const px = rightX + p.relX * side;
+            const py = topY + p.relY * side;
             const rad = Math.max(6, (p.radiusPx / 1024) * side * 0.95);
             ctx.beginPath();
             ctx.arc(px, py, rad, 0, Math.PI * 2);
@@ -3645,7 +3671,7 @@ grass</textarea>
               if (p.replacementStatus === "approved") {
                 ctx.strokeStyle = "#06b6d4";
                 ctx.lineWidth = isCur ? 3.2 : 2.2;
-                ctx.fillStyle = "rgba(6, 182, 212, 0.20)";
+                ctx.fillStyle = "rgba(6, 182, 212, 0.22)";
               } else if (p.replacementStatus === "rejected") {
                 ctx.strokeStyle = "#ef4444";
                 ctx.lineWidth = isCur ? 3.0 : 2.0;
@@ -3658,90 +3684,117 @@ grass</textarea>
               ctx.fill();
               ctx.stroke();
 
-              // Nhan cay nhoe ngon
               ctx.fillStyle = (p.replacementStatus === "approved") ? "#0891b2" : "#d97706";
-              ctx.fillRect(px - 28, py - rad - 16, 58, 14);
+              ctx.fillRect(px - 24, py - rad - 15, 50, 13);
               ctx.fillStyle = "#ffffff";
-              ctx.font = "bold 9.5px Inter, sans-serif";
+              ctx.font = "bold 9px Inter, sans-serif";
               ctx.fillText(
-                (p.replacementStatus === "approved" ? "✨#" : "🌱#") + p.plantNum + (p.replacementStatus === "approved" ? " Đã thay" : " Nhòe"),
-                px - 25,
+                (p.replacementStatus === "approved" ? "✨#" : "🌱#") + p.plantNum + (p.replacementStatus === "approved" ? " Thay" : " Nhòe"),
+                px - 22,
                 py - rad - 5
               );
             } else {
-              ctx.strokeStyle = "rgba(16, 185, 129, 0.82)";
-              ctx.lineWidth = 1.25;
+              ctx.strokeStyle = "#10b981";
+              ctx.lineWidth = 1.6;
+              ctx.fillStyle = "rgba(16, 185, 129, 0.14)";
+              ctx.fill();
               ctx.stroke();
               ctx.fillStyle = "#10b981";
               ctx.beginPath();
               ctx.arc(px, py, 2.2, 0, Math.PI * 2);
               ctx.fill();
+              ctx.fillStyle = "#a7f3d0";
+              ctx.font = "bold 8.5px Inter, sans-serif";
+              ctx.fillText("#" + p.plantNum, px + rad + 2, py + 3);
             }
           });
         }
         ctx.restore();
 
-        // Thanh tieu de tren cung cua Center Stage
-        ctx.fillStyle = "rgba(11, 20, 16, 0.92)";
-        ctx.fillRect(12, 6, W - 24, 32);
+        // Thanh tiêu đề trên cùng của Center Stage
+        ctx.fillStyle = "rgba(11, 20, 16, 0.94)";
+        ctx.fillRect(12, 6, W - 24, 30);
         ctx.fillStyle = "#6ee7b7";
-        ctx.font = "bold 13px Inter, sans-serif";
+        ctx.font = "bold 12.5px Inter, sans-serif";
         ctx.fillText(
-          "🔍 Ô ẢNH ĐÃ CẮT 1:1 (" + st.tileIdStr + " · " + gridState.tileW + "×" + gridState.tileH + " px · 100% GỐC) — ĐẾM ĐƯỢC: " +
-          st.totalRicePlants + " CÂY LÚA (" + st.sharpRicePlants + " NGỌN NÉT · " + st.blurryTipPlants + " CÂY NHÒE NGỌN · ĐÃ THAY: " + st.approvedReplacedPlants + ")",
-          22,
-          26
+          "🔍 SOI ĐỐI CHIẾU Ô " + st.tileIdStr + " (1:1 GỐC): TRÁI = CHƯA ĐẾM vs PHẢI = ĐÃ ĐẾM (" +
+          st.totalRicePlants + " CÂY LÚA · " + st.sharpRicePlants + " NÉT · " + st.blurryTipPlants + " NHÒE · ĐÃ THAY " + st.approvedReplacedPlants + ")",
+          20,
+          25
         );
         return;
       }
 
       // =========================================================================
-      // CHẾ ĐỘ 3 Ở KHUNG GIỮA: SO SÁNH TRỰC TIẾP CÂY NHÒE NGỌN (KHÔNG THAY vs THAY NGỌN NÉT RTK)
+      // CHẾ ĐỘ 3 Ở KHUNG GIỮA (TRÊN CÙNG): SO SÁNH CÂY NHÒE NGỌN (KHÔNG THAY vs THAY NGỌN NÉT RTK)
       // =========================================================================
       if (gridState.centerStageMode === "blurry_compare") {
         const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
         recalcTileBlurryCounts(st);
         const selPlant = getSelectedBlurryPlantObj();
-        const pad = 18;
+        const cleanTile = getCleanNativeTileCanvas(gridState.selectedIndex);
+        const pad = 16;
         const paneW = Math.floor((W - pad * 3) / 2);
-        const paneH = H - 104;
-        const topY = 48;
+        const paneH = H - 96;
+        const topY = 44;
 
-        // Khung Trai: KHONG THAY (Giu nguyen ngon nhoe goc)
         ctx.fillStyle = "#141d19";
         ctx.fillRect(pad, topY, paneW, paneH);
-        // Khung Phai: THAY (Khoi phuc ngon net 100% tu anh tho RTK Nadir)
         ctx.fillRect(pad * 2 + paneW, topY, paneW, paneH);
 
         if (selPlant) {
-          // Ve nen bun/nuoc va cac cay lan can + cay dang chon o trung tam
+          const patchRadius = 96;
+          const sx = Math.max(0, Math.min(cleanTile.width - patchRadius * 2, selPlant.pxInTileX - patchRadius));
+          const sy = Math.max(0, Math.min(cleanTile.height - patchRadius * 2, selPlant.pxInTileY - patchRadius));
+          const sw = Math.min(patchRadius * 2, cleanTile.width);
+          const sh = Math.min(patchRadius * 2, cleanTile.height);
+
           [
-            { x0: pad, mode: "blurry_original", border: "#ef4444", title: "❌ KHÔNG THAY (Giữ nguyên cây #" + selPlant.plantNum + " ngọn nhòe · Độ nét " + selPlant.sharpnessBefore + "%)" },
-            { x0: pad * 2 + paneW, mode: "rtk_restored", border: "#10b981", title: "✅ THAY (Khôi phục ngọn nét 100% từ " + selPlant.rtkBestFrame + " · Độ nét " + selPlant.sharpnessAfter + "%)" }
+            { x0: pad, mode: "blurry_original", border: "#ef4444", title: "❌ BÊN TRÁI: KHÔNG THAY — Cây #" + selPlant.plantNum + " ngọn nhòe gốc (Độ nét " + selPlant.sharpnessBefore + "%)" },
+            { x0: pad * 2 + paneW, mode: "rtk_restored", border: "#10b981", title: "✅ BÊN PHẢI: THAY — Cây #" + selPlant.plantNum + " ngọn nét RTK " + selPlant.rtkBestFrame + " (Độ nét " + selPlant.sharpnessAfter + "%)" }
           ].forEach(function(pane) {
             ctx.save();
             ctx.beginPath();
             ctx.rect(pane.x0, topY, paneW, paneH);
             ctx.clip();
 
+            // Vẽ vùng ảnh nền 1:1 xung quanh cây lúa đang soi
+            ctx.imageSmoothingEnabled = false;
+            ctx.globalAlpha = 0.45;
+            ctx.drawImage(cleanTile, sx, sy, sw, sh, pane.x0, topY + 28, paneW, paneH - 28);
+            ctx.globalAlpha = 1.0;
+
             const cx = pane.x0 + paneW / 2;
-            const cy = topY + paneH / 2 + 10;
-            drawSingleRiceSeedlingCrown(ctx, cx, cy, Math.min(paneW, paneH) * 0.28, selPlant.bladeCount + 2, selPlant.bladeAngleOffset, pane.mode);
+            const cy = topY + paneH / 2 + 12;
+            drawSingleRiceSeedlingCrown(ctx, cx, cy, Math.min(paneW, paneH) * 0.27, selPlant.bladeCount + 2, selPlant.bladeAngleOffset, pane.mode);
 
             ctx.strokeStyle = pane.border;
             ctx.lineWidth = 2.2;
             ctx.setLineDash([6, 4]);
             ctx.beginPath();
-            ctx.arc(cx, cy, Math.min(paneW, paneH) * 0.31, 0, Math.PI * 2);
+            ctx.arc(cx, cy, Math.min(paneW, paneH) * 0.30, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
+
+            // Hộp thông số góc dưới mỗi bên
+            ctx.fillStyle = "rgba(11, 20, 16, 0.88)";
+            ctx.fillRect(pane.x0 + 10, topY + paneH - 34, paneW - 20, 24);
+            ctx.fillStyle = (pane.mode === "blurry_original") ? "#fca5a5" : "#6ee7b7";
+            ctx.font = "bold 11.5px Inter, sans-serif";
+            ctx.fillText(
+              pane.mode === "blurry_original"
+                ? ("Ngọn nhòe do ghép Ortho · Laplacian: " + selPlant.sharpnessBefore + "% · Tọa độ ô: (" + selPlant.pxInTileX + "," + selPlant.pxInTileY + " px)")
+                : ("Khôi phục từ ảnh thô RTK " + selPlant.rtkBestFrame + " · Laplacian: " + selPlant.sharpnessAfter + "% · ΔZ DEM: +" + selPlant.deltaZCm + "cm (Bất biến)"),
+              pane.x0 + 18,
+              topY + paneH - 18
+            );
             ctx.restore();
 
             ctx.strokeStyle = pane.border;
             ctx.lineWidth = 2.4;
             ctx.strokeRect(pane.x0, topY, paneW, paneH);
 
-            ctx.fillStyle = (pane.mode === "blurry_original") ? "rgba(180, 35, 24, 0.94)" : "rgba(0, 122, 82, 0.94)";
+            ctx.fillStyle = (pane.mode === "blurry_original") ? "rgba(180, 35, 24, 0.95)" : "rgba(0, 122, 82, 0.95)";
             ctx.fillRect(pane.x0, topY, paneW, 28);
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 12px Inter, sans-serif";
@@ -3750,17 +3803,16 @@ grass</textarea>
         }
 
         ctx.fillStyle = "rgba(11, 20, 16, 0.94)";
-        ctx.fillRect(12, 6, W - 24, 34);
+        ctx.fillRect(12, 6, W - 24, 32);
         ctx.fillStyle = "#fde047";
-        ctx.font = "bold 13px Inter, sans-serif";
+        ctx.font = "bold 12.5px Inter, sans-serif";
         const curDecision = selPlant
-          ? (selPlant.replacementStatus === "approved" ? "✅ ĐÃ ĐỒNG Ý THAY CÂY NÀY" : (selPlant.replacementStatus === "rejected" ? "❎ ĐÃ CHỌN KHÔNG THAY" : "⏳ CHỜ BẠN BẤM 'ĐỒNG Ý THAY' HOẶC 'KHÔNG THAY'"))
+          ? (selPlant.replacementStatus === "approved" ? "✅ ĐÃ ĐỒNG Ý THAY" : (selPlant.replacementStatus === "rejected" ? "❎ KHÔNG THAY" : "⏳ CHỜ BẠN CHỌN 'ĐỒNG Ý THAY' HOẶC 'KHÔNG THAY' Ở THANH TRÊN"))
           : "CHỌN CÂY NHÒE NGỌN";
         ctx.fillText(
-          "🌱 SO SÁNH CÂY LÚA NHÒE NGỌN #" + (selPlant ? selPlant.plantNum : 1) + " TRONG Ô " + st.tileIdStr +
-          " · TRẠNG THÁI: " + curDecision + " (DEM/DSM BẤT BIẾN 100%)",
+          "🌱 SO SÁNH NGỌN CÂY NHÒE #" + (selPlant ? selPlant.plantNum : 1) + " (" + st.tileIdStr + ") — " + curDecision,
           20,
-          27
+          26
         );
         return;
       }
@@ -3926,43 +3978,55 @@ grass</textarea>
         }
       }
 
-      // Ve buffer 1:1 (1024x1024) sac net len #tile-preview-canvas
+      // Ve 2 nua doi chieu tren #tile-preview-canvas: TRAI = CHUA DEM (sach 100%) | PHAI = DA DEM (khoanh tung cay lua)
       const cleanCanvas = getCleanNativeTileCanvas(gridState.selectedIndex);
+      const halfW = Math.floor(c.width / 2);
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(cleanCanvas, 0, 0, cleanCanvas.width, cleanCanvas.height, 0, 0, c.width, c.height);
+      // Nua Trai: Chua dem
+      ctx.drawImage(cleanCanvas, 0, 0, cleanCanvas.width, cleanCanvas.height, 0, 42, halfW - 2, c.height - 42);
+      // Nua Phai: Da dem
+      ctx.drawImage(cleanCanvas, 0, 0, cleanCanvas.width, cleanCanvas.height, halfW + 2, 42, halfW - 2, c.height - 42);
 
-      // Ve vong tron danh dau tung cay lua & cay nhoe ngon khi bat hien thi
-      if (gridState.showDetectionsOnMap && st && Array.isArray(st.plants)) {
+      // Vach ngan giua Trai (Chua dem) va Phai (Da dem)
+      ctx.fillStyle = "#10b981";
+      ctx.fillRect(halfW - 2, 42, 4, c.height - 42);
+
+      // Ve vong tron danh dau tung cay lua & cay nhoe ngon chi o NUA PHAI (BEN DA DEM)
+      if (st && Array.isArray(st.plants)) {
         const selBlurry = getSelectedBlurryPlantObj();
+        const paneW = halfW - 2;
+        const paneH = c.height - 42;
         st.plants.forEach(function(p) {
-          const px = p.relX * c.width;
-          const py = p.relY * c.height;
-          const rad = Math.max(8, p.radiusPx * (c.width / 1024));
+          const px = (halfW + 2) + p.relX * paneW;
+          const py = 42 + p.relY * paneH;
+          const rad = Math.max(7, p.radiusPx * (paneW / 1024));
           ctx.beginPath();
           ctx.arc(px, py, rad, 0, Math.PI * 2);
           if (p.isBlurryTip) {
             const isCur = selBlurry && selBlurry.plantId === p.plantId;
             ctx.strokeStyle = p.replacementStatus === "approved" ? "#06b6d4" : (isCur ? "#fde047" : "#f59e0b");
-            ctx.lineWidth = isCur ? 4.0 : 2.8;
+            ctx.lineWidth = isCur ? 3.5 : 2.5;
             ctx.stroke();
-          } else if (gridState.hasRunDetection) {
-            ctx.strokeStyle = "rgba(16, 185, 129, 0.72)";
+          } else {
+            ctx.strokeStyle = "#10b981";
             ctx.lineWidth = 1.6;
             ctx.stroke();
           }
         });
       }
 
-      // Thanh thong tin dem cay lua cua o anh cat
-      ctx.fillStyle = "rgba(11, 20, 16, 0.88)";
-      ctx.fillRect(0, 0, c.width, 42);
-      ctx.fillStyle = "#6ee7b7";
-      ctx.font = "bold 22px Inter, sans-serif";
-      ctx.fillText(
-        st.tileIdStr + " · " + st.totalRicePlants + " cây lúa (" + st.sharpRicePlants + " nét · " + st.blurryTipPlants + " nhòe)",
-        14,
-        29
-      );
+      // Thanh thong tin dem cay lua cua o anh cat (Trai: Chua dem | Phai: Da dem)
+      ctx.fillStyle = "rgba(30, 41, 59, 0.94)";
+      ctx.fillRect(0, 0, halfW - 1, 42);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 19px Inter, sans-serif";
+      ctx.fillText("📷 CHƯA ĐẾM (" + st.tileIdStr + ")", 12, 28);
+
+      ctx.fillStyle = "rgba(0, 122, 82, 0.94)";
+      ctx.fillRect(halfW + 1, 0, halfW - 1, 42);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 19px Inter, sans-serif";
+      ctx.fillText("🎯 ĐÃ ĐẾM: " + st.totalRicePlants + " CÂY (" + st.blurryTipPlants + " NHÒE)", halfW + 12, 28);
     }
 
     function isNoDataPixelRGBA(r, g, b, a) {
@@ -5927,17 +5991,29 @@ grass</textarea>
           const cx = (e.clientX - rect.left) * (canvas.width / rect.width);
           const cy = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-          // Neu dang o che do Soi o anh cat 1:1 o giua, cho phep click chon truc tiep cay lua bi nhoe ngon
+          // Neu dang o che do Soi o anh cat 1:1 (Trai: Chua dem vs Phai: Da dem), cho phep click chon cay lua bi nhoe ngon o ca 2 khung
           if (gridState.centerStageMode === "tile_1to1") {
             const st = ensureTileRicePlantStats(gridState.selectedIndex, false);
-            const side = Math.min(canvas.width - 36, canvas.height - 76);
-            const dx = Math.round((canvas.width - side) / 2);
-            const dy = 44;
-            if (cx >= dx && cx <= dx + side && cy >= dy && cy <= dy + side && st && Array.isArray(st.plants)) {
-              const relX = (cx - dx) / side;
-              const relY = (cy - dy) / side;
+            const pad = 16;
+            const topY = 70;
+            const availW = Math.floor((canvas.width - pad * 3) / 2);
+            const availH = canvas.height - topY - 14;
+            const side = Math.max(140, Math.min(availW, availH));
+            const leftX = Math.floor((canvas.width - (side * 2 + pad)) / 2);
+            const rightX = leftX + side + pad;
+            let relX = -1, relY = -1;
+            if (cy >= topY && cy <= topY + side) {
+              if (cx >= leftX && cx <= leftX + side) {
+                relX = (cx - leftX) / side;
+                relY = (cy - topY) / side;
+              } else if (cx >= rightX && cx <= rightX + side) {
+                relX = (cx - rightX) / side;
+                relY = (cy - topY) / side;
+              }
+            }
+            if (relX >= 0 && relY >= 0 && st && Array.isArray(st.plants)) {
               let bestPlant = null;
-              let bestDist = 0.06;
+              let bestDist = 0.065;
               st.plants.forEach(function(p) {
                 if (!p.isBlurryTip) return;
                 const d = Math.hypot(p.relX - relX, p.relY - relY);

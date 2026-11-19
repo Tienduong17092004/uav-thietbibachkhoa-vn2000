@@ -614,7 +614,7 @@ class TestRound3KeyManagementAndAutoTPUM3(unittest.TestCase):
         self.assertIn("showDetectionsOnMap: false", html)
         self.assertIn('id="main-job-panel" class="job-panel" aria-label="Tiến độ xử lý" hidden', html)
         self.assertIn("function zoomToNative1To1()", html)
-        self.assertIn("🎯 Tỷ lệ 1:1 (Pixel gốc)", html)
+        self.assertTrue("🎯 1:1" in html or "🎯 Tỷ lệ 1:1" in html)
         self.assertIn("🖼️ Toàn bộ ảnh", html)
         self.assertIn("function isNoDataPixelRGBA(r, g, b, a)", html)
         self.assertIn("function pauseOrResumeDetectionJob()", html)
